@@ -120,18 +120,13 @@ jobs:
         working-directory: ${{ inputs.working_dir }}
         run: |
           # Build terraform plan command with optional var flags
-          PLAN_CMD="terraform plan -input=false -no-color"
-
-          # Add dynamic -var flags if provided
+          # Execute the plan with proper argument handling
           if [ -n "${{ inputs.terraform_vars }}" ]; then
-            PLAN_CMD="$PLAN_CMD ${{ inputs.terraform_vars }}"
+            terraform plan -input=false -no-color ${{ inputs.terraform_vars }} -var-file=variables/${{inputs.environment}}.tfvars -out=tfplan
+          else
+            terraform plan -input=false -no-color -var-file=variables/${{inputs.environment}}.tfvars -out=tfplan
           fi
-
-          PLAN_CMD="$PLAN_CMD -var-file=variables/${{inputs.environment}}.tfvars -out=tfplan"
-
-          # Execute the plan
-          eval $PLAN_CMD
-          terraform show -no-color tfplan > tfplan.txt
+          terraform show -no-color tfplan > tfplan.txt 
         continue-on-error: true
 
       - name: Convert plan to JSON for Checkov
