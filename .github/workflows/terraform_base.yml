@@ -35,6 +35,7 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        ref: ${{github.ref}}
 
       - name: Generate environment matrix from tfvars files
         id: set-matrix
