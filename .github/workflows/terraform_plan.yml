@@ -101,7 +101,7 @@ jobs:
       - name: Terraform Init
         working-directory: ${{ inputs.working_dir }}
         run: |
-          terraform init -input=false 
+          terraform init -input=false
 
       - name: Terraform Workspace Switch
         working-directory: ${{ inputs.working_dir }}
@@ -126,7 +126,7 @@ jobs:
           else
             terraform plan -input=false -no-color -var-file=variables/${{inputs.environment}}.tfvars -out=tfplan
           fi
-          terraform show -no-color tfplan > tfplan.txt 
+          terraform show -no-color tfplan > tfplan.txt
         continue-on-error: true
 
       - name: Convert plan to JSON for Checkov

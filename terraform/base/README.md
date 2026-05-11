@@ -28,7 +28,7 @@ No resources.
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
 | <a name="input_aws_region"></a> [aws\_region](#input\_aws\_region) | Target deployment region | `string` | n/a | yes |
-| <a name="input_backup_enabled"></a> [backup\_enabled](#input\_backup\_enabled) | Wether to enable AWS backup for supported resources | `bool` | n/a | yes |
+| <a name="input_company_name"></a> [company\_name](#input\_company\_name) | Name to be appended to all resources as prefix | `string` | n/a | yes |
 | <a name="input_environment"></a> [environment](#input\_environment) | Target deployment environment | `string` | n/a | yes |
 | <a name="input_team"></a> [team](#input\_team) | Team that manages this project | `string` | n/a | yes |
 

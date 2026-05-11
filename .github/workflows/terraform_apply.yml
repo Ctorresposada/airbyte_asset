@@ -170,7 +170,6 @@ jobs:
         working-directory: ${{ inputs.working_dir }}
         run: |
           terraform init -input=false
- 
       - name: Terraform Workspace Switch
         working-directory: ${{ inputs.working_dir }}
         run: terraform workspace new ${{inputs.environment}} 2> /dev/null || terraform workspace select ${{inputs.environment}}
