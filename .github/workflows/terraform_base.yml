@@ -1,4 +1,4 @@
-name: Terraform - AI ordering base infrastructure
+name: Terraform - Region 20 base infrastructure
 on:
   pull_request:
     branches:
@@ -14,7 +14,7 @@ on:
       - '.github/workflows/terraform_base.yml'
 
 env:
-  AWS_REGION: ${{ vars.AWS_REGION || 'us-east-2' }}
+  AWS_REGION: ${{ vars.AWS_REGION || 'us-east-1' }}
   TERRAFORM_VERSION: ${{ vars.TERRAFORM_VERSION || '1.11.0' }}
   WORKING_DIR: 'terraform/base'
 
@@ -70,10 +70,7 @@ jobs:
       aws_region: ${{ needs.generate-matrix.outputs.AWS_REGION}}
       working_dir: ${{ needs.generate-matrix.outputs.WORKING_DIR }}
       environment: ${{ matrix.environment }}
-      state_bucket: ${{ vars[format('STATE_BUCKET_{0}', matrix.environment)] }}
-      state_kms_key_id: ${{ vars[format('STATE_KMS_KEY_ID_{0}', matrix.environment)] }}
-    secrets: inherit
-
+      secrets: inherit
   terraform-apply:
     name: Terraform Apply - ${{ matrix.environment }}
     needs: [generate-matrix]
