@@ -1,0 +1,14 @@
+download-external-modules: false
+framework:
+  - all
+quiet: true
+skip-path:
+  - .external_modules
+  - .terraform
+  - .terraform.lock.hcl
+  - .*.enc.*
+enable-secret-scan-all-files: true
+skip-check:
+  - CKV_TF_1  # "Ensure Terraform module sources use a commit hash"
+  - CKV_TF_3  # "Ensure state files are locked" - Fails if backend config is passed in with the -backend-config flag.
+  - CKV_AWS_355  # "Ensure no IAM policies documents allow "*" as a statement's resource for restrictable actions"

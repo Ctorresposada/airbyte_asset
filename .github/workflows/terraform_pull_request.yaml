@@ -1,0 +1,31 @@
+name: Terraform CI Pull Request Workflow
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'terraform/**'
+      - '.github/workflows/terraform_checks.yaml'
+      - '.config/**'
+
+permissions:
+  contents: write
+  pull-requests: write
+  id-token: write
+
+jobs:
+  # Run terraform checks without requiring AWS credentials
+  terraform_lint_and_validate:
+    name: Terraform Checks
+    uses: ./.github/workflows/terraform_checks.yaml
+    secrets: inherit
+    with:
+      path: "terraform"
+
+  # Run general code/repo checks
+  general_checks:
+    name: General Checks
+    uses: ./.github/workflows/general_checks.yaml
+    secrets: inherit
+
+  # Unit tests should be added here.
