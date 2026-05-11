@@ -1,0 +1,43 @@
+name: General checks and tests (no credentials required)
+on:
+  workflow_call:
+    inputs:
+      path:
+        type: string
+        default: "."
+
+permissions:
+  contents: write
+  pull-requests: write
+  id-token: write
+
+jobs:
+  yaml_lint:
+    name: YAML Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+        id: checkout
+      # yamllint version here should match the one in .pre-commit-config.yaml for consistency
+      - name: Run Yamllint
+        run: |
+          # Install yamllint
+          pip install --user yamllint==1.35.1
+          # Run yamllint
+          yamllint --strict --config-file .config/.yamllint.yaml ${{ inputs.path }}
+
+  gitleaks:
+    name: Detect Secrets
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+      # There is a Gitleaks action provided by the developers but it requires a license for organizations
+      - name: Install and Run Gitleaks
+        run: |
+          /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" > /dev/null
+          (echo; echo 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"') >> /home/runner/.bash_profile > /dev/null
+          eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)" > /dev/null
+          brew install gitleaks > /dev/null
+          gitleaks dir --redact --verbose

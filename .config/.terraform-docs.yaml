@@ -1,0 +1,70 @@
+---
+# terraform-docs configuration
+formatter: markdown table
+
+version: ""
+
+header-from: main.tf
+footer-from: ""
+
+recursive:
+  enabled: true
+  path: examples
+
+sections:
+  show:
+    - header
+    - inputs
+    - providers
+    - modules
+    - outputs
+
+# content: ""
+content: |-
+  # Examples
+  ```hcl
+  # main.tf
+  {{ include "examples/complete/main.tf" }}
+  ```
+  ```hcl
+  # terraform.tfvars
+  {{ include "examples/complete/terraform.tfvars" }}
+  ```
+    ```hcl
+  # variables.tf
+  {{ include "examples/complete/variables.tf" }}
+  ```
+  {{ .Header }}
+  {{ .Providers }}
+  {{ .Inputs }}
+  {{ .Outputs }}
+  ## Resources
+  {{ range .Module.Resources }}
+  - {{ .GetMode }}.{{ .Spec }} ({{ .Position.Filename }}#{{ .Position.Line }})
+  {{- end }}
+
+output:
+  file: README.md
+  mode: inject
+  template: |-
+    <!-- BEGIN_TF_DOCS -->
+    {{ .Content }}
+    <!-- END_TF_DOCS -->
+
+sort:
+  enabled: true
+  by: name
+settings:
+  anchor: true
+  color: true
+  default: true
+  description: false
+  escape: true
+  hide-empty: true
+  html: true
+  indent: 2
+  lockfile: true
+  read-comments: true
+  required: true
+  sensitive: true
+  type: true

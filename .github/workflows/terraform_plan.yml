@@ -1,0 +1,291 @@
+name: Terraform plan
+
+on:
+  workflow_call:
+    inputs:
+      terraform_version:
+        type: string
+        default: '1.11.3'
+        description: Version of Terraform to install and use
+      aws_role_arn:
+        type: string
+        description: AWS role to assume
+      aws_region:
+        type: string
+        description: Target deployment region
+      working_dir:
+        type: string
+        description: Working directory
+      environment:
+        type: string
+        description: Target deployment environment
+      terraform_vars:
+        type: string
+        required: false
+        default: ''
+        description: 'Additional Terraform variables as -var flags (e.g., "-var key1=value1 -var key2=value2")'
+      state_bucket:
+        type: string
+        description: S3 bucket name for Terraform remote state (environment-specific)
+      state_kms_key_id:
+        type: string
+        description: KMS key ID for Terraform remote state encryption (environment-specific)
+
+permissions:
+  id-token: write
+  contents: read
+  pull-requests: write
+  deployments: write
+
+jobs:
+  terraform-plan:
+    name: Terraform plan
+    runs-on: ubuntu-latest
+    # No `environment:` key here - deployment lifecycle is managed manually via the
+    # GitHub Deployments API so plan creates a 'pending' deployment rather than
+    # auto-completing one. The apply workflow updates the deployment to success/failure.
+    # Note: vars.STATE_BUCKET and vars.STATE_KMS_KEY_ID must be defined at the
+    # repository level (not only environment-scoped) for this job to access them.
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Create GitHub deployment
+        id: create-deployment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const stackName = '${{ inputs.working_dir }}'.split('/').pop();
+            const environment = '${{ inputs.environment }}';
+
+            const deployment = await github.rest.repos.createDeployment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: context.sha,
+              environment: environment,
+              description: `Terraform plan for ${stackName} [${environment}]`,
+              auto_merge: false,
+              required_contexts: [],
+              payload: {
+                stack: '${{ inputs.working_dir }}',
+                environment: environment,
+                pr_number: context.payload.pull_request?.number
+              }
+            });
+
+            const deploymentId = deployment.data.id;
+
+            await github.rest.repos.createDeploymentStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              deployment_id: deploymentId,
+              state: 'in_progress',
+              description: 'Terraform plan running'
+            });
+
+            core.setOutput('deployment_id', deploymentId);
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ inputs.terraform_version }}
+
+      - name: Configure AWS credentials using OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ inputs.aws_role_arn }}
+          aws-region: ${{ inputs.aws_region }}
+          role-session-name: GitHubActions-TerraformPlan-${{ github.run_id }}
+
+      - name: Terraform Init
+        working-directory: ${{ inputs.working_dir }}
+        run: |
+          terraform init -input=false 
+
+      - name: Terraform Workspace Switch
+        working-directory: ${{ inputs.working_dir }}
+        run: terraform workspace new ${{inputs.environment}} 2> /dev/null || terraform workspace select ${{inputs.environment}}
+
+      - name: Terraform Format Check
+        working-directory: ${{ inputs.working_dir }}
+        run: terraform fmt -check -recursive
+
+      - name: Terraform Validate
+        working-directory: ${{ inputs.working_dir }}
+        run: terraform validate
+
+      - name: Terraform Plan
+        id: plan
+        working-directory: ${{ inputs.working_dir }}
+        run: |
+          # Build terraform plan command with optional var flags
+          PLAN_CMD="terraform plan -input=false -no-color"
+
+          # Add dynamic -var flags if provided
+          if [ -n "${{ inputs.terraform_vars }}" ]; then
+            PLAN_CMD="$PLAN_CMD ${{ inputs.terraform_vars }}"
+          fi
+
+          PLAN_CMD="$PLAN_CMD -var-file=variables/${{inputs.environment}}.tfvars -out=tfplan"
+
+          # Execute the plan
+          eval $PLAN_CMD
+          terraform show -no-color tfplan > tfplan.txt
+        continue-on-error: true
+
+      - name: Convert plan to JSON for Checkov
+        working-directory: ${{ inputs.working_dir }}
+        run: terraform show -json tfplan > tfplan.json
+
+      - name: Run Checkov security scan on plan
+        id: checkov
+        uses: bridgecrewio/checkov-action@master
+        with:
+          directory: ${{ inputs.working_dir }}
+          file: ${{ inputs.working_dir }}/tfplan.json
+          config_file: .config/.checkov.yaml
+          output_format: cli
+          soft_fail: true
+        continue-on-error: true
+
+      - name: Generate artifact name
+        id: artifact-name
+        run: |
+          # Extract stack name from working directory (e.g., terraform/stacks/ai-ordering-lambda -> ai-ordering-lambda)
+          STACK_NAME=$(basename "${{ inputs.working_dir }}")
+          # Create artifact name: tfplan-<STACK_NAME>-pr-<PR_NUMBER>
+          ARTIFACT_NAME="tfplan-${STACK_NAME}-pr-${{ github.event.pull_request.number }}-${{ inputs.environment }}"
+          echo "name=${ARTIFACT_NAME:0:100}" >> $GITHUB_OUTPUT
+
+      - name: Save deployment ID to artifact
+        run: echo "${{ steps.create-deployment.outputs.deployment_id }}" > ${{ inputs.working_dir }}/deployment_id.txt
+
+      - name: Upload Terraform plan as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.artifact-name.outputs.name }}
+          path: |
+            ${{ inputs.working_dir }}/tfplan
+            ${{ inputs.working_dir}}/tfplan.txt
+            ${{ inputs.working_dir }}/tfplan.json
+            ${{ inputs.working_dir }}/deployment_id.txt
+          retention-days: 30
+          if-no-files-found: error
+
+      - name: Post plan to PR comment
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const planPath = '${{ inputs.working_dir}}/tfplan.txt';
+            const stackName = '${{ inputs.working_dir }}'.split('/').pop();
+            const environment = '${{ inputs.environment }}';
+            const commentIdentifier = `<!-- terraform-plan-${stackName}-${environment} -->`;
+
+            let planOutput = 'Plan file not found';
+            try {
+              planOutput = fs.readFileSync(planPath, 'utf8');
+              // Truncate if too long (GitHub comment limit)
+              if (planOutput.length > 60000) {
+                planOutput = planOutput.substring(0, 60000) + '\n\n... (truncated)';
+              }
+            } catch (error) {
+              planOutput = 'Error reading plan file: ' + error.message;
+            }
+
+            const planStatus = '${{ steps.plan.outcome }}' === 'success' ? '✅' : '❌';
+            const checkovStatus = '${{ steps.checkov.outcome }}' === 'success' ? '✅' : '⚠️';
+
+            const output = `${commentIdentifier}
+            ### Terraform Plan Results ${planStatus} - \`${stackName}\` [\`${environment}\`]
+
+            **Working Directory:** \`${{ inputs.working_dir }}\`
+            **Environment:** \`${environment}\`
+            **Plan Status:** ${planStatus} ${{ steps.plan.outcome }}
+            **Checkov Security Scan:** ${checkovStatus} ${{ steps.checkov.outcome }}
+            **Artifact:** \`${{ steps.artifact-name.outputs.name }}\`
+
+            <details>
+            <summary>Show Terraform Plan</summary>
+
+            \`\`\`terraform
+            ${planOutput}
+            \`\`\`
+
+            </details>
+
+            <details>
+            <summary>Checkov Security Scan Results</summary>
+
+            See the workflow run for detailed security scan results.
+
+            </details>
+
+            ---
+            **Next Steps:**
+            - Review the plan output above
+            - Ensure Checkov security checks pass
+            - Merge this PR to apply the changes automatically
+
+            *Plan artifact: \`${{ steps.artifact-name.outputs.name }}\`*
+            `;
+
+            // Find existing comment for this specific stack
+            const { data: comments } = await github.rest.issues.listComments({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+            });
+
+            const botComment = comments.find(comment =>
+              comment.user.type === 'Bot' &&
+              comment.body.includes(commentIdentifier)
+            );
+
+            if (botComment) {
+              // Update existing comment for this stack
+              await github.rest.issues.updateComment({
+                comment_id: botComment.id,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: output
+              });
+            } else {
+              // Create new comment for this stack
+              await github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: output
+              });
+            }
+
+      - name: Update deployment status
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const deploymentId = '${{ steps.create-deployment.outputs.deployment_id }}';
+            if (!deploymentId) return;
+
+            const planOutcome = '${{ steps.plan.outcome }}';
+            // 'pending' = plan succeeded and is waiting to be applied on merge
+            // 'failure' = plan itself failed
+            const state = planOutcome === 'success' ? 'pending' : 'failure';
+            const description = planOutcome === 'success'
+              ? 'Terraform plan succeeded - awaiting merge to apply'
+              : 'Terraform plan failed';
+
+            await github.rest.repos.createDeploymentStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              deployment_id: parseInt(deploymentId),
+              state,
+              description
+            });
+
+      - name: Fail if plan failed
+        if: steps.plan.outcome == 'failure'
+        run: exit 1
