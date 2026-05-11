@@ -70,7 +70,6 @@ jobs:
       aws_region: ${{ needs.generate-matrix.outputs.AWS_REGION}}
       working_dir: ${{ needs.generate-matrix.outputs.WORKING_DIR }}
       environment: ${{ matrix.environment }}
-      secrets: inherit
   terraform-apply:
     name: Terraform Apply - ${{ matrix.environment }}
     needs: [generate-matrix]
