@@ -15,6 +15,7 @@ on:
 
 env:
   AWS_REGION: ${{ vars.AWS_REGION || 'us-east-1' }}
+  AWS_ROLE_ARN: ${{ vars.AWS_ROLE_ARN }}
   TERRAFORM_VERSION: ${{ vars.TERRAFORM_VERSION || '1.11.0' }}
   WORKING_DIR: 'terraform/base'
 
@@ -31,6 +32,7 @@ jobs:
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
       AWS_REGION: ${{ steps.static-outputs.outputs.AWS_REGION }}
+      AWS_ROLE_ARN: ${{ steps.static-outputs.outputs.AWS_ROLE_ARN }}
       WORKING_DIR: ${{ steps.static-outputs.outputs.WORKING_DIR }}
     steps:
       - name: Checkout code
@@ -54,9 +56,11 @@ jobs:
         id: static-outputs
         env:
           AWS_REGION: ${{ env.AWS_REGION }}
+          AWS_ROLE_ARN: ${{ env.AWS_ROLE_ARN }}
           WORKING_DIR: ${{ env.WORKING_DIR }}
         run: |
           echo "AWS_REGION=$AWS_REGION" >> $GITHUB_OUTPUT
+          echo "AWS_ROLE_ARN=$AWS_ROLE_ARN" >> $GITHUB_OUTPUT
           echo "WORKING_DIR=$WORKING_DIR" >> $GITHUB_OUTPUT
 
   terraform-plan:
@@ -68,7 +72,7 @@ jobs:
       matrix: ${{ fromJson(needs.generate-matrix.outputs.matrix) }}
       fail-fast: false
     with:
-      aws_role_arn: ${{ vars[format('AWS_ROLE_ARN_{0}', matrix.environment)] }}
+      aws_role_arn: ${{ needs.generate-matrix.outputs.AWS_ROLE_ARN }}
       aws_region: ${{ needs.generate-matrix.outputs.AWS_REGION}}
       working_dir: ${{ needs.generate-matrix.outputs.WORKING_DIR }}
       environment: ${{ matrix.environment }}
@@ -81,7 +85,7 @@ jobs:
       matrix: ${{ fromJson(needs.generate-matrix.outputs.matrix) }}
       fail-fast: false
     with:
-      aws_role_arn: ${{ vars[format('AWS_ROLE_ARN_{0}', matrix.environment)] }}
+      aws_role_arn: ${{ needs.generate-matrix.outputs.AWS_ROLE_ARN }}
       aws_region: ${{ needs.generate-matrix.outputs.AWS_REGION}}
       working_dir: ${{ needs.generate-matrix.outputs.WORKING_DIR }}
       environment: ${{ matrix.environment }}
