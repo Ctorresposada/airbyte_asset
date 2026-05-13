@@ -113,7 +113,6 @@ Supports multiple frameworks:
 - Terraform
 - CloudFormation
 - Kubernetes
-- Docker
 - Serverless
 
 ## Configuration Files
@@ -149,7 +148,6 @@ terraform/
 
 - [general_checks.md](general_checks.md) - General code quality checks
 - [terraform_pull_request.md](terraform_pull_request.md) - Main PR workflow
-- [build_and_push.md](build_and_push.md) - Docker image building
 
 ## Additional Resources
 

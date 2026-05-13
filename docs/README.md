@@ -8,17 +8,18 @@ This directory contains references for all GitHub Actions workflows in this repo
 |----------|------|---------|---------|
 | [terraform_plan.yml](#) | Reusable | Called by orchestrators | Generate and validate Terraform plans |
 | [terraform_apply.yml](#) | Reusable | Called by orchestrators | Apply approved Terraform changes |
-| [terraform_base.yml](#) | Orchestrator (Infrastructure) | Push / PR | Deploy base infrastructure (no containers) |
+| [terraform_base.yml](#) | Orchestrator | Push / PR | Deploy base infrastructure (state backend + OIDC) |
+| [terraform_audit.yml](#) | Orchestrator | Push / PR | Deploy audit account resources |
+| [terraform_networking.yml](#) | Orchestrator | Push / PR | Deploy networking resources |
 | [terraform_pull_request.yaml](terraform_pull_request.md) | Orchestrator | Pull Request | Main PR validation workflow |
 | [terraform_checks.yaml](terraform_checks.md) | Reusable | Called by other workflows | Terraform validation and security |
 | [general_checks.yaml](general_checks.md) | Reusable | Called by other workflows | Code quality and secret detection |
 
 ###  Orchestrator Workflow
 
-**1. Infrastructure-Only Orchestrators** (e.g., [terraform_base.yml](../workflows/terraform_base.yml))
-- **Use for:** VPCs, databases, IAM roles, S3 buckets, ECR repositories, and other pure infrastructure
+**Infrastructure-Only Orchestrators** (e.g., [terraform_base.yml](../workflows/terraform_base.yml))
+- **Use for:** VPCs, databases, IAM roles, S3 buckets, and other pure infrastructure
 - **Flow:** `Terraform Plan → Terraform Apply`
-- **Features:** No build phase, simpler and faster execution
 - **Guide:** [Creating Infrastructure-Only Stacks](deployment_with_artifacts.md#creating-new-infrastructure-only-stacks)
 
 ## Workflow Architecture
@@ -44,9 +45,7 @@ Pull Request Created
                   Ready to Merge
 ```
 
-### Deployment Flow for Infrastructure-Only Stacks
-
-For pure infrastructure:
+### Deployment Flow
 
 ```
 Pull Request
@@ -67,10 +66,7 @@ Pull Request
     └─ Deploy to AWS
 ```
 
-See the [**Deployment with Artifacts Guide**](deployment_with_artifacts.md) for the complete process, including:
-- Two orchestrator workflow types (container-based and infrastructure-only)
 - Detailed workflow orchestration patterns
-- Image version management for container stacks
 - Common deployment scenarios
 - Troubleshooting guide
 - Step-by-step guides for creating new stacks
@@ -96,5 +92,4 @@ See the [**Deployment with Artifacts Guide**](deployment_with_artifacts.md) for 
 ### AWS
 
 - [AWS OIDC Setup](https://docs.github.com/en/actions/deployment/security-hardening-your-deployments/configuring-openid-connect-in-amazon-web-services)
-- [ECR Documentation](https://docs.aws.amazon.com/ecr/)
 - [IAM Best Practices](https://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html)

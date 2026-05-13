@@ -8,7 +8,8 @@ module "github_oidc" {
 
   # Restrict to specific repositories
   github_repositories = [
-    "caylent/region-20-infrastructure"
+    "caylent/region-20-infrastructure",
+    "esc-region-20/r20-data-lake-infrastructure"
   ]
 
   # Attach AWS managed policies

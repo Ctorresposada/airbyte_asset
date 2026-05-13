@@ -125,7 +125,6 @@ Recommended branch protection settings for `main`:
 
 - [terraform_checks.md](terraform_checks.md) - Detailed Terraform validation
 - [general_checks.md](general_checks.md) - Code quality checks
-- [build_and_push.md](build_and_push.md) - Docker build workflow
 
 ## Additional Resources
 
