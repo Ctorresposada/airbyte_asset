@@ -1,6 +1,3 @@
-# Caller identity is used only to build the per-account S3 key prefix for flow log delivery.
-data "aws_caller_identity" "current" {}
-
 # ---------------------------------------------------------------------------
 # VPC
 # ---------------------------------------------------------------------------
@@ -127,6 +124,6 @@ resource "aws_flow_log" "this" {
   vpc_id                   = module.vpc.vpc_id
   traffic_type             = "ALL"
   log_destination_type     = "s3"
-  log_destination          = "${var.flow_log_bucket_arn}/AWSLogs/${data.aws_caller_identity.current.account_id}/vpcflowlogs/"
+  log_destination          = var.flow_log_bucket_arn
   max_aggregation_interval = 600
 }
