@@ -1,3 +1,9 @@
+variable "create" {
+  description = "Whether this stack should provision its resources. Set to false to soft-delete everything the stack manages while preserving state and code."
+  type        = bool
+  default     = true
+}
+
 variable "environment" {
   description = "Target deployment environment"
   type        = string

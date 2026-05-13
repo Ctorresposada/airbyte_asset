@@ -6,6 +6,8 @@
 # ---------------------------------------------------------------------------
 
 module "flow_log_kms" {
+  count = var.create ? 1 : 0
+
   source  = "terraform-aws-modules/kms/aws"
   version = "~> 3.0"
 
@@ -55,6 +57,8 @@ module "flow_log_kms" {
 # ---------------------------------------------------------------------------
 
 data "aws_iam_policy_document" "flow_log_bucket" {
+  count = var.create ? 1 : 0
+
   # Allows the VPC Flow Logs service to write log files into the bucket.
   statement {
     sid    = "AWSLogDeliveryWrite"
@@ -117,6 +121,8 @@ module "flow_log_bucket" {
   #checkov:skip=CKV_AWS_144: Cross-region replication is explicitly out of scope for this audit stack
   #checkov:skip=CKV_AWS_21: Versioning adds cost without value for append-only AWS-delivered flow logs
 
+  count = var.create ? 1 : 0
+
   source  = "terraform-aws-modules/s3-bucket/aws"
   version = "~> 4.0"
 
@@ -131,7 +137,7 @@ module "flow_log_bucket" {
   server_side_encryption_configuration = {
     rule = {
       apply_server_side_encryption_by_default = {
-        kms_master_key_id = module.flow_log_kms.key_arn
+        kms_master_key_id = module.flow_log_kms[0].key_arn
         sse_algorithm     = "aws:kms"
       }
     }
@@ -149,5 +155,5 @@ module "flow_log_bucket" {
   ]
 
   attach_policy = true
-  policy        = data.aws_iam_policy_document.flow_log_bucket.json
+  policy        = data.aws_iam_policy_document.flow_log_bucket[0].json
 }

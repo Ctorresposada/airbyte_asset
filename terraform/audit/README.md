@@ -36,6 +36,7 @@ This stack provisions the centralized VPC Flow Logs infrastructure in the audit 
 | <a name="input_account_id"></a> [account\_id](#input\_account\_id) | AWS account ID of the audit account; used to construct the cross-account assume\_role ARN | `string` | n/a | yes |
 | <a name="input_aws_region"></a> [aws\_region](#input\_aws\_region) | Target deployment region | `string` | n/a | yes |
 | <a name="input_company_name"></a> [company\_name](#input\_company\_name) | Name to be appended to all resources as prefix | `string` | n/a | yes |
+| <a name="input_create"></a> [create](#input\_create) | Whether this stack should provision its resources. Set to false to soft-delete everything the stack manages while preserving state and code. | `bool` | `true` | no |
 | <a name="input_environment"></a> [environment](#input\_environment) | Target deployment environment | `string` | n/a | yes |
 | <a name="input_flow_log_bucket_force_destroy"></a> [flow\_log\_bucket\_force\_destroy](#input\_flow\_log\_bucket\_force\_destroy) | Allow Terraform to destroy the Flow Log S3 bucket even when it contains objects; set true only for non-production environments | `bool` | `false` | no |
 | <a name="input_flow_log_bucket_name"></a> [flow\_log\_bucket\_name](#input\_flow\_log\_bucket\_name) | Deterministic name for the centralized VPC Flow Logs S3 bucket in the audit account | `string` | n/a | yes |
@@ -47,7 +48,7 @@ This stack provisions the centralized VPC Flow Logs infrastructure in the audit 
 
 | Name | Description |
 |------|-------------|
-| <a name="output_flow_log_bucket_arn"></a> [flow\_log\_bucket\_arn](#output\_flow\_log\_bucket\_arn) | ARN of the centralized S3 bucket receiving VPC Flow Logs from all source accounts. Used as the flow\_log\_bucket\_arn input to the networking stack. |
-| <a name="output_flow_log_bucket_id"></a> [flow\_log\_bucket\_id](#output\_flow\_log\_bucket\_id) | Name (ID) of the centralized VPC Flow Logs S3 bucket. |
-| <a name="output_flow_log_kms_key_arn"></a> [flow\_log\_kms\_key\_arn](#output\_flow\_log\_kms\_key\_arn) | ARN of the KMS CMK used to encrypt VPC Flow Logs in the centralized bucket. |
+| <a name="output_flow_log_bucket_arn"></a> [flow\_log\_bucket\_arn](#output\_flow\_log\_bucket\_arn) | ARN of the centralized S3 bucket receiving VPC Flow Logs from all source accounts. Used as the flow\_log\_bucket\_arn input to the networking stack, or null when the stack is disabled (create = false). |
+| <a name="output_flow_log_bucket_id"></a> [flow\_log\_bucket\_id](#output\_flow\_log\_bucket\_id) | Name (ID) of the centralized VPC Flow Logs S3 bucket, or null when the stack is disabled (create = false). |
+| <a name="output_flow_log_kms_key_arn"></a> [flow\_log\_kms\_key\_arn](#output\_flow\_log\_kms\_key\_arn) | ARN of the KMS CMK used to encrypt VPC Flow Logs in the centralized bucket, or null when the stack is disabled (create = false). |
 <!-- END_TF_DOCS -->

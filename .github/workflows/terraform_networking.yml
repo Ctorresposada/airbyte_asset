@@ -1,0 +1,94 @@
+name: Terraform - Region 20 networking infrastructure
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'terraform/networking/**'
+      - 'terraform/modules/networking/**'
+      - '.github/workflows/terraform_networking.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'terraform/networking/**'
+      - 'terraform/modules/networking/**'
+      - '.github/workflows/terraform_networking.yml'
+
+env:
+  AWS_REGION: 'us-east-1'
+  AWS_ROLE_ARN: ${{ vars.AWS_ROLE_ARN }}
+  TERRAFORM_VERSION: '1.11.3'
+  WORKING_DIR: 'terraform/networking'
+
+permissions:
+  id-token: write
+  contents: read
+  pull-requests: write
+  actions: read
+  deployments: write
+
+jobs:
+  generate-matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+      AWS_REGION: ${{ steps.static-outputs.outputs.AWS_REGION }}
+      AWS_ROLE_ARN: ${{ steps.static-outputs.outputs.AWS_ROLE_ARN }}
+      WORKING_DIR: ${{ steps.static-outputs.outputs.WORKING_DIR }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{github.ref}}
+
+      - name: Generate environment matrix from tfvars files
+        id: set-matrix
+        run: |
+          # Find all .tfvars files in the variables directory
+          TFVARS_FILES=$(find "${{ env.WORKING_DIR }}/variables" -type f -name "*.tfvars" -exec basename {} .tfvars \; | sort)
+
+          # Convert to JSON array
+          ENVIRONMENTS=$(echo "$TFVARS_FILES" | jq -R -s -c 'split("\n") | map(select(length > 0))')
+
+          echo "Found environments: $ENVIRONMENTS"
+          echo "matrix={\"environment\":$ENVIRONMENTS}" >> $GITHUB_OUTPUT
+
+      - name: Output static values
+        id: static-outputs
+        env:
+          AWS_REGION: ${{ env.AWS_REGION }}
+          AWS_ROLE_ARN: ${{ env.AWS_ROLE_ARN }}
+          WORKING_DIR: ${{ env.WORKING_DIR }}
+        run: |
+          echo "AWS_REGION=$AWS_REGION" >> $GITHUB_OUTPUT
+          echo "AWS_ROLE_ARN=$AWS_ROLE_ARN" >> $GITHUB_OUTPUT
+          echo "WORKING_DIR=$WORKING_DIR" >> $GITHUB_OUTPUT
+
+  terraform-plan:
+    name: Terraform plan - ${{ matrix.environment }}
+    needs: [generate-matrix]
+    uses: ./.github/workflows/terraform_plan.yml
+    if: github.event_name == 'pull_request'
+    strategy:
+      matrix: ${{ fromJson(needs.generate-matrix.outputs.matrix) }}
+      fail-fast: false
+    with:
+      aws_role_arn: ${{ needs.generate-matrix.outputs.AWS_ROLE_ARN }}
+      aws_region: ${{ needs.generate-matrix.outputs.AWS_REGION}}
+      working_dir: ${{ needs.generate-matrix.outputs.WORKING_DIR }}
+      environment: ${{ matrix.environment }}
+  terraform-apply:
+    name: Terraform Apply - ${{ matrix.environment }}
+    needs: [generate-matrix]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    uses: ./.github/workflows/terraform_apply.yml
+    strategy:
+      matrix: ${{ fromJson(needs.generate-matrix.outputs.matrix) }}
+      fail-fast: false
+    with:
+      aws_role_arn: ${{ needs.generate-matrix.outputs.AWS_ROLE_ARN }}
+      aws_region: ${{ needs.generate-matrix.outputs.AWS_REGION}}
+      working_dir: ${{ needs.generate-matrix.outputs.WORKING_DIR }}
+      environment: ${{ matrix.environment }}
+    secrets: inherit

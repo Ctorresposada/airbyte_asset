@@ -6,7 +6,6 @@ This directory contains references for all GitHub Actions workflows in this repo
 
 | Workflow | Type | Trigger | Purpose |
 |----------|------|---------|---------|
-| [build_and_push.yml](build_and_push.md) | Reusable | Called by orchestrators | Build and push Docker images to ECR |
 | [terraform_plan.yml](#) | Reusable | Called by orchestrators | Generate and validate Terraform plans |
 | [terraform_apply.yml](#) | Reusable | Called by orchestrators | Apply approved Terraform changes |
 | [terraform_base.yml](#) | Orchestrator (Infrastructure) | Push / PR | Deploy base infrastructure (no containers) |
@@ -14,24 +13,9 @@ This directory contains references for all GitHub Actions workflows in this repo
 | [terraform_checks.yaml](terraform_checks.md) | Reusable | Called by other workflows | Terraform validation and security |
 | [general_checks.yaml](general_checks.md) | Reusable | Called by other workflows | Code quality and secret detection |
 
-## Guides and Documentation
+###  Orchestrator Workflow
 
-| Guide | Description |
-|-------|-------------|
-| [Deployment with Artifacts](deployment_with_artifacts.md) | **Complete deployment guide** covering both container-based and infrastructure-only stacks |
-| [Build and Push Setup](build_and_push.md) | Setting up Docker image builds and ECR publishing |
-
-### Two Types of Orchestrator Workflows
-
-This repository uses two patterns for deploying infrastructure:
-
-**1. Container-Based Orchestrators**
-- **Use for:** Lambda functions, ECS services, or any infrastructure using Docker images
-- **Flow:** `Build → Test → Scan → Terraform Plan → Push to ECR → Terraform Apply`
-- **Features:** Includes build/test/security phases, dynamically passes image versions to Terraform
-- **Guide:** [Creating Container-Based Stacks](deployment_with_artifacts.md#creating-new-container-based-stacks)
-
-**2. Infrastructure-Only Orchestrators** (e.g., [terraform_base.yml](../workflows/terraform_base.yml))
+**1. Infrastructure-Only Orchestrators** (e.g., [terraform_base.yml](../workflows/terraform_base.yml))
 - **Use for:** VPCs, databases, IAM roles, S3 buckets, ECR repositories, and other pure infrastructure
 - **Flow:** `Terraform Plan → Terraform Apply`
 - **Features:** No build phase, simpler and faster execution
@@ -59,49 +43,6 @@ Pull Request Created
                         │
                   Ready to Merge
 ```
-
-### Deployment Flow for Container-Based Stacks
-
-For stacks that depend on Docker containers:
-
-```
-Pull Request
-         │
-    Build & Test
-         │
-    ├─ Python/dependencies
-    ├─ Linting & tests
-    └─ Security scans
-         │
-    Build Docker Image
-         │
-    ├─ Multi-arch build
-    ├─ Trivy scan
-    └─ Generate version
-         │
-    Push to ECR (PR Phase)
-         │
-    ├─ Multi-platform
-    ├─ Tag: sha-<commit>
-    └─ OIDC auth
-         │
-    Terraform Plan
-         │
-    ├─ Use image version
-    ├─ Checkov security
-    └─ Upload artifact
-         │
-    Review & Merge
-         │
-    Terraform Apply
-         │
-    ├─ Download plan
-    ├─ Apply changes
-    └─ Deploy to AWS
-         (using image already in ECR)
-```
-
-**Note:** The `build_and_push` workflow now runs only during PR events, pushing images to ECR before Terraform planning to ensure the plan references an existing image.
 
 ### Deployment Flow for Infrastructure-Only Stacks
 
