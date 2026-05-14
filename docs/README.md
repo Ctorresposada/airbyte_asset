@@ -71,6 +71,10 @@ Pull Request
 - Troubleshooting guide
 - Step-by-step guides for creating new stacks
 
+## Concepts
+
+- [OIDC Role Chain](oidc_role_chain.md) -- GitHub Actions OIDC -> central CI role -> per-account execution role: design, trust policies, account topology, and troubleshooting
+
 ## Additional Resources
 
 ### GitHub Actions
