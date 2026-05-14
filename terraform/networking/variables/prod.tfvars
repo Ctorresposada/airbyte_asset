@@ -1,4 +1,4 @@
-create       = false
+create       = true
 environment  = "prod"
 aws_region   = "us-east-1"
 team         = "devops"

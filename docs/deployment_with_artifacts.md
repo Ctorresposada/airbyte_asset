@@ -1,11 +1,8 @@
 # Deployment Process for Infrastructure Stacks
 
-This guide explains the complete process for updating and deploying infrastructure stacks. It covers two types of deployments:
+This guide explains the complete process for updating and deploying infrastructure stacks in this repository. All stacks here are **infrastructure-only** — pure Terraform-managed AWS resources (e.g., VPCs, IAM roles, S3 buckets, KMS keys) with no application code or container build step.
 
-1. **Container-Based Stacks** - Infrastructure that depends on Docker images (e.g., Lambda functions, ECS services)
-2. **Infrastructure-Only Stacks** - Pure infrastructure without build artifacts (e.g., VPCs, databases, IAM roles)
-
-Both types use the same workflow orchestration pattern with reusable workflows, providing a consistent deployment flow.
+The deployment model uses a reviewed-plan handoff: PRs generate a Terraform plan artifact, reviewers approve it, and the merge to `main` applies that exact plan — no replanning at apply time.
 
 ## Multi-Environment Support
 
@@ -13,11 +10,11 @@ Both types use the same workflow orchestration pattern with reusable workflows, 
 
 ### Key Features
 
-- ✅ **Automatic Environment Discovery**: Detects environments from `.tfvars` files in the `variables/` directory
-- ✅ **Parallel Deployment**: All environments (dev, staging, prod) are planned/applied in parallel
-- ✅ **Environment-Specific Roles**: Each environment uses its own AWS IAM role for security isolation
-- ✅ **Environment-Specific Artifacts**: Separate Terraform plan artifacts per environment
-- ✅ **Environment-Specific PR Comments**: Each environment gets its own PR comment with plan results
+- **Automatic Environment Discovery**: Detects environments from `.tfvars` files in the `variables/` directory
+- **Parallel Deployment**: All environments are planned/applied in parallel
+- **Cross-Account Isolation**: A single central CI role assumes a dedicated per-account execution role chosen by the environment's tfvars
+- **Environment-Specific Artifacts**: Separate Terraform plan artifacts per environment
+- **Environment-Specific PR Comments**: Each environment gets its own PR comment with plan results
 
 ### Environment Configuration
 
@@ -27,15 +24,15 @@ Environments are automatically discovered based on `.tfvars` files:
 terraform/your-stack/
   variables/
     dev.tfvars       → Creates "dev" environment
-    staging.tfvars   → Creates "staging" environment
     prod.tfvars      → Creates "prod" environment
+    shared.tfvars    → Creates "shared" environment
 ```
 
-The workflow matrix is generated dynamically
+The workflow matrix is generated dynamically from the contents of `variables/`.
 
 ## Architecture Overview
 
-The deployment system uses a **three-tier workflow architecture** that separates concerns and enables reusability:
+The deployment system uses a **two-tier workflow architecture** that separates concerns and enables reusability:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -44,74 +41,90 @@ The deployment system uses a **three-tier workflow architecture** that separates
 │  • Generates environment matrix dynamically                 │
 │  • Coordinates workflow execution for all environments      │
 │  • Passes parameters between workflows                      │
-└────────────┬────────────────────────────┬───────────────────┘
-             │                            │
-             ▼                            ▼
-    ┌────────────────┐           ┌────────────────┐
-    │  Build/Push    │           │   Terraform    │
-    │   Workflow     │──────────▶│   Workflows    │
-    │ (Per Env/Mtx)  │   Image   │  (Per Env)     │
-    │                │  Version  │                │
-    └────────────────┘           └────────────────┘
+└────────────────────────────┬────────────────────────────────┘
+                             │
+                             ▼
+                  ┌────────────────────┐
+                  │     Terraform      │
+                  │     Workflows      │
+                  │     (Per Env)      │
+                  └────────────────────┘
 ```
 
 ### Workflow Layers
 
-1. **Orchestrator Layer** - Stack-specific workflows that define what to deploy
-   - Generates environment matrix from tfvars files
-   - Calls reusable workflows for each environment in parallel
-   - Passes outputs between workflow steps
+1. **Orchestrator Layer** — Stack-specific workflows that define what to deploy
+   - Generate environment matrix from tfvars files
+   - Call reusable workflows for each environment in parallel
+   - Pass outputs between workflow steps
 
-2. **Reusable Workflow Layer** - Generic, parameterized workflows
-   - [build_and_push.yml](../.github/workflows/build_and_push.yml) - Docker image building and publishing
-   - [terraform_plan.yml](../.github/workflows/terraform_plan.yml) - Infrastructure planning
-   - [terraform_apply.yml](../.github/workflows/terraform_apply.yml) - Infrastructure deployment
+2. **Reusable Workflow Layer** — Generic, parameterized workflows
+   - [terraform_plan.yml](../.github/workflows/terraform_plan.yml) — Infrastructure planning
+   - [terraform_apply.yml](../.github/workflows/terraform_apply.yml) — Infrastructure deployment
 
-3. **Tool Layer** - Individual actions and tools
-   - Docker Buildx, Trivy, Terraform, Checkov, etc.
+## Authentication Model
 
-## Orchestrator Workflow Types
+This repository uses a **hub-and-spoke** assume-role chain. There is **no per-environment GitHub OIDC role** — every workflow run authenticates the same way and Terraform itself does the cross-account hop.
 
-The repository supports two types of orchestrator workflows based on deployment requirements:
-
-### Container-Based Orchestrators
-
-**Use Case:** Infrastructure that depends on Docker container images
-
-**Examples:**
-- Lambda functions using container images
-- ECS/Fargate services
-- Kubernetes workloads
-- Any service that requires a Docker build step
-
-
-**Job Flow:**
 ```
-generate-matrix → build-and-push (matrix) → terraform-plan (matrix) / terraform-apply (matrix)
+GitHub Actions (OIDC)
+        │
+        ▼
+  Central CI role          ◀── vars.AWS_ROLE_ARN
+  (services account)           one role, shared across all stacks + environments
+        │
+        │   provider "aws" { assume_role { role_arn = ... } }
+        ▼
+  region-20-terraform-execution-role
+  (dev / prod / shared / ... target account)   ◀── selected by account_id in tfvars
+        │
+        ▼
+  AWS resources for the env
 ```
 
-**Key Characteristics:**
-- Includes `build-and-push` job running in a matrix (once per environment)
-- Each environment pushes to its own ECR repository
-- Passes image version to Terraform via `terraform_vars` parameter
-- Coordinates artifact building with infrastructure deployment
-- Triggers on both application code AND infrastructure changes
+### How it works
 
+1. **GitHub → central CI role.** The orchestrator pulls a single repo-level variable, `vars.AWS_ROLE_ARN`, and forwards it to the reusable plan/apply workflows. `aws-actions/configure-aws-credentials` exchanges the OIDC token for credentials for that role. The same role is used for every environment.
 
-### Infrastructure-Only Orchestrators
+2. **Central role → per-account execution role.** Each stack's `providers.tf` configures the AWS provider with an `assume_role` block that targets a dedicated execution role in the target account:
+
+   ```hcl
+   provider "aws" {
+     region = var.aws_region
+
+     assume_role {
+       role_arn = "arn:aws:iam::${var.account_id}:role/region-20-terraform-execution-role"
+     }
+   }
+   ```
+
+3. **`account_id` selects the target account.** `account_id` is set per environment in `terraform/<stack>/variables/<env>.tfvars`. Switching environments switches which account Terraform deploys into — the workflow itself doesn't need to change.
+
+### Why this model
+
+- One CI role to grant trust to from GitHub OIDC. Adding a new target account only requires creating the execution role in that account and trusting the central CI role — no GitHub config change.
+- The central CI role's only AWS permission is `sts:AssumeRole` against the per-account execution roles, so a leaked OIDC token can't act on any account directly.
+- Per-account roles are scoped to the privileges that stack needs in that account.
+
+## Orchestrator Workflows
+
+Each stack has its own orchestrator workflow that triggers on changes to that stack's directory.
 
 **Use Case:** Pure infrastructure without build dependencies
 
 **Examples:**
 - Networking (VPCs, subnets, route tables, security groups)
-- Foundational resources (S3 buckets, DynamoDB tables)
+- Foundational resources (S3 buckets, DynamoDB tables, KMS keys)
 - IAM roles and policies
-- ECR repositories (the repositories themselves, not the images)
+- Audit logging infrastructure
 - RDS databases
 - CloudWatch alarms and logging infrastructure
 - Secrets Manager resources
 
-**Reference Workflow:** [terraform_base.yml](../.github/workflows/terraform_base.yml)
+**Reference Workflows:**
+- [terraform_base.yml](../.github/workflows/terraform_base.yml)
+- [terraform_audit.yml](../.github/workflows/terraform_audit.yml)
+- [terraform_networking.yml](../.github/workflows/terraform_networking.yml)
 
 **Job Flow:**
 ```
@@ -119,279 +132,74 @@ generate-matrix → terraform-plan (matrix) / terraform-apply (matrix)
 ```
 
 **Key Characteristics:**
-- No `build-and-push` job - goes directly to Terraform workflows
-- Simpler and faster execution (no build/test/scan phases)
-- Only triggers on infrastructure code changes
-- No dynamic Terraform variables for image versions
+- Triggers only on infrastructure code changes (paths under the stack directory)
+- Discovers environments from `variables/*.tfvars` at runtime
+- Plan runs on pull requests; apply runs on push to `main`
 
-**Path Triggers:**
+**Example Path Triggers:**
 ```yaml
 paths:
-  - 'terraform/ai-ordering-base/**'
+  - 'terraform/base/**'
   - '.github/workflows/terraform_base.yml'
 ```
 
-### Choosing the Right Orchestrator Type
-
-| Infrastructure | Orchestrator Type | Reason |
-|---------------|-------------------|---------|
-| Lambda (container image) | Container-Based | Requires Docker image build |
-| ECS/Fargate service | Container-Based | Requires Docker image |
-| VPC and subnets | Infrastructure-Only | Pure infrastructure |
-| RDS database | Infrastructure-Only | AWS managed service |
-| S3 buckets | Infrastructure-Only | Pure storage resource |
-| IAM roles/policies | Infrastructure-Only | Identity resources |
-| ECR repositories | Infrastructure-Only | Container for images, not images themselves |
-| DynamoDB tables | Infrastructure-Only | AWS managed database |
-| API Gateway | Infrastructure-Only | Unless paired with container-based Lambda |
-| CloudWatch resources | Infrastructure-Only | Monitoring infrastructure |
-
-**Decision Rule:** If your Terraform code references a Docker image tag/version variable that needs to be dynamically set, use a container-based orchestrator. Otherwise, use infrastructure-only.
-
 ## Complete Deployment Flow
 
-### Container-Based Stack Flow
+### Pull Request Flow
 
-This section describes the full workflow for container-based stacks with multi-environment support.
-
-#### Pull Request Flow
-
-When you create a PR that modifies application code or infrastructure:
+When you create a PR that modifies a stack:
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
 │ 1. Pull Request Created                                             │
-│    • Triggers on paths: terraform/ai-ordering-lambda/**             │
-│                        src/lambda/mock/**                           │
-└────────────────────┬────────────────────────────────────────────────┘
-                     │
-                     ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│ 2. Generate Environment Matrix (generate-matrix job)                │
-│    a. Discover Environments                                         │
-│       • Checkout code                                               │
-│       • Scan variables/ directory for .tfvars files                 │
-│       • Extract environment names: [dev, staging, prod]             │
-│       • Create JSON matrix: {"environment": ["dev", "staging", ...]}│
-│                                                                     │
-│    b. Output Configuration                                          │
-│       • Matrix for parallel job execution                           │
-│       • Static values: AWS_REGION, WORKING_DIR, ECR_REPOSITORY      │
-│                                                                     │
-│    Example Output:                                                  │
-│       matrix: {"environment": ["dev", "staging", "prod"]}           │
-│       Found environments: ["dev","staging","prod"]                  │
-└────────────────────┬────────────────────────────────────────────────┘
-                     │
-                     ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│ 3. Build and Push (build-and-push job - MATRIX)                    │
-│    Runs in parallel for EACH environment (dev, staging, prod)       │
-│                                                                     │
-│    For EACH environment:                                            │
-│    a. Assume Environment-Specific Role                              │
-│       • Uses AWS_ROLE_ARN_dev, AWS_ROLE_ARN_staging, etc.          │
-│       • OIDC authentication to environment's AWS account            │
-│                                                                     │
-│    b. Build Docker Image                                            │
-│       • First environment: Full build (~2-5 minutes)                │
-│       • Other environments: Cached build (~10-30 seconds)           │
-│       • Docker BuildKit layer caching makes this efficient          │
-│                                                                     │
-│    c. Security Scanning                                             │
-│       • Run Trivy vulnerability scan                                │
-│       • Fail if CRITICAL or HIGH vulnerabilities found              │
-│       • Upload results to GitHub Security tab                       │
-│                                                                     │
-│    d. Push to Environment's ECR                                     │
-│       • Authenticate to environment's ECR                           │
-│       • Push multi-platform image to that environment's repo        │
-│       • Tags: pr-<number>, sha-<commit>                             │
-│                                                                     │
-│    e. Output Image Version                                          │
-│       • All environments produce same version (e.g., sha-abc1234)   │
-│       • Version used by terraform-plan for that environment         │
-│                                                                     │
-│    Matrix Result:                                                   │
-│       ✓ dev     → Built & pushed to dev ECR                         │
-│       ✓ staging → Built (cached) & pushed to staging ECR            │
-│       ✓ prod    → Built (cached) & pushed to prod ECR               │
-└────────────────────┬────────────────────────────────────────────────┘
-                     │
-                     ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│ 4. Terraform Plan (terraform-plan job - MATRIX)                    │
-│    Runs in parallel for EACH environment (dev, staging, prod)       │
-│                                                                     │
-│    For EACH environment:                                            │
-│    a. Infrastructure Setup                                          │
-│       • Checkout code                                               │
-│       • Install Terraform 1.11.3                                    │
-│       • Authenticate with environment-specific role                 │
-│                                                                     │
-│    b. Terraform Operations                                          │
-│       • Initialize: terraform init -upgrade                         │
-│       • Select workspace: terraform workspace select <environment>  │
-│       • Format check: terraform fmt -check -recursive               │
-│       • Validate: terraform validate                                │
-│                                                                     │
-│    c. Plan with Environment Variables                               │
-│       • Use environment-specific tfvars:                            │
-│         -var-file=variables/dev.tfvars (or staging/prod)            │
-│       • Pass image version:                                         │
-│         -var ai_ordering_lambda_image_version=<image-version>       │
-│       • Generate plan output files (tfplan, tfplan.txt, tfplan.json)│
-│                                                                     │
-│    d. Security and Validation                                       │
-│       • Run Checkov security scan on plan                           │
-│       • Check for security misconfigurations                        │
-│                                                                     │
-│    e. Environment-Specific Artifact                                 │
-│       • Upload plan artifact with environment in name:              │
-│         tfplan-ai-ordering-lambda-pr-<number>-dev                   │
-│         tfplan-ai-ordering-lambda-pr-<number>-staging               │
-│         tfplan-ai-ordering-lambda-pr-<number>-prod                  │
-│       • Retention: 30 days                                          │
-│                                                                     │
-│    f. Environment-Specific PR Comment                               │
-│       • Post separate comment for each environment                  │
-│       • Comment identifier includes environment:                    │
-│         <!-- terraform-plan-ai-ordering-lambda-dev -->              │
-│       • Shows plan results, Checkov status, artifact name           │
-│                                                                     │
-│    Matrix Result:                                                   │
-│       ✓ dev     → Plan complete, artifact uploaded, comment posted  │
-│       ✓ staging → Plan complete, artifact uploaded, comment posted  │
-│       ✓ prod    → Plan complete, artifact uploaded, comment posted  │
-└─────────────────────────────────────────────────────────────────────┘
-```
-
-### Merge to Main Flow
-
-When the PR is merged to the main branch:
-
-**Important:** The Docker images were already built and pushed to each environment's ECR during the PR phase. The merge to main only triggers the Terraform apply phase.
-
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│ 1. Push to Main Branch                                              │
-│    • Triggers on merge commit                                       │
-│    • Same path filters apply                                        │
-│    • Note: Docker images already exist in all ECRs from PR build    │
-└────────────────────┬────────────────────────────────────────────────┘
-                     │
-                     ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│ 2. Generate Environment Matrix (generate-matrix job)                │
-│    • Re-discovers environments from tfvars files                    │
-│    • Generates same matrix as PR: [dev, staging, prod]             │
-└────────────────────┬────────────────────────────────────────────────┘
-                     │
-                     ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│ 3. Terraform Apply (terraform-apply job - MATRIX)                  │
-│    Runs in parallel for EACH environment (dev, staging, prod)       │
-│                                                                     │
-│    For EACH environment:                                            │
-│    a. PR Artifact Retrieval                                         │
-│       • Find merged PR number using GitHub API                      │
-│       • Download environment-specific plan artifact:                │
-│         tfplan-ai-ordering-lambda-pr-<number>-dev                   │
-│         tfplan-ai-ordering-lambda-pr-<number>-staging               │
-│         tfplan-ai-ordering-lambda-pr-<number>-prod                  │
-│       • This ensures only reviewed plans are applied                │
-│       • Plan includes image version from PR build                   │
-│                                                                     │
-│    b. Infrastructure Setup                                          │
-│       • Install Terraform and authenticate with env-specific role   │
-│       • Initialize and select environment workspace                 │
-│                                                                     │
-│    c. Apply Infrastructure Changes                                  │
-│       • Execute: terraform apply tfplan                             │
-│       • Uses the exact plan from PR (no surprises)                  │
-│       • Updates Lambda function with image version from PR          │
-│       • Image is already available in environment's ECR             │
-│                                                                     │
-│    d. Deployment Summary                                            │
-│       • Generate GitHub Actions summary for this environment        │
-│       • Record applied commit SHA and PR number                     │
-│                                                                     │
-│    Matrix Result:                                                   │
-│       ✓ dev     → Applied successfully                              │
-│       ✓ staging → Applied successfully                              │
-│       ✓ prod    → Applied successfully                              │
-└─────────────────────────────────────────────────────────────────────┘
-```
-
-### Why Images Are Pushed During PR (Per Environment)
-
-The workflow pushes images to each environment's ECR during the PR phase for the following reasons:
-
-1. **Environment Isolation:** Each AWS account/environment has its own ECR
-2. **Security Boundaries:** Dev role cannot push to prod ECR
-3. **Dynamic Tag Generation:** Terraform needs the exact image tag during planning
-4. **Plan Accuracy:** The Terraform plan must reference a real, existing image in that environment's ECR
-5. **Atomic Deployments:** The image that was tested and scanned is exactly what gets deployed
-6. **No Rebuild Required:** Merging to main doesn't require rebuilding the images
-7. **Efficient Caching:** First environment builds, others use cache (seconds not minutes)
-
-### Infrastructure-Only Stack Flow
-
-For stacks that contain only infrastructure resources (no Docker images), the workflow is simplified by removing all build steps.
-
-#### Pull Request Flow
-
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│ 1. Pull Request Created                                             │
-│    • Triggers on paths: terraform/ai-ordering-base/**               │
-│                        .github/workflows/terraform_base.yml│
+│    • Triggers on paths: terraform/<stack-name>/**                   │
+│                        .github/workflows/terraform_<stack>.yml      │
 └────────────────────┬────────────────────────────────────────────────┘
                      │
                      ▼
 ┌─────────────────────────────────────────────────────────────────────┐
 │ 2. Generate Environment Matrix (generate-matrix job)                │
 │    • Scan variables/ directory for .tfvars files                    │
-│    • Create matrix: {"environment": ["dev", "staging", "prod"]}     │
+│    • Create matrix: {"environment": ["dev", "prod", "shared"]}      │
 └────────────────────┬────────────────────────────────────────────────┘
                      │
                      ▼
 ┌─────────────────────────────────────────────────────────────────────┐
-│ 3. Terraform Plan (terraform-plan job - MATRIX)                    │
-│    Runs in parallel for EACH environment (dev, staging, prod)       │
+│ 3. Terraform Plan (terraform-plan job - MATRIX)                     │
+│    Runs in parallel for EACH environment                            │
 │                                                                     │
 │    For EACH environment:                                            │
-│    a. Infrastructure Setup                                          │
+│    a. Authentication                                                │
 │       • Checkout code                                               │
-│       • Install Terraform 1.11.3                                    │
-│       • Authenticate with environment-specific AWS role             │
+│       • Install Terraform                                           │
+│       • OIDC-assume the central CI role (vars.AWS_ROLE_ARN)         │
+│       • Provider chain-assumes the per-account execution role       │
+│         using account_id from <env>.tfvars                          │
 │                                                                     │
 │    b. Terraform Operations                                          │
-│       • Initialize: terraform init -upgrade                         │
+│       • Initialize: terraform init                                  │
 │       • Select workspace: terraform workspace select <environment>  │
 │       • Format check: terraform fmt -check -recursive               │
 │       • Validate: terraform validate                                │
 │                                                                     │
 │    c. Generate Environment-Specific Plan                            │
 │       • Use environment-specific tfvars file                        │
-│       • No dynamic image version variables needed                   │
 │       • Generate plan output files (tfplan, tfplan.txt, tfplan.json)│
 │                                                                     │
 │    d. Security and Validation                                       │
 │       • Run Checkov security scan on plan                           │
-│       • Check for security misconfigurations                        │
 │                                                                     │
 │    e. Artifact and Communication                                    │
 │       • Upload environment-specific plan artifact:                  │
-│         tfplan-ai-ordering-base-pr-<number>-dev                     │
-│         tfplan-ai-ordering-base-pr-<number>-staging                 │
-│         tfplan-ai-ordering-base-pr-<number>-prod                    │
+│         tfplan-<stack>-pr-<number>-dev                              │
+│         tfplan-<stack>-pr-<number>-prod                             │
+│         tfplan-<stack>-pr-<number>-shared                           │
 │       • Post environment-specific PR comment                        │
 │       • Include Checkov results summary                             │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
-#### Merge to Main Flow
+### Merge to Main Flow
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
@@ -408,8 +216,8 @@ For stacks that contain only infrastructure resources (no Docker images), the wo
                      │
                      ▼
 ┌─────────────────────────────────────────────────────────────────────┐
-│ 3. Terraform Apply (terraform-apply job - MATRIX)                  │
-│    Runs in parallel for EACH environment (dev, staging, prod)       │
+│ 3. Terraform Apply (terraform-apply job - MATRIX)                   │
+│    Runs in parallel for EACH environment                            │
 │                                                                     │
 │    For EACH environment:                                            │
 │    a. PR Artifact Retrieval                                         │
@@ -417,8 +225,9 @@ For stacks that contain only infrastructure resources (no Docker images), the wo
 │       • Download environment-specific pre-approved plan artifact    │
 │       • This ensures only reviewed plans are applied                │
 │                                                                     │
-│    b. Infrastructure Setup                                          │
-│       • Install Terraform and authenticate to environment's AWS     │
+│    b. Authentication                                                │
+│       • OIDC-assume the central CI role                             │
+│       • Provider chain-assumes the per-account execution role       │
 │       • Initialize and select workspace                             │
 │                                                                     │
 │    c. Apply Infrastructure Changes                                  │
@@ -432,158 +241,155 @@ For stacks that contain only infrastructure resources (no Docker images), the wo
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
-**Key Differences from Container-Based Flow:**
-- No build-and-push job
-- No test/lint/scan phases for application code
-- No dynamic Terraform variables for image versions
-- Faster execution
-- Only infrastructure code changes trigger the workflow
-
 ## Environment Configuration
 
 ### GitHub Repository Variables
 
 Set in **Settings → Secrets and variables → Actions → Variables**:
 
-#### Environment-Specific Role ARNs (Required)
-
 | Variable | Description | Example |
 |----------|-------------|---------|
-| `AWS_ROLE_ARN_dev` | Dev environment OIDC role | `arn:aws:iam::123456789:role/github-dev` |
-| `AWS_ROLE_ARN_staging` | Staging environment OIDC role | `arn:aws:iam::234567890:role/github-staging` |
-| `AWS_ROLE_ARN_prod` | Production environment OIDC role | `arn:aws:iam::345678901:role/github-prod` |
-
-#### Static Configuration Variables
-
-| Variable | Description | Example |
-|----------|-------------|---------|
+| `AWS_ROLE_ARN` | Central GitHub-OIDC CI role in the services account. The same value is used for every environment — environment isolation comes from the per-account assume-role chain in each stack's `providers.tf`. | `arn:aws:iam::471624149663:role/region-20-github-oidc` |
 | `AWS_REGION` | Default deployment region | `us-east-1` |
-| `NETWORK_AWS_REGION` | Network stack region | `us-east-2` |
+| `NETWORK_AWS_REGION` | Network stack region override (optional) | `us-east-2` |
+| `TERRAFORM_VERSION` | Terraform version override (optional) | `1.11.3` |
 
-**Important:** Variable names must match the pattern `<PREFIX>_AWS_ROLE_ARN_{environment}` where `{environment}` exactly matches the tfvars filename (without `.tfvars` extension).
+There are **no** `AWS_ROLE_ARN_<env>` variables — the env is resolved at the Terraform layer via `account_id` in the tfvars.
 
-**Example:**
-- `dev.tfvars` → requires `AWS_ROLE_ARN_dev`
-- `staging.tfvars` → requires `AWS_ROLE_ARN_staging`
-- `prod.tfvars` → requires `AWS_ROLE_ARN_prod`
+### AWS Prerequisites (per target account)
+
+In every account this repo deploys into (dev, prod, shared, …), an execution role named `region-20-terraform-execution-role` must exist with:
+
+- A trust policy that allows `sts:AssumeRole` from the central CI role (`vars.AWS_ROLE_ARN`)
+- Permissions sufficient for the stacks that target that account
+
+Once that role exists, no GitHub-side wiring is required to add the account — the stack just references it by `account_id` in tfvars.
 
 ### Stack-Specific Configuration
 
 ```yaml
 env:
   AWS_REGION: ${{ vars.AWS_REGION || 'us-east-1' }}
-  WORKING_DIR: 'terraform/ai-ordering-lambda'
-  ECR_REPOSITORY: 'ai-ordering-mock'
-  DOCKERFILE_PATH: 'src/lambda/mock/Dockerfile'
+  AWS_ROLE_ARN: ${{ vars.AWS_ROLE_ARN }}
+  TERRAFORM_VERSION: ${{ vars.TERRAFORM_VERSION || '1.11.3' }}
+  WORKING_DIR: 'terraform/<stack-name>'
 ```
 
-**Note:** `ENVIRONMENT` is no longer hardcoded - it's dynamically discovered from tfvars files!
+**Note:** `ENVIRONMENT` is not hardcoded — it's dynamically discovered from tfvars files.
 
 ### Terraform Variable Files
 
-Environment-specific variables in `terraform/ai-ordering-lambda/variables/<environment>.tfvars`:
+Environment-specific variables live in `terraform/<stack-name>/variables/<environment>.tfvars`. Each file **must** set `account_id` — that's how the AWS provider knows which account to chain-assume into.
 
 **Example: `dev.tfvars`**
 ```hcl
-environment = "dev"
-aws_region  = "us-east-1"
+environment  = "dev"
+aws_region   = "us-east-1"
+team         = "devops"
+company_name = "region-20"
+account_id   = "784590287037"
 
-ecr_repositories = {
-  "ai-ordering-mock" = {
-    image_tag_mutability = "IMMUTABLE"
-    image_scanning_configuration = {
-      scan_on_push = true
-    }
-  }
-}
-
-# This is passed dynamically by the workflow
-# ai_ordering_lambda_image_version = "sha-abc1234"
+# stack-specific vars below...
 ```
 
 **Example: `prod.tfvars`**
 ```hcl
-environment = "prod"
-aws_region  = "us-east-1"
+environment  = "prod"
+aws_region   = "us-east-1"
+team         = "devops"
+company_name = "region-20"
+account_id   = "029750300494"
 
-ecr_repositories = {
-  "ai-ordering-mock" = {
-    image_tag_mutability = "IMMUTABLE"
-    image_scanning_configuration = {
-      scan_on_push = true
+# stack-specific vars below...
+```
+
+### State Backend
+
+Remote state for every stack lives in a single S3 bucket (`region-20-tf-state`) in the services account, with one key per stack. The backend block is **hardcoded** in each stack's `terraform.tf` — there are no per-env state backend variables:
+
+```hcl
+backend "s3" {
+  bucket       = "region-20-tf-state"
+  key          = "<stack-name>/terraform.tfstate"
+  region       = "us-east-1"
+  encrypt      = true
+  use_lockfile = true
+  kms_key_id   = "<services-account-kms-key-arn>"
+}
+```
+
+Per-environment isolation inside that shared backend is provided by Terraform workspaces (`terraform workspace select <env>`), which the plan/apply workflows handle automatically.
+
+## Creating a New Infrastructure Stack
+
+A stack template is provided at [.github/workflows/templates/terraform_stack.yml](../.github/workflows/templates/terraform_stack.yml). Follow these steps to add a new stack.
+
+### 1. Create the Terraform Module
+
+```
+terraform/
+  your-stack/
+    main.tf
+    variables.tf     # must include account_id (string)
+    providers.tf     # assume_role into region-20-terraform-execution-role
+    terraform.tf     # backend "s3" block + required_providers
+    outputs.tf
+    variables/
+      dev.tfvars     # must set account_id
+      prod.tfvars    # must set account_id
+```
+
+`providers.tf` should follow the same pattern as the existing stacks:
+
+```hcl
+provider "aws" {
+  region = var.aws_region
+
+  assume_role {
+    role_arn = "arn:aws:iam::${var.account_id}:role/region-20-terraform-execution-role"
+  }
+
+  default_tags {
+    tags = {
+      Environment = var.environment
+      Team        = var.team
+      ManagedBy   = "Terraform"
+      Stack       = "your-stack"
     }
   }
 }
-
-# Production-specific overrides
-lambda_memory_size = 512
-lambda_timeout = 30
 ```
 
-## Creating New Container-Based Stacks with Multi-Environment Support
+### 2. Create the Orchestrator Workflow
 
-To create a new stack that follows this pattern:
-
-### 1. Create Terraform Module
-
-```
-terraform/
-  your-new-stack/
-    main.tf
-    variables.tf      # Include image_version variable
-    outputs.tf
-    ecr.tf            # ECR repository definition
-    lambda.tf         # Or ECS, etc.
-    variables/        # Environment-specific configs
-      dev.tfvars
-      staging.tfvars
-      prod.tfvars
-```
-
-### 2. Create Application Code
-
-```
-src/
-  your-app/
-    Dockerfile
-    app/
-      # Application code
-```
-
-### 3. Create Orchestrator Workflow
-
-Create `.github/workflows/terraform_your_new_stack.yml`:
+Copy the existing `terraform_base.yml` / `terraform_audit.yml` / `terraform_networking.yml` pattern and swap in your stack name. The orchestrator only needs to forward `vars.AWS_ROLE_ARN` and the stack's `WORKING_DIR`:
 
 ```yaml
-name: Terraform Your New Stack
-
+name: Terraform - <stack-name>
 on:
   pull_request:
     branches: [main]
     paths:
-      - 'terraform/your-new-stack/**'
-      - 'src/your-app/**'
-      - '.github/workflows/terraform_your_new_stack.yml'
+      - 'terraform/<stack-name>/**'
+      - '.github/workflows/terraform_<stack-name>.yml'
   push:
     branches: [main]
     paths:
-      - 'terraform/your-new-stack/**'
-      - 'src/your-app/**'
-      - '.github/workflows/terraform_your_new_stack.yml'
+      - 'terraform/<stack-name>/**'
+      - '.github/workflows/terraform_<stack-name>.yml'
 
 env:
   AWS_REGION: ${{ vars.AWS_REGION || 'us-east-1' }}
-  TERRAFORM_VERSION: '1.11.3'
-  WORKING_DIR: 'terraform/your-new-stack'
-  ECR_REPOSITORY: 'your-app-repo'
-  DOCKERFILE_PATH: 'src/your-app/Dockerfile'
+  AWS_ROLE_ARN: ${{ vars.AWS_ROLE_ARN }}
+  TERRAFORM_VERSION: ${{ vars.TERRAFORM_VERSION || '1.11.3' }}
+  WORKING_DIR: 'terraform/<stack-name>'
 
 permissions:
   id-token: write
   contents: read
   pull-requests: write
-  security-events: write
   actions: read
+  deployments: write
 
 jobs:
   generate-matrix:
@@ -591,70 +397,42 @@ jobs:
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
       AWS_REGION: ${{ steps.static-outputs.outputs.AWS_REGION }}
+      AWS_ROLE_ARN: ${{ steps.static-outputs.outputs.AWS_ROLE_ARN }}
       WORKING_DIR: ${{ steps.static-outputs.outputs.WORKING_DIR }}
-      ECR_REPOSITORY: ${{ steps.static-outputs.outputs.ECR_REPOSITORY }}
-      DOCKERFILE_PATH: ${{ steps.static-outputs.outputs.DOCKERFILE_PATH }}
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{github.ref}}
       - name: Generate environment matrix from tfvars files
         id: set-matrix
         run: |
-          # Find all .tfvars files in the variables directory
           TFVARS_FILES=$(find "${{ env.WORKING_DIR }}/variables" -type f -name "*.tfvars" -exec basename {} .tfvars \; | sort)
-
-          # Convert to JSON array
           ENVIRONMENTS=$(echo "$TFVARS_FILES" | jq -R -s -c 'split("\n") | map(select(length > 0))')
-
-          echo "Found environments: $ENVIRONMENTS"
           echo "matrix={\"environment\":$ENVIRONMENTS}" >> $GITHUB_OUTPUT
-
       - name: Output static values
         id: static-outputs
         env:
           AWS_REGION: ${{ env.AWS_REGION }}
+          AWS_ROLE_ARN: ${{ env.AWS_ROLE_ARN }}
           WORKING_DIR: ${{ env.WORKING_DIR }}
-          ECR_REPOSITORY: ${{ env.ECR_REPOSITORY }}
-          DOCKERFILE_PATH: ${{ env.DOCKERFILE_PATH }}
         run: |
           echo "AWS_REGION=$AWS_REGION" >> $GITHUB_OUTPUT
+          echo "AWS_ROLE_ARN=$AWS_ROLE_ARN" >> $GITHUB_OUTPUT
           echo "WORKING_DIR=$WORKING_DIR" >> $GITHUB_OUTPUT
-          echo "ECR_REPOSITORY=$ECR_REPOSITORY" >> $GITHUB_OUTPUT
-          echo "DOCKERFILE_PATH=$DOCKERFILE_PATH" >> $GITHUB_OUTPUT
-
-  build-and-push:
-    name: Build and push - ${{ matrix.environment }}
-    needs: [generate-matrix]
-    if: github.event_name == 'pull_request'
-    uses: ./.github/workflows/build_and_push.yml
-    strategy:
-      matrix: ${{ fromJson(needs.generate-matrix.outputs.matrix) }}
-      fail-fast: false
-    with:
-      aws_role_arn: ${{ vars[format('AWS_ROLE_ARN_{0}', matrix.environment)] }}
-      aws_region: ${{ needs.generate-matrix.outputs.AWS_REGION}}
-      ecr_repository: ${{ needs.generate-matrix.outputs.ECR_REPOSITORY }}
-      dockerfile_path: ${{ needs.generate-matrix.outputs.DOCKERFILE_PATH }}
-      docker_platforms: "linux/amd64"
-      docker_provenance: "false"
-    secrets: inherit
 
   terraform-plan:
     name: Terraform plan - ${{ matrix.environment }}
-    needs: [generate-matrix, build-and-push]
-    uses: ./.github/workflows/terraform_plan.yml
+    needs: [generate-matrix]
     if: github.event_name == 'pull_request'
+    uses: ./.github/workflows/terraform_plan.yml
     strategy:
       matrix: ${{ fromJson(needs.generate-matrix.outputs.matrix) }}
       fail-fast: false
     with:
-      aws_role_arn: ${{ vars[format('AWS_ROLE_ARN_{0}', matrix.environment)] }}
-      aws_region: ${{ needs.generate-matrix.outputs.AWS_REGION}}
-      working_dir: ${{ needs.generate-matrix.outputs.WORKING_DIR }}
-      environment: ${{ matrix.environment }}
-      terraform_vars: '-var your_app_image_version=${{ needs.build-and-push.outputs.image-version }}'
-    secrets: inherit
+      aws_role_arn: ${{ needs.generate-matrix.outputs.AWS_ROLE_ARN }}
+      aws_region:   ${{ needs.generate-matrix.outputs.AWS_REGION }}
+      working_dir:  ${{ needs.generate-matrix.outputs.WORKING_DIR }}
+      environment:  ${{ matrix.environment }}
 
   terraform-apply:
     name: Terraform Apply - ${{ matrix.environment }}
@@ -665,260 +443,101 @@ jobs:
       matrix: ${{ fromJson(needs.generate-matrix.outputs.matrix) }}
       fail-fast: false
     with:
-      aws_role_arn: ${{ vars[format('AWS_ROLE_ARN_{0}', matrix.environment)] }}
-      aws_region: ${{ needs.generate-matrix.outputs.AWS_REGION}}
-      working_dir: ${{ needs.generate-matrix.outputs.WORKING_DIR }}
-      environment: ${{ matrix.environment }}
+      aws_role_arn: ${{ needs.generate-matrix.outputs.AWS_ROLE_ARN }}
+      aws_region:   ${{ needs.generate-matrix.outputs.AWS_REGION }}
+      working_dir:  ${{ needs.generate-matrix.outputs.WORKING_DIR }}
+      environment:  ${{ matrix.environment }}
     secrets: inherit
 ```
 
-### 4. Configure GitHub Variables
+### 3. Confirm Repository Variables Exist
 
-Add environment-specific role ARNs to GitHub:
+Because every stack reuses the same central CI role, you usually don't need to add anything new — just confirm:
 
-**Settings → Secrets and variables → Actions → Variables → New repository variable**
+- `AWS_ROLE_ARN` (central CI role) is already set
+- `AWS_REGION` is set (or fall back to the workflow default)
 
-```
-AWS_ROLE_ARN_dev      = arn:aws:iam::123456789:role/github-dev
-AWS_ROLE_ARN_staging  = arn:aws:iam::234567890:role/github-staging
-AWS_ROLE_ARN_prod     = arn:aws:iam::345678901:role/github-prod
-```
+### 4. Key Customization Points
 
-### 5. Key Customization Points
-
-- **Path triggers:** Update to match your directory structure
-- **ECR_REPOSITORY:** Your ECR repository name (same name in all environments)
-- **DOCKERFILE_PATH:** Path to your Dockerfile
-- **WORKING_DIR:** Your Terraform module directory
-- **terraform_vars:** Update variable name to match your Terraform variable
-- **Variable pattern:** Use `AWS_ROLE_ARN_{environment}` for role naming
-
-## Creating New Infrastructure-Only Stacks with Multi-Environment Support
-
-To create a new stack for pure infrastructure without Docker images:
-
-### 1. Create Terraform Module
-
-```
-terraform/
-  your-infrastructure-stack/
-    main.tf
-    variables.tf      # No image version variables needed
-    outputs.tf
-    networking.tf     # Example: VPC resources
-    iam.tf           # Example: IAM roles
-    storage.tf       # Example: S3, DynamoDB
-    variables/
-      dev.tfvars
-      staging.tfvars
-      prod.tfvars
-```
-
-### 2. Create Orchestrator Workflow
-
-Create `.github/workflows/terraform_your_infrastructure_stack.yml`:
-
-```yaml
-name: Terraform Your Infrastructure Stack
-
-on:
-  pull_request:
-    branches:
-      - main
-    paths:
-      - 'terraform/your-infrastructure-stack/**'
-      - '.github/workflows/terraform_your_infrastructure_stack.yml'
-  push:
-    branches:
-      - main
-    paths:
-      - 'terraform/your-infrastructure-stack/**'
-      - '.github/workflows/terraform_your_infrastructure_stack.yml'
-
-env:
-  AWS_REGION: ${{ vars.AWS_REGION || 'us-east-1' }}
-  TERRAFORM_VERSION: '1.11.3'
-  WORKING_DIR: 'terraform/your-infrastructure-stack'
-
-permissions:
-  id-token: write
-  contents: read
-  pull-requests: write
-  security-events: write
-  actions: read
-
-jobs:
-  generate-matrix:
-    runs-on: ubuntu-latest
-    outputs:
-      matrix: ${{ steps.set-matrix.outputs.matrix }}
-      AWS_REGION: ${{ steps.static-outputs.outputs.AWS_REGION }}
-      WORKING_DIR: ${{ steps.static-outputs.outputs.WORKING_DIR }}
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Generate environment matrix from tfvars files
-        id: set-matrix
-        run: |
-          # Find all .tfvars files in the variables directory
-          TFVARS_FILES=$(find "${{ env.WORKING_DIR }}/variables" -type f -name "*.tfvars" -exec basename {} .tfvars \; | sort)
-
-          # Convert to JSON array
-          ENVIRONMENTS=$(echo "$TFVARS_FILES" | jq -R -s -c 'split("\n") | map(select(length > 0))')
-
-          echo "Found environments: $ENVIRONMENTS"
-          echo "matrix={\"environment\":$ENVIRONMENTS}" >> $GITHUB_OUTPUT
-
-      - name: Output static values
-        id: static-outputs
-        env:
-          AWS_REGION: ${{ env.AWS_REGION }}
-          WORKING_DIR: ${{ env.WORKING_DIR }}
-        run: |
-          echo "AWS_REGION=$AWS_REGION" >> $GITHUB_OUTPUT
-          echo "WORKING_DIR=$WORKING_DIR" >> $GITHUB_OUTPUT
-
-  terraform-plan:
-    name: Terraform plan - ${{ matrix.environment }}
-    needs: [generate-matrix]
-    uses: ./.github/workflows/terraform_plan.yml
-    if: github.event_name == 'pull_request'
-    strategy:
-      matrix: ${{ fromJson(needs.generate-matrix.outputs.matrix) }}
-      fail-fast: false
-    with:
-      aws_role_arn: ${{ vars[format('AWS_ROLE_ARN_{0}', matrix.environment)] }}
-      aws_region: ${{ needs.generate-matrix.outputs.AWS_REGION}}
-      working_dir: ${{ needs.generate-matrix.outputs.WORKING_DIR }}
-      environment: ${{ matrix.environment }}
-    secrets: inherit
-
-  terraform-apply:
-    name: Terraform Apply - ${{ matrix.environment }}
-    needs: [generate-matrix]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    uses: ./.github/workflows/terraform_apply.yml
-    strategy:
-      matrix: ${{ fromJson(needs.generate-matrix.outputs.matrix) }}
-      fail-fast: false
-    with:
-      aws_role_arn: ${{ vars[format('AWS_ROLE_ARN_{0}', matrix.environment)] }}
-      aws_region: ${{ needs.generate-matrix.outputs.AWS_REGION}}
-      working_dir: ${{ needs.generate-matrix.outputs.WORKING_DIR }}
-      environment: ${{ matrix.environment }}
-    secrets: inherit
-```
-
-### 3. Configure GitHub Variables
-
-```
-AWS_ROLE_ARN_dev      = arn:aws:iam::123456789:role/github-dev
-AWS_ROLE_ARN_staging  = arn:aws:iam::234567890:role/github-staging
-AWS_ROLE_ARN_prod     = arn:aws:iam::345678901:role/github-prod
-```
+- **Path triggers:** Update to match your stack directory
+- **WORKING_DIR:** Your Terraform stack directory
+- **AWS_REGION:** Override at the workflow `env:` block if the stack should deploy to a non-default region
+- **providers.tf:** Update the `Stack` tag and confirm the `assume_role.role_arn` uses `var.account_id`
+- **Backend key:** Set a unique `key` in `terraform.tf` so this stack doesn't collide with others in `region-20-tf-state`
 
 ## Adding a New Environment
 
 To add a new environment (e.g., `qa`):
 
-### 1. Create Terraform Variables File
+### 1. Provision the target account's execution role
+
+In the QA AWS account, create a role named `region-20-terraform-execution-role` whose trust policy allows `sts:AssumeRole` from the central CI role (`vars.AWS_ROLE_ARN`), with the permissions needed for the stacks that will target QA.
+
+### 2. Create the tfvars file
 
 ```bash
 cp terraform/your-stack/variables/dev.tfvars terraform/your-stack/variables/qa.tfvars
-# Edit qa.tfvars with environment-specific values
+# Edit qa.tfvars and set:
+#   environment = "qa"
+#   account_id  = "<qa-account-id>"
+# plus any environment-specific values
 ```
 
-### 2. Add GitHub Variable for Role ARN
-
-Add `AWS_ROLE_ARN_qa` to GitHub repository variables.
-
-### 3. Create AWS IAM Role
-
-Create an OIDC-enabled IAM role in the QA AWS account with appropriate permissions.
-
-### 4. That's It!
+### 3. That's It
 
 The workflow will automatically:
 - Discover the new `qa.tfvars` file
 - Add `qa` to the environment matrix
-- Run build/plan/apply for QA alongside other environments
+- Run plan/apply for QA — the AWS provider in `providers.tf` will chain into the QA account using `var.account_id`
 
-**No workflow YAML changes needed!**
+**No workflow YAML changes and no new GitHub variables are needed.**
 
 ## Troubleshooting
 
-### Build Fails on Tests
-
-**Symptoms:** Build workflow fails during test phase
-
-**Solutions:**
-- Review test output in workflow logs
-- Run tests locally: `uv sync && uv tool run ruff check`
-- Check for import errors or missing dependencies
-- Verify Python version matches workflow (3.12 default)
-
-### Trivy Security Scan Failures
-
-**Symptoms:** Build succeeds but Trivy scan fails
-
-**Solutions:**
-- Review vulnerability report in workflow logs
-- Update base image in Dockerfile to latest patched version
-- Check if vulnerabilities are in OS packages or Python dependencies
-- Temporarily adjust `trivy_severity` input (not recommended for production)
-
 ### Apply Cannot Find Plan Artifact
 
-**Symptoms:** terraform-apply fails with "artifact not found" for specific environment
+**Symptoms:** terraform-apply fails with "artifact not found" for a specific environment
 
 **Solutions:**
-- Verify PR was merged (not closed without merge)
-- Check environment-specific artifact was uploaded in PR workflow
+- Verify the PR was merged (not closed without merge)
+- Check that the environment-specific artifact was uploaded in the PR workflow
 - Confirm artifact name matches expected pattern: `tfplan-<stack>-pr-<number>-<environment>`
-- Check artifact hasn't exceeded 30-day retention
-- Verify environment name in artifact exactly matches tfvars filename
-
-### Image Not Updating in Lambda
-
-**Symptoms:** Code changes deployed but Lambda still runs old version
-
-**Solutions:**
-- Check Lambda function configuration in AWS console
-- Verify image tag in Terraform matches pushed tag
-- Confirm ECR image was actually pushed to correct environment's ECR (check workflow logs)
-- Review Terraform apply output for actual changes made
-- Ensure environment-specific role has ECR permissions
+- Check that the artifact hasn't exceeded the 30-day retention
+- Verify the environment name in artifact exactly matches the tfvars filename
 
 ### Matrix Job Fails for One Environment
 
-**Symptoms:** Dev works but staging/prod fails
+**Symptoms:** Dev works but prod/shared fails
 
 **Solutions:**
-- Check if GitHub variable exists for that environment (e.g., `AWS_ROLE_ARN_staging`)
-- Verify IAM role ARN is correct and accessible
-- Check if ECR repository exists in that environment's AWS account
-- Review AWS permissions for that environment's role
-- Look at workflow logs for environment-specific errors
+- Confirm `region-20-terraform-execution-role` exists in the target account and trusts the central CI role
+- Check that `account_id` in the env's `.tfvars` is correct
+- Review AWS CloudTrail in the target account for the `AssumeRole` denial event
+- Look at workflow logs for the exact `sts:AssumeRole` failure message
+
+### "AccessDenied" on the chained AssumeRole
+
+**Symptoms:** Plan/apply fails at provider init with `AccessDenied` when assuming `region-20-terraform-execution-role`
+
+**Solutions:**
+- Verify the target account's execution role trust policy includes the central CI role ARN exactly (no typos)
+- Confirm `vars.AWS_ROLE_ARN` resolves to the central CI role you expect (echo it from the workflow if needed)
+- If the central role has a permissions boundary, ensure it allows `sts:AssumeRole` to the target role pattern
 
 ### "Role ARN not found" Error
 
-**Symptoms:** Workflow fails with variable not found
+**Symptoms:** Workflow fails with `vars.AWS_ROLE_ARN` empty
 
 **Solutions:**
-- Verify GitHub variable name matches pattern exactly:
-  - `AWS_ROLE_ARN_{environment}` (e.g., `AWS_ROLE_ARN_dev`)
-- Environment name must exactly match tfvars filename (case-sensitive)
-- Variables must be set at **repository** level, not environment level
-- Check variable is not empty or null
+- Confirm `AWS_ROLE_ARN` is set at the **repository** Actions Variables level
+- Check the variable is not empty or null
+- Note: there are no per-env `AWS_ROLE_ARN_<env>` variables in this model — only the single central one
 
-### Docker Build Cache Not Working
+### Checkov Scan Failures
 
-**Symptoms:** All environment builds take full time
+**Symptoms:** Plan succeeds but Checkov scan fails on the PR
 
 **Solutions:**
-- Verify Dockerfile hasn't changed between environments
-- Check if build context is identical
-- Ensure Docker BuildKit is enabled (it should be by default)
-- Look for errors in first (dev) build that might prevent caching
-- Consider if GitHub Actions runner was recycled between builds
+- Review the Checkov findings in workflow logs and the PR comment
+- Fix the underlying misconfiguration in your Terraform code
+- If a finding is a known false positive, add a skip in `.config/.checkov.yaml` (repo-wide) or an inline `#checkov:skip=<id>: <reason>` (per resource) with justification

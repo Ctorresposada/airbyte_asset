@@ -86,7 +86,6 @@ Pull Request
 - [TFLint](https://github.com/terraform-linters/tflint)
 - [Checkov](https://www.checkov.io/)
 - [Gitleaks](https://github.com/gitleaks/gitleaks)
-- [Trivy](https://aquasecurity.github.io/trivy/)
 - [yamllint](https://yamllint.readthedocs.io/)
 
 ### AWS
