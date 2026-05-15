@@ -10,7 +10,7 @@ terraform {
 
   backend "s3" {
     bucket       = "region-20-tf-state"
-    key          = "lake-formation/terraform.tfstate"
+    key          = "ingestion/terraform.tfstate"
     region       = "us-east-1"
     encrypt      = true
     use_lockfile = true

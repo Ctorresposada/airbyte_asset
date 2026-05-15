@@ -10,7 +10,7 @@ provider "aws" {
       Environment = var.environment
       Team        = var.team
       ManagedBy   = "Terraform"
-      Stack       = "networking"
+      Stack       = "ingestion"
     }
   }
 }
