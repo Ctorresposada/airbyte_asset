@@ -145,8 +145,15 @@ module "flow_log_bucket" {
 
   lifecycle_rule = [
     {
-      id      = "expire-flow-logs"
+      id      = "tier-and-expire-flow-logs"
       enabled = true
+
+      transition = [
+        {
+          days          = var.flow_log_glacier_transition_days
+          storage_class = "GLACIER_IR"
+        }
+      ]
 
       expiration = {
         days = var.flow_log_retention_days

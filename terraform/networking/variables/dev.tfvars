@@ -14,3 +14,5 @@ single_nat_gateway     = true
 one_nat_gateway_per_az = false
 
 flow_log_bucket_arn = "arn:aws:s3:::region-20-audit-vpc-flow-logs"
+
+enable_flow_logs = false

@@ -54,6 +54,6 @@ output "s3_gateway_endpoint_id" {
 }
 
 output "flow_log_id" {
-  description = "ID of the aws_flow_log resource"
-  value       = aws_flow_log.this.id
+  description = "ID of the aws_flow_log resource, or null when flow logs are disabled (enable_flow_logs = false)"
+  value       = try(aws_flow_log.this[0].id, null)
 }

@@ -15,4 +15,10 @@ module "networking" {
   one_nat_gateway_per_az = var.one_nat_gateway_per_az
 
   flow_log_bucket_arn = var.flow_log_bucket_arn
+
+  enable_flow_logs                    = var.enable_flow_logs
+  flow_log_traffic_type               = var.flow_log_traffic_type
+  flow_log_file_format                = var.flow_log_file_format
+  flow_log_hive_compatible_partitions = var.flow_log_hive_compatible_partitions
+  flow_log_per_hour_partition         = var.flow_log_per_hour_partition
 }

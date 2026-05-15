@@ -50,3 +50,14 @@ variable "flow_log_bucket_force_destroy" {
   type        = bool
   default     = false
 }
+
+variable "flow_log_glacier_transition_days" {
+  description = "Days after object creation before transitioning VPC Flow Log objects to Glacier Instant Retrieval. Must be less than flow_log_retention_days. Glacier IR has a 90-day minimum billing duration."
+  type        = number
+  default     = 30
+
+  validation {
+    condition     = var.flow_log_glacier_transition_days >= 1
+    error_message = "flow_log_glacier_transition_days must be at least 1."
+  }
+}

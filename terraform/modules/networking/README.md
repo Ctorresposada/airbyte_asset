@@ -35,7 +35,12 @@ This module provisions a complete VPC networking layer for a single environment:
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
 | <a name="input_azs"></a> [azs](#input\_azs) | List of availability zone names to deploy subnets into | `list(string)` | n/a | yes |
+| <a name="input_enable_flow_logs"></a> [enable\_flow\_logs](#input\_enable\_flow\_logs) | Whether to create the aws\_flow\_log resource for this VPC. Set false to skip flow log creation entirely (e.g., in non-production environments). | `bool` | `true` | no |
 | <a name="input_flow_log_bucket_arn"></a> [flow\_log\_bucket\_arn](#input\_flow\_log\_bucket\_arn) | ARN of the centralized S3 bucket in the audit account that receives VPC Flow Logs from this VPC | `string` | n/a | yes |
+| <a name="input_flow_log_file_format"></a> [flow\_log\_file\_format](#input\_flow\_log\_file\_format) | Log file format delivered to S3. parquet is ~70% smaller than plain-text and reduces Athena scan cost via columnar compression. | `string` | `"plain-text"` | no |
+| <a name="input_flow_log_hive_compatible_partitions"></a> [flow\_log\_hive\_compatible\_partitions](#input\_flow\_log\_hive\_compatible\_partitions) | Whether to use Hive-compatible S3 prefixes (e.g., year=2026/month=05/) so Athena can prune partitions during query. | `bool` | `false` | no |
+| <a name="input_flow_log_per_hour_partition"></a> [flow\_log\_per\_hour\_partition](#input\_flow\_log\_per\_hour\_partition) | Whether to partition log objects per hour (in addition to per day). Useful at large volumes for finer Athena partition pruning. | `bool` | `false` | no |
+| <a name="input_flow_log_traffic_type"></a> [flow\_log\_traffic\_type](#input\_flow\_log\_traffic\_type) | Type of traffic captured by the VPC flow log. ACCEPT logs only allowed traffic, REJECT logs only denied traffic (cheapest, security-focused), ALL logs every flow. | `string` | `"ALL"` | no |
 | <a name="input_name"></a> [name](#input\_name) | Name prefix applied to all resources created by this module | `string` | n/a | yes |
 | <a name="input_one_nat_gateway_per_az"></a> [one\_nat\_gateway\_per\_az](#input\_one\_nat\_gateway\_per\_az) | Provision one NAT Gateway per availability zone for HA; mutually exclusive with single\_nat\_gateway | `bool` | `true` | no |
 | <a name="input_private_subnet_cidrs"></a> [private\_subnet\_cidrs](#input\_private\_subnet\_cidrs) | List of CIDR blocks for private subnets; must have the same length as azs | `list(string)` | n/a | yes |
@@ -47,7 +52,7 @@ This module provisions a complete VPC networking layer for a single environment:
 
 | Name | Description |
 |------|-------------|
-| <a name="output_flow_log_id"></a> [flow\_log\_id](#output\_flow\_log\_id) | ID of the aws\_flow\_log resource |
+| <a name="output_flow_log_id"></a> [flow\_log\_id](#output\_flow\_log\_id) | ID of the aws\_flow\_log resource, or null when flow logs are disabled (enable\_flow\_logs = false) |
 | <a name="output_interface_endpoint_ids"></a> [interface\_endpoint\_ids](#output\_interface\_endpoint\_ids) | Map of endpoint key to VPC endpoint ID for each interface endpoint |
 | <a name="output_interface_endpoint_security_group_id"></a> [interface\_endpoint\_security\_group\_id](#output\_interface\_endpoint\_security\_group\_id) | ID of the security group attached to all interface VPC endpoints |
 | <a name="output_internet_gateway_id"></a> [internet\_gateway\_id](#output\_internet\_gateway\_id) | ID of the Internet Gateway |

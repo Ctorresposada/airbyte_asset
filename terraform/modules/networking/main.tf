@@ -121,9 +121,17 @@ module "endpoints" {
 # ---------------------------------------------------------------------------
 
 resource "aws_flow_log" "this" {
+  count = var.enable_flow_logs ? 1 : 0
+
   vpc_id                   = module.vpc.vpc_id
-  traffic_type             = "ALL"
+  traffic_type             = var.flow_log_traffic_type
   log_destination_type     = "s3"
   log_destination          = var.flow_log_bucket_arn
   max_aggregation_interval = 600
+
+  destination_options {
+    file_format                = var.flow_log_file_format
+    hive_compatible_partitions = var.flow_log_hive_compatible_partitions
+    per_hour_partition         = var.flow_log_per_hour_partition
+  }
 }

@@ -14,3 +14,9 @@ single_nat_gateway     = false
 one_nat_gateway_per_az = true
 
 flow_log_bucket_arn = "arn:aws:s3:::region-20-audit-vpc-flow-logs"
+
+enable_flow_logs                    = true
+flow_log_traffic_type               = "REJECT"
+flow_log_file_format                = "parquet"
+flow_log_hive_compatible_partitions = true
+flow_log_per_hour_partition         = true
