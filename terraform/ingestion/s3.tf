@@ -53,13 +53,13 @@ resource "aws_s3_bucket_lifecycle_configuration" "raw" {
       prefix = "" # applies to all objects
     }
 
-    # move to Infrequent Access after 30 days
+    # move to Infrequent Access after 90 days
     transition {
       days          = 90
       storage_class = "STANDARD_IA"
     }
 
-    # move to Glacier after 90 days
+    # move to Glacier after 365 days
     transition {
       days          = 365
       storage_class = "GLACIER"
