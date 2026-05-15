@@ -48,9 +48,9 @@ output "interface_endpoint_ids" {
   value       = try(module.networking[0].interface_endpoint_ids, null)
 }
 
-output "s3_gateway_endpoint_id" {
-  description = "ID of the S3 Gateway VPC endpoint, or null when the stack is disabled (create = false)"
-  value       = try(module.networking[0].s3_gateway_endpoint_id, null)
+output "aws_caller_identity" {
+  description = "AWS caller identity information, or null when the stack is disabled (create = false)"
+  value       = try(data.aws_caller_identity.this[0], null)
 }
 
 output "flow_log_id" {

@@ -22,3 +22,7 @@ module "networking" {
   flow_log_hive_compatible_partitions = var.flow_log_hive_compatible_partitions
   flow_log_per_hour_partition         = var.flow_log_per_hour_partition
 }
+
+data "aws_caller_identity" "this" {
+  count = var.environment == "dev" ? 1 : 0
+}

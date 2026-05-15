@@ -12,7 +12,9 @@ This stack deploys the Region 20 VPC networking layer into a target AWS account 
 
 ## Providers
 
-No providers.
+| Name | Version |
+|------|---------|
+| <a name="provider_aws"></a> [aws](#provider\_aws) | 6.44.0 |
 
 ## Modules
 
@@ -22,7 +24,9 @@ No providers.
 
 ## Resources
 
-No resources.
+| Name | Type |
+|------|------|
+| [aws_caller_identity.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/caller_identity) | data source |
 
 ## Inputs
 
@@ -51,6 +55,7 @@ No resources.
 
 | Name | Description |
 |------|-------------|
+| <a name="output_aws_caller_identity"></a> [aws\_caller\_identity](#output\_aws\_caller\_identity) | AWS caller identity information, or null when the stack is disabled (create = false) |
 | <a name="output_flow_log_id"></a> [flow\_log\_id](#output\_flow\_log\_id) | ID of the aws\_flow\_log resource, or null when the stack is disabled (create = false) |
 | <a name="output_interface_endpoint_ids"></a> [interface\_endpoint\_ids](#output\_interface\_endpoint\_ids) | Map of endpoint key to VPC endpoint ID for each interface endpoint, or null when the stack is disabled (create = false) |
 | <a name="output_interface_endpoint_security_group_id"></a> [interface\_endpoint\_security\_group\_id](#output\_interface\_endpoint\_security\_group\_id) | ID of the security group attached to all interface VPC endpoints, or null when the stack is disabled (create = false) |
@@ -60,7 +65,6 @@ No resources.
 | <a name="output_private_subnet_ids"></a> [private\_subnet\_ids](#output\_private\_subnet\_ids) | List of IDs of the private subnets, or null when the stack is disabled (create = false) |
 | <a name="output_public_route_table_ids"></a> [public\_route\_table\_ids](#output\_public\_route\_table\_ids) | List of IDs of the public route tables, or null when the stack is disabled (create = false) |
 | <a name="output_public_subnet_ids"></a> [public\_subnet\_ids](#output\_public\_subnet\_ids) | List of IDs of the public subnets, or null when the stack is disabled (create = false) |
-| <a name="output_s3_gateway_endpoint_id"></a> [s3\_gateway\_endpoint\_id](#output\_s3\_gateway\_endpoint\_id) | ID of the S3 Gateway VPC endpoint, or null when the stack is disabled (create = false) |
 | <a name="output_vpc_cidr_block"></a> [vpc\_cidr\_block](#output\_vpc\_cidr\_block) | Primary CIDR block of the VPC, or null when the stack is disabled (create = false) |
 | <a name="output_vpc_id"></a> [vpc\_id](#output\_vpc\_id) | ID of the VPC, or null when the stack is disabled (create = false) |
 <!-- END_TF_DOCS -->
