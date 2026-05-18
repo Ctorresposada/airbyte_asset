@@ -111,3 +111,15 @@ resource "aws_s3_object" "tea_prefix" {
     Layer  = "raw"
   })
 }
+
+resource "aws_s3_object" "connect20_prefix" {
+  bucket  = aws_s3_bucket.raw.id
+  key     = "connect20/"
+  content = ""
+
+  tags = merge(var.tags, {
+    Prefix = "connect20"
+    Source = "CONNECT20"
+    Layer  = "raw"
+  })
+}
