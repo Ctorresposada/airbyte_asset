@@ -3,12 +3,16 @@ output "aws_caller_identity" {
   value       = try(data.aws_caller_identity.this[0], null)
 }
 
-output "bucket_name" {
-  value       = aws_s3_bucket.raw.id
-  description = "S3 raw bucket name"
+output "bucket_names" {
+  value = {
+    for k, v in aws_s3_bucket.buckets : k => v.id
+  }
+  description = "All S3 bucket names"
 }
 
-output "bucket_arn" {
-  value       = aws_s3_bucket.raw.arn
-  description = "S3 raw bucket ARN"
+output "bucket_arns" {
+  value = {
+    for k, v in aws_s3_bucket.buckets : k => v.arn
+  }
+  description = "All S3 bucket ARNs"
 }
