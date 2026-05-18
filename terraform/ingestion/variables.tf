@@ -24,13 +24,42 @@ variable "account_id" {
   type        = string
 }
 
-variable "raw_bucket_name" {
-  description = "Name of the S3 raw/landing zone bucket for files"
-  type        = string
+variable "buckets" {
+  description = "Map of S3 buckets to create"
+  type = map(object({
+    name               = string
+    layer              = string
+    transition_ia      = number
+    transition_glacier = number
+    expiration_days    = number
+  }))
+  default = {
+    raw = {
+      name               = "escr20-landing-zone-raw"
+      layer              = "raw"
+      transition_ia      = 90
+      transition_glacier = 365
+      expiration_days    = 2555
+    }
+    bronze = {
+      name               = "escr20-bronze"
+      layer              = "bronze"
+      transition_ia      = 90
+      transition_glacier = 365
+      expiration_days    = 2555
+    }
+    silver = {
+      name               = "escr20-silver"
+      layer              = "silver"
+      transition_ia      = 180
+      transition_glacier = 365
+      expiration_days    = 2555
+    }
+  }
 }
 
 variable "tags" {
-  description = "Common tags to apply to S3 buckets"
+  description = "Common tags to apply to all S3 buckets"
   type        = map(string)
   default     = {}
 }
