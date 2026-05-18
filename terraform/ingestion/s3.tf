@@ -1,4 +1,4 @@
-# Creates Raw Bucket for 
+# Creates Raw Bucket for landing zone
 resource "aws_s3_bucket" "raw" {
   bucket = var.raw_bucket_name
 
