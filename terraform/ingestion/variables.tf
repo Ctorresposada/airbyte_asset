@@ -24,10 +24,9 @@ variable "account_id" {
   type        = string
 }
 
-variable "bucket_name" {
+variable "raw_bucket_name" {
   description = "Name of the S3 raw/landing zone bucket for files"
   type        = string
-  default     = "escr20-landing-zone"
 }
 
 variable "tags" {

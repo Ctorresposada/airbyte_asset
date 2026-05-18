@@ -1,8 +1,9 @@
+# Creates Raw Bucket for 
 resource "aws_s3_bucket" "raw" {
-  bucket = "${var.bucket_name}-${var.environment}"
+  bucket = var.raw_bucket_name
 
   tags = merge(var.tags, {
-    Name        = var.bucket_name
+    Name        = var.raw_bucket_name
     Environment = var.environment
     Layer       = "raw"
   })
@@ -25,7 +26,7 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "raw" {
   rule {
     apply_server_side_encryption_by_default {
       sse_algorithm = "AES256" # SSE-S3 current
-      # need to swap to aws:kms later
+      # will need to swap to aws:kms later
     }
     bucket_key_enabled = true
   }
