@@ -87,7 +87,7 @@ resource "aws_s3_bucket_lifecycle_configuration" "raw" {
   }
 }
 
-# Raw Landing Zone Bucket Prefixes (Ascender and TEA) - for files ingestion process
+# Raw Landing Zone Bucket Prefixes (Ascender, TEA and Connect20) - for files ingestion process
 resource "aws_s3_object" "ascender_prefix" {
   bucket  = aws_s3_bucket.raw.id
   key     = "ascender/"
