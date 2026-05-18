@@ -11,4 +11,9 @@ enable-secret-scan-all-files: true
 skip-check:
   - CKV_TF_1  # "Ensure Terraform module sources use a commit hash"
   - CKV_TF_3  # "Ensure state files are locked" - Fails if backend config is passed in with the -backend-config flag.
-  - CKV_AWS_355  # "Ensure no IAM policies documents allow "*" as a statement's resource for restrictable actions"
+  - CKV_TF_355  # "Ensure no IAM policies documents allow "*" as a statement's resource for restrictable actions"
+  - CKV_AWS_18   # Access logging not required — audit trail handled via CloudTrail
+  - CKV2_AWS_62  # Event notifications not required — pipeline monitoring handled via Airbyte
+  - CKV_AWS_144  # Cross-region replication not required — no DR requirement per client data residency
+  - CKV_AWS_145  # KMS encryption not required — using SSE-S3 (AES256) per project security requirements for now (KMS can be added later/)
+  - CKV_AWS_355  # Ensure no IAM policies documents allow "*" as a statement's resource for restrictable actions

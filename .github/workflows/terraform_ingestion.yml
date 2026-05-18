@@ -1,25 +1,25 @@
-name: Terraform - Region 20 lake-formation infrastructure
+name: Terraform - Region 20 ingestion infrastructure
 on:
   pull_request:
     branches:
       - main
     paths:
-      - 'terraform/lake-formation/**'
-      - 'terraform/modules/lake-formation/**'
-      - '.github/workflows/terraform_lake_formation.yml'
+      - 'terraform/ingestion/**'
+      - 'terraform/modules/ingestion/**'
+      - '.github/workflows/terraform_ingestion.yml'
   push:
     branches:
       - main
     paths:
-      - 'terraform/lake-formation/**'
-      - 'terraform/modules/lake-formation/**'
-      - '.github/workflows/terraform_lake_formation.yml'
+      - 'terraform/ingestion/**'
+      - 'terraform/modules/ingestion/**'
+      - '.github/workflows/terraform_ingestion.yml'
 
 env:
   AWS_REGION: 'us-east-1'
   AWS_ROLE_ARN: ${{ vars.AWS_ROLE_ARN }}
   TERRAFORM_VERSION: '1.11.3'
-  WORKING_DIR: 'terraform/lake-formation'
+  WORKING_DIR: 'terraform/ingestion'
 
 permissions:
   id-token: write

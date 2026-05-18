@@ -23,3 +23,14 @@ variable "account_id" {
   description = "AWS account ID of the target account; used to construct the cross-account assume_role ARN"
   type        = string
 }
+
+variable "raw_bucket_name" {
+  description = "Name of the S3 raw/landing zone bucket for files"
+  type        = string
+}
+
+variable "tags" {
+  description = "Common tags to apply to S3 buckets"
+  type        = map(string)
+  default     = {}
+}
