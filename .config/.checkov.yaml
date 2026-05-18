@@ -15,5 +15,5 @@ skip-check:
   - CKV_AWS_18   # Access logging not required — audit trail handled via CloudTrail
   - CKV2_AWS_62  # Event notifications not required — pipeline monitoring handled via Airbyte
   - CKV_AWS_144  # Cross-region replication not required — no DR requirement per client data residency
-  - CKV_AWS_145  # KMS encryption not required — using SSE-S3 (AES256) per project security requirements for now (KMS can be added later/)
+  - CKV_AWS_145  # KMS encryption not required — using SSE-S3 (AES256) per project security requirements for now (KMS can be added later)
   - CKV_AWS_355  # Ensure no IAM policies documents allow "*" as a statement's resource for restrictable actions
