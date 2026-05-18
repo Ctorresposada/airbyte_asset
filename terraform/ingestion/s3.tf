@@ -1,17 +1,21 @@
-# Creates Raw Bucket for landing zone
-resource "aws_s3_bucket" "raw" {
-  bucket = var.raw_bucket_name
+# S3 Buckets for all layers (raw / bronze / silver)
+resource "aws_s3_bucket" "buckets" {
+  for_each = var.buckets
+
+  bucket = "${each.value.name}-${var.environment}"
 
   tags = merge(var.tags, {
-    Name        = var.raw_bucket_name
+    Name        = "${each.value.name}-${var.environment}"
     Environment = var.environment
-    Layer       = "raw"
+    Layer       = each.value.layer
   })
 }
 
 # Block all public access
-resource "aws_s3_bucket_public_access_block" "raw" {
-  bucket = aws_s3_bucket.raw.id
+resource "aws_s3_bucket_public_access_block" "buckets" {
+  for_each = var.buckets
+
+  bucket = aws_s3_bucket.buckets[each.key].id
 
   block_public_acls       = true
   block_public_policy     = true
@@ -19,62 +23,64 @@ resource "aws_s3_bucket_public_access_block" "raw" {
   restrict_public_buckets = true
 }
 
-# SSE-S3 encryption (server-side encryption)
-resource "aws_s3_bucket_server_side_encryption_configuration" "raw" {
-  bucket = aws_s3_bucket.raw.id
+# SSE-S3 encryption
+resource "aws_s3_bucket_server_side_encryption_configuration" "buckets" {
+  for_each = var.buckets
+
+  bucket = aws_s3_bucket.buckets[each.key].id
 
   rule {
     apply_server_side_encryption_by_default {
-      sse_algorithm = "AES256" # SSE-S3 current
-      # will need to swap to aws:kms later
+      sse_algorithm = "AES256"
     }
     bucket_key_enabled = true
   }
 }
 
-# Versioning raw bucket
-resource "aws_s3_bucket_versioning" "raw" {
-  bucket = aws_s3_bucket.raw.id
+# Versioning
+resource "aws_s3_bucket_versioning" "buckets" {
+  for_each = var.buckets
+
+  bucket = aws_s3_bucket.buckets[each.key].id
 
   versioning_configuration {
     status = "Enabled"
   }
 }
 
-# Lifecycle policy
-resource "aws_s3_bucket_lifecycle_configuration" "raw" {
-  bucket = aws_s3_bucket.raw.id
+# Lifecycle policies
+resource "aws_s3_bucket_lifecycle_configuration" "buckets" {
+  for_each = var.buckets
+
+  bucket = aws_s3_bucket.buckets[each.key].id
 
   # Rule 1 — transition current objects to cheaper storage
   rule {
-    id     = "raw-transition-current"
+    id     = "${each.value.layer}-transition-current"
     status = "Enabled"
 
     filter {
-      prefix = "" # applies to all objects
+      prefix = ""
     }
 
-    # move to Infrequent Access after 90 days
     transition {
-      days          = 90
+      days          = each.value.transition_ia
       storage_class = "STANDARD_IA"
     }
 
-    # move to Glacier after 365 days
     transition {
-      days          = 365
+      days          = each.value.transition_glacier
       storage_class = "GLACIER"
     }
 
-    # delete after 7 years (adjust per retention requirements)
     expiration {
-      days = 2555
+      days = each.value.expiration_days
     }
   }
 
   # Rule 2 — clean up incomplete multipart uploads
   rule {
-    id     = "abort-incomplete-multipart"
+    id     = "${each.value.layer}-abort-incomplete-multipart"
     status = "Enabled"
 
     filter {
@@ -89,7 +95,7 @@ resource "aws_s3_bucket_lifecycle_configuration" "raw" {
 
 # Raw Landing Zone Bucket Prefixes (Ascender, TEA and Connect20) - for files ingestion process
 resource "aws_s3_object" "ascender_prefix" {
-  bucket  = aws_s3_bucket.raw.id
+  bucket  = aws_s3_bucket.buckets["raw"].id
   key     = "ascender/"
   content = ""
 
@@ -101,7 +107,7 @@ resource "aws_s3_object" "ascender_prefix" {
 }
 
 resource "aws_s3_object" "tea_prefix" {
-  bucket  = aws_s3_bucket.raw.id
+  bucket  = aws_s3_bucket.buckets["raw"].id
   key     = "tea/"
   content = ""
 
@@ -113,7 +119,7 @@ resource "aws_s3_object" "tea_prefix" {
 }
 
 resource "aws_s3_object" "connect20_prefix" {
-  bucket  = aws_s3_bucket.raw.id
+  bucket  = aws_s3_bucket.buckets["raw"].id
   key     = "connect20/"
   content = ""
 
