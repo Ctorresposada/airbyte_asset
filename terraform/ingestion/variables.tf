@@ -35,7 +35,7 @@ variable "buckets" {
   }))
   default = {
     raw = {
-      name               = "escr20-landing-zone"
+      name               = "escr20-landing-zone-raw"
       layer              = "raw"
       transition_ia      = 90
       transition_glacier = 365
