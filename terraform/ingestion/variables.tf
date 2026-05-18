@@ -59,7 +59,7 @@ variable "buckets" {
 }
 
 variable "tags" {
-  description = "Common tags to apply to S3 buckets"
+  description = "Common tags to apply to all S3 buckets"
   type        = map(string)
   default     = {}
 }
