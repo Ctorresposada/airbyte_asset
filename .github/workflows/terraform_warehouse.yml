@@ -1,24 +1,23 @@
-name: Terraform ${STACK_NAME}
-
+name: Terraform - Region 20 warehouse infrastructure
 on:
   pull_request:
     branches:
       - main
     paths:
-      - 'terraform/${STACK_NAME}/**'
-      - '.github/workflows/terraform_base.yml'
+      - 'terraform/warehouse/**'
+      - '.github/workflows/terraform_warehouse.yml'
   push:
     branches:
       - main
     paths:
-      - 'terraform/${STACK_NAME}/**'
-      - '.github/workflows/terraform_base.yml'
+      - 'terraform/warehouse/**'
+      - '.github/workflows/terraform_warehouse.yml'
 
 env:
   AWS_REGION: ${{ vars.AWS_REGION || 'us-east-1' }}
   AWS_ROLE_ARN: ${{ vars.AWS_ROLE_ARN }}
-  TERRAFORM_VERSION: ${{ vars.TERRAFORM_VERSION || '1.11.0' }}
-  WORKING_DIR: '${STACK_NAME}'
+  TERRAFORM_VERSION: ${{ vars.TERRAFORM_VERSION || '1.11.3' }}
+  WORKING_DIR: 'terraform/warehouse'
 
 permissions:
   id-token: write

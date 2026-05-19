@@ -1,0 +1,7 @@
+create             = true
+environment        = "dev"
+aws_region         = "us-east-1"
+team               = "devops"
+company_name       = "region-20"
+account_id         = "784590287037"
+redshift_key_users = ["arn:aws:iam::784590287037:role/aws-reserved/sso.amazonaws.com/AWSReservedSSO_DataEngineer_Dev_cd1bbeb9335fcaa8", "arn:aws:iam::784590287037:role/aws-reserved/sso.amazonaws.com/AWSReservedSSO_AWSAdministratorAccess_9a7f3e7b3aa4c5bb"]
