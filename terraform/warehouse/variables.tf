@@ -34,3 +34,38 @@ variable "redshift_key_users" {
   type        = list(string)
   default     = []
 }
+
+variable "redshift_db_name" {
+  description = "Initial database name created inside the Redshift Serverless namespace. Per R2EP2IC-31, Redshift hosts the GOLD layer only."
+  type        = string
+  default     = "gold"
+}
+
+variable "redshift_admin_username" {
+  description = "Username for the Redshift admin user. The password is managed by Redshift in Secrets Manager (manage_admin_password = true), so no password is set in Terraform."
+  type        = string
+  default     = "admin"
+}
+
+variable "redshift_base_capacity" {
+  description = "Base RPU capacity for the workgroup. Minimum allowed by Redshift Serverless is 8."
+  type        = number
+  default     = 8
+
+  validation {
+    condition     = var.redshift_base_capacity >= 8
+    error_message = "redshift_base_capacity must be at least 8 RPUs."
+  }
+}
+
+variable "redshift_max_capacity" {
+  description = "Maximum RPU capacity the workgroup can scale to. Acts as a cost ceiling; set lower in dev environments."
+  type        = number
+  default     = 128
+}
+
+variable "data_lake_bucket_arns" {
+  description = "List of S3 bucket ARNs the Redshift cluster IAM role can read via Spectrum or COPY (e.g. the gold layer bucket). Empty list means no S3 read policy is attached. Pass full ARNs like \"arn:aws:s3:::escr20-gold-dev\"; the cluster gets s3:GetObject on <bucket-arn>/* and s3:ListBucket on <bucket-arn>."
+  type        = list(string)
+  default     = []
+}
