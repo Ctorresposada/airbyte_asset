@@ -8,11 +8,6 @@ output "redshift_kms_key_id" {
   value       = try(module.redshift_kms[0].key_id, null)
 }
 
-output "redshift_kms_alias_arn" {
-  description = "ARN of the KMS alias for the Redshift CMK, or null when the stack is disabled (create = false)."
-  value       = try(module.redshift_kms[0].aliases["alias/${local.name}-redshift"].arn, null)
-}
-
 output "redshift_workgroup_endpoint" {
   description = "Workgroup endpoint object (address + port) used by SQL clients to connect to Redshift, or null when the stack is disabled (create = false)."
   value       = try(aws_redshiftserverless_workgroup.this[0].endpoint, null)
@@ -24,7 +19,7 @@ output "redshift_workgroup_arn" {
 }
 
 output "redshift_namespace_arn" {
-  description = "ARN of the Redshift Serverless namespace (consumed by future stacks via terraform_remote_state), or null when the stack is disabled."
+  description = "ARN of the Redshift Serverless namespace, or null when the stack is disabled."
   value       = try(aws_redshiftserverless_namespace.this[0].arn, null)
 }
 
@@ -41,4 +36,14 @@ output "redshift_iam_role_arn" {
 output "redshift_security_group_id" {
   description = "Security group ID protecting the Redshift workgroup, or null when the stack is disabled."
   value       = try(aws_security_group.redshift[0].id, null)
+}
+
+output "redshift_log_group_names" {
+  description = "Names of the CloudWatch log groups receiving Redshift Serverless log exports, or null when the stack is disabled (create = false)."
+  value       = try([for lg in aws_cloudwatch_log_group.redshift : lg.name], null)
+}
+
+output "redshift_log_group_arns" {
+  description = "ARNs of the CloudWatch log groups receiving Redshift Serverless log exports, or null when the stack is disabled (create = false)."
+  value       = try([for lg in aws_cloudwatch_log_group.redshift : lg.arn], null)
 }

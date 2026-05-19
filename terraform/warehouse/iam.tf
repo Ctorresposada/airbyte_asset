@@ -37,24 +37,6 @@ data "aws_iam_policy_document" "redshift_serverless" {
 
     resources = ["*"]
   }
-
-  statement {
-    sid    = "KmsDecryptViaS3"
-    effect = "Allow"
-
-    actions = [
-      "kms:Decrypt",
-      "kms:DescribeKey",
-    ]
-
-    resources = ["*"]
-
-    condition {
-      test     = "StringEquals"
-      variable = "kms:ViaService"
-      values   = ["s3.${var.aws_region}.amazonaws.com"]
-    }
-  }
 }
 
 resource "aws_iam_role" "redshift_serverless" {

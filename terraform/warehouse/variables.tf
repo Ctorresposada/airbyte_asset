@@ -62,6 +62,22 @@ variable "redshift_max_capacity" {
   description = "Maximum RPU capacity the workgroup can scale to. Acts as a cost ceiling; set lower in dev environments."
   type        = number
   default     = 128
+
+  validation {
+    condition     = var.redshift_max_capacity >= var.redshift_base_capacity
+    error_message = "redshift_max_capacity must be >= redshift_base_capacity."
+  }
+}
+
+variable "redshift_log_retention_days" {
+  description = "Retention in days for the CloudWatch log groups receiving Redshift Serverless userlog / connectionlog / useractivitylog exports. CloudWatch storage cost grows linearly with this value; dev should keep it short."
+  type        = number
+  default     = 30
+
+  validation {
+    condition     = contains([1, 3, 5, 7, 14, 30, 60, 90, 120, 150, 180, 365, 400, 545, 731, 1827, 2192, 2557, 2922, 3288, 3653], var.redshift_log_retention_days)
+    error_message = "redshift_log_retention_days must be one of the values CloudWatch Logs accepts: 1, 3, 5, 7, 14, 30, 60, 90, 120, 150, 180, 365, 400, 545, 731, 1827, 2192, 2557, 2922, 3288, 3653."
+  }
 }
 
 variable "data_lake_bucket_arns" {

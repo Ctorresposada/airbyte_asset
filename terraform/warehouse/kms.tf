@@ -15,4 +15,32 @@ module "redshift_kms" {
   aliases = ["${local.name}-redshift"]
 
   key_users = var.redshift_key_users
+
+  key_statements = [
+    {
+      sid    = "AllowCloudWatchLogsUseOfKey"
+      effect = "Allow"
+      actions = [
+        "kms:Encrypt*",
+        "kms:Decrypt*",
+        "kms:ReEncrypt*",
+        "kms:GenerateDataKey*",
+        "kms:Describe*",
+      ]
+      resources = ["*"]
+      principals = [
+        {
+          type        = "Service"
+          identifiers = ["logs.${var.aws_region}.amazonaws.com"]
+        }
+      ]
+      conditions = [
+        {
+          test     = "ArnEquals"
+          variable = "kms:EncryptionContext:aws:logs:arn"
+          values   = ["arn:aws:logs:${var.aws_region}:${var.account_id}:log-group:/aws/redshift/${local.name}-warehouse:*"]
+        }
+      ]
+    },
+  ]
 }

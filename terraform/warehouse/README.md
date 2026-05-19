@@ -26,6 +26,7 @@ Redshift data warehouse (used with Spectrum over S3) and its supporting KMS CMKs
 
 | Name | Type |
 |------|------|
+| [aws_cloudwatch_log_group.redshift](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/cloudwatch_log_group) | resource |
 | [aws_iam_role.redshift_serverless](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role) | resource |
 | [aws_iam_role_policy.redshift_serverless](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy) | resource |
 | [aws_redshiftserverless_namespace.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/redshiftserverless_namespace) | resource |
@@ -53,6 +54,7 @@ Redshift data warehouse (used with Spectrum over S3) and its supporting KMS CMKs
 | <a name="input_redshift_base_capacity"></a> [redshift\_base\_capacity](#input\_redshift\_base\_capacity) | Base RPU capacity for the workgroup. Minimum allowed by Redshift Serverless is 8. | `number` | `8` | no |
 | <a name="input_redshift_db_name"></a> [redshift\_db\_name](#input\_redshift\_db\_name) | Initial database name created inside the Redshift Serverless namespace. Per R2EP2IC-31, Redshift hosts the GOLD layer only. | `string` | `"gold"` | no |
 | <a name="input_redshift_key_users"></a> [redshift\_key\_users](#input\_redshift\_key\_users) | List of IAM principal ARNs (roles / users) permitted to use the Redshift KMS CMK for read/write operations (Encrypt, Decrypt, ReEncrypt*, GenerateDataKey*, DescribeKey). An empty list means no principals other than the account root can use the key — safe default for first apply. | `list(string)` | `[]` | no |
+| <a name="input_redshift_log_retention_days"></a> [redshift\_log\_retention\_days](#input\_redshift\_log\_retention\_days) | Retention in days for the CloudWatch log groups receiving Redshift Serverless userlog / connectionlog / useractivitylog exports. CloudWatch storage cost grows linearly with this value; dev should keep it short. | `number` | `30` | no |
 | <a name="input_redshift_max_capacity"></a> [redshift\_max\_capacity](#input\_redshift\_max\_capacity) | Maximum RPU capacity the workgroup can scale to. Acts as a cost ceiling; set lower in dev environments. | `number` | `128` | no |
 | <a name="input_team"></a> [team](#input\_team) | Team that manages this project | `string` | n/a | yes |
 
@@ -62,10 +64,11 @@ Redshift data warehouse (used with Spectrum over S3) and its supporting KMS CMKs
 |------|-------------|
 | <a name="output_redshift_admin_secret_arn"></a> [redshift\_admin\_secret\_arn](#output\_redshift\_admin\_secret\_arn) | ARN of the Secrets Manager secret holding the Redshift admin password (Redshift-managed), or null when the stack is disabled. |
 | <a name="output_redshift_iam_role_arn"></a> [redshift\_iam\_role\_arn](#output\_redshift\_iam\_role\_arn) | ARN of the IAM role attached to the Redshift Serverless namespace (S3 / Glue read for Spectrum), or null when the stack is disabled. |
-| <a name="output_redshift_kms_alias_arn"></a> [redshift\_kms\_alias\_arn](#output\_redshift\_kms\_alias\_arn) | ARN of the KMS alias for the Redshift CMK, or null when the stack is disabled (create = false). |
 | <a name="output_redshift_kms_key_arn"></a> [redshift\_kms\_key\_arn](#output\_redshift\_kms\_key\_arn) | ARN of the KMS CMK used to encrypt Redshift data at rest, or null when the stack is disabled (create = false). |
 | <a name="output_redshift_kms_key_id"></a> [redshift\_kms\_key\_id](#output\_redshift\_kms\_key\_id) | Globally unique identifier of the Redshift KMS CMK, or null when the stack is disabled (create = false). |
-| <a name="output_redshift_namespace_arn"></a> [redshift\_namespace\_arn](#output\_redshift\_namespace\_arn) | ARN of the Redshift Serverless namespace (consumed by future stacks via terraform\_remote\_state), or null when the stack is disabled. |
+| <a name="output_redshift_log_group_arns"></a> [redshift\_log\_group\_arns](#output\_redshift\_log\_group\_arns) | ARNs of the CloudWatch log groups receiving Redshift Serverless log exports, or null when the stack is disabled (create = false). |
+| <a name="output_redshift_log_group_names"></a> [redshift\_log\_group\_names](#output\_redshift\_log\_group\_names) | Names of the CloudWatch log groups receiving Redshift Serverless log exports, or null when the stack is disabled (create = false). |
+| <a name="output_redshift_namespace_arn"></a> [redshift\_namespace\_arn](#output\_redshift\_namespace\_arn) | ARN of the Redshift Serverless namespace, or null when the stack is disabled. |
 | <a name="output_redshift_security_group_id"></a> [redshift\_security\_group\_id](#output\_redshift\_security\_group\_id) | Security group ID protecting the Redshift workgroup, or null when the stack is disabled. |
 | <a name="output_redshift_workgroup_arn"></a> [redshift\_workgroup\_arn](#output\_redshift\_workgroup\_arn) | ARN of the Redshift Serverless workgroup, or null when the stack is disabled. |
 | <a name="output_redshift_workgroup_endpoint"></a> [redshift\_workgroup\_endpoint](#output\_redshift\_workgroup\_endpoint) | Workgroup endpoint object (address + port) used by SQL clients to connect to Redshift, or null when the stack is disabled (create = false). |
