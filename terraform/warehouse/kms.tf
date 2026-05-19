@@ -36,9 +36,9 @@ module "redshift_kms" {
       ]
       conditions = [
         {
-          test     = "ArnEquals"
+          test     = "ArnLike"
           variable = "kms:EncryptionContext:aws:logs:arn"
-          values   = ["arn:aws:logs:${var.aws_region}:${var.account_id}:log-group:/aws/redshift/${local.name}-warehouse:*"]
+          values   = ["arn:aws:logs:${var.aws_region}:${var.account_id}:log-group:/aws/redshift/${local.name}-warehouse/*"]
         }
       ]
     },
