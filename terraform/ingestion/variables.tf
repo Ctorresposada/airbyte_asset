@@ -25,7 +25,7 @@ variable "account_id" {
 }
 
 variable "buckets" {
-  description = "Map of S3 buckets to create"
+  description = "Map of S3 buckets to manage"
   type = map(object({
     name               = string
     layer              = string
@@ -33,33 +33,18 @@ variable "buckets" {
     transition_glacier = number
     expiration_days    = number
   }))
-  default = {
-    raw = {
-      name               = "escr20-landing-zone-raw"
-      layer              = "raw"
-      transition_ia      = 90
-      transition_glacier = 365
-      expiration_days    = 2555
-    }
-    bronze = {
-      name               = "escr20-bronze"
-      layer              = "bronze"
-      transition_ia      = 90
-      transition_glacier = 365
-      expiration_days    = 2555
-    }
-    silver = {
-      name               = "escr20-silver"
-      layer              = "silver"
-      transition_ia      = 180
-      transition_glacier = 365
-      expiration_days    = 2555
-    }
-  }
+}
+
+variable "glue_databases" {
+  description = "Map of Glue catalog databases to manage"
+  type = map(object({
+    name        = string
+    description = string
+  }))
 }
 
 variable "tags" {
-  description = "Common tags to apply to all S3 buckets"
+  description = "Common tags to apply to all resources"
   type        = map(string)
   default     = {}
 }

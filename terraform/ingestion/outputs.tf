@@ -16,3 +16,10 @@ output "bucket_arns" {
   }
   description = "All S3 bucket ARNs"
 }
+
+output "glue_database_names" {
+  value = {
+    for k, v in aws_glue_catalog_database.databases : k => v.name
+  }
+  description = "Glue catalog database names"
+}
