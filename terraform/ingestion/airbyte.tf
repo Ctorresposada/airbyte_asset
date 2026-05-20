@@ -50,6 +50,45 @@ data "aws_iam_policy_document" "airbyte_kms" {
     }
   }
 
+  # EC2 Auto Scaling service-linked role needs explicit key access for EBS encryption.
+  # Root account delegation does not cover service-linked roles for this use case.
+  # Ref: https://docs.aws.amazon.com/autoscaling/ec2/userguide/key-policy-requirements-EBS-encryption.html
+  statement {
+    sid    = "AllowASGServiceLinkedRoleUseOfKey"
+    effect = "Allow"
+    actions = [
+      "kms:Encrypt",
+      "kms:Decrypt",
+      "kms:ReEncrypt*",
+      "kms:GenerateDataKey*",
+      "kms:DescribeKey",
+    ]
+    resources = ["*"]
+
+    principals {
+      type        = "AWS"
+      identifiers = ["arn:aws:iam::${var.account_id}:role/aws-service-role/autoscaling.amazonaws.com/AWSServiceRoleForAutoScaling"]
+    }
+  }
+
+  statement {
+    sid       = "AllowASGServiceLinkedRoleCreateGrant"
+    effect    = "Allow"
+    actions   = ["kms:CreateGrant"]
+    resources = ["*"]
+
+    principals {
+      type        = "AWS"
+      identifiers = ["arn:aws:iam::${var.account_id}:role/aws-service-role/autoscaling.amazonaws.com/AWSServiceRoleForAutoScaling"]
+    }
+
+    condition {
+      test     = "Bool"
+      variable = "kms:GrantIsForAWSResource"
+      values   = ["true"]
+    }
+  }
+
   # CloudWatch Logs needs Encrypt/Decrypt to write to the Airbyte log group
   statement {
     sid    = "AllowCloudWatchLogsUseOfKey"

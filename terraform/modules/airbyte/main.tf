@@ -467,7 +467,7 @@ resource "aws_db_instance" "this" {
 resource "aws_s3_bucket" "this" {
   count = var.create ? 1 : 0
 
-  bucket        = "${var.name}-airbyte"
+  bucket        = var.name
   force_destroy = var.s3_force_destroy
 
   tags = local.common_tags
