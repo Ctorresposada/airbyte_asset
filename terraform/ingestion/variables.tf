@@ -48,3 +48,50 @@ variable "tags" {
   type        = map(string)
   default     = {}
 }
+
+variable "company_name" {
+  description = "Company name prefix used in resource names and to look up shared networking resources by tag."
+  type        = string
+}
+
+variable "airbyte_instance_type" {
+  description = "EC2 instance type for the Airbyte ASG. Use m6a.xlarge for dev (minimum viable) and m6a.2xlarge for production."
+  type        = string
+  default     = "m6a.2xlarge"
+}
+
+variable "airbyte_rds_instance_class" {
+  description = "RDS instance class for the Airbyte PostgreSQL config database. db.t3.micro for dev; db.t3.small or larger for production."
+  type        = string
+  default     = "db.t3.small"
+}
+
+variable "airbyte_log_retention_days" {
+  description = "CloudWatch log retention in days for the Airbyte log group. Use 30 for dev to control cost; 365 for production."
+  type        = number
+  default     = 365
+}
+
+variable "airbyte_rds_multi_az" {
+  description = "Enable RDS Multi-AZ standby for the Airbyte config database. Disable in dev for cost; enable in production."
+  type        = bool
+  default     = false
+}
+
+variable "airbyte_rds_skip_final_snapshot" {
+  description = "Skip the final RDS snapshot on destroy. Set to true for dev environments; false for production to prevent data loss."
+  type        = bool
+  default     = true
+}
+
+variable "airbyte_rds_deletion_protection" {
+  description = "Enable RDS deletion protection on the Airbyte config database. Disable in dev; enable in production to prevent accidental deletion."
+  type        = bool
+  default     = false
+}
+
+variable "airbyte_s3_force_destroy" {
+  description = "Allow Terraform to empty and destroy the Airbyte S3 bucket on destroy. Safe in dev; must be false in production."
+  type        = bool
+  default     = false
+}

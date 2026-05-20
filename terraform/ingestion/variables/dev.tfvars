@@ -39,3 +39,12 @@ glue_databases = {
     description = "Silver layer — curated and transformed data"
   }
 }
+
+# Airbyte compute -- dev cost optimization
+airbyte_instance_type           = "m6a.xlarge"
+airbyte_rds_instance_class      = "db.t3.micro"
+airbyte_log_retention_days      = 30
+airbyte_rds_multi_az            = false
+airbyte_rds_skip_final_snapshot = true
+airbyte_rds_deletion_protection = false
+airbyte_s3_force_destroy        = true
