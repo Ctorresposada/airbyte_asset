@@ -129,3 +129,56 @@ resource "aws_s3_object" "connect20_prefix" {
     Layer  = "raw"
   })
 }
+
+# Cross-account CRR destination policy: allow the Ascender source account's
+# replication role to write into raw/ascender/ only. Bucket-level list and
+# versioning reads are required by S3 for destination validation.
+data "aws_iam_policy_document" "raw_bucket_ascender_crr" {
+  count = var.create ? 1 : 0
+
+  statement {
+    sid    = "AllowAscenderCRRReplicateToAscenderPrefix"
+    effect = "Allow"
+
+    principals {
+      type        = "AWS"
+      identifiers = ["arn:aws:iam::472646798982:role/service-role/s3crr_role_for_esc20-ascender-data-warehouse-798982-us-east-1"]
+    }
+
+    actions = [
+      "s3:ReplicateObject",
+      "s3:ReplicateDelete",
+      "s3:ReplicateTags",
+      "s3:GetObjectVersionTagging",
+      "s3:ObjectOwnerOverrideToBucketOwner",
+    ]
+
+    resources = ["${aws_s3_bucket.buckets["raw"].arn}/ascender/*"]
+  }
+
+  statement {
+    sid    = "AllowAscenderCRRBucketValidation"
+    effect = "Allow"
+
+    principals {
+      type        = "AWS"
+      identifiers = ["arn:aws:iam::472646798982:role/service-role/s3crr_role_for_esc20-ascender-data-warehouse-798982-us-east-1"]
+    }
+
+    actions = [
+      "s3:List*",
+      "s3:GetBucketVersioning",
+    ]
+
+    resources = [aws_s3_bucket.buckets["raw"].arn]
+  }
+}
+
+resource "aws_s3_bucket_policy" "raw_ascender_crr" {
+  count = var.create ? 1 : 0
+
+  bucket = aws_s3_bucket.buckets["raw"].id
+  policy = data.aws_iam_policy_document.raw_bucket_ascender_crr[0].json
+
+  depends_on = [aws_s3_bucket_public_access_block.buckets]
+}
