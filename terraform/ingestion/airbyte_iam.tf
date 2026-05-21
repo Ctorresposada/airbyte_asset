@@ -53,7 +53,8 @@ resource "aws_iam_policy" "airbyte" {
           "glue:GetTables",
           "glue:GetDatabase",
           "glue:GetDatabases",
-          "glue:CreateDatabase"
+          "glue:CreateDatabase",
+          "glue:DeleteTable"
         ]
         Resource = [
           "arn:aws:glue:${var.aws_region}:${var.account_id}:catalog",
