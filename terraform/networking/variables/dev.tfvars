@@ -16,3 +16,18 @@ one_nat_gateway_per_az = false
 flow_log_bucket_arn = "arn:aws:s3:::region-20-audit-vpc-flow-logs"
 
 enable_flow_logs = false
+
+# ---------------------------------------------------------------------------
+# Client VPN
+# ---------------------------------------------------------------------------
+enable_client_vpn = false
+
+# REQUIRED: Replace with the CIDR block to assign to VPN clients before applying.
+client_vpn_client_cidr = "10.200.0.0/22"
+
+# REQUIRED: Replace with the ACM certificate ARN for the VPN server certificate before applying.
+client_vpn_server_certificate_arn = "arn:aws:acm:us-east-1:784590287037:certificate/ef55ad82-adc5-4d1d-bc0d-717cf674ed93"
+
+# client_vpn_saml_metadata_document is intentionally absent from tfvars.
+# Passed it at CICD plan/apply time via the environment variable:
+#   export TF_VAR_client_vpn_saml_metadata_document="$(cat /path/to/metadata.xml)"

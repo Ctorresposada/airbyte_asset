@@ -57,3 +57,13 @@ output "flow_log_id" {
   description = "ID of the aws_flow_log resource, or null when the stack is disabled (create = false)"
   value       = try(module.networking[0].flow_log_id, null)
 }
+
+output "client_vpn_endpoint_id" {
+  description = "ID of the Client VPN endpoint, or null when Client VPN is disabled"
+  value       = try(aws_ec2_client_vpn_endpoint.this[0].id, null)
+}
+
+output "client_vpn_saml_secret_arn" {
+  description = "ARN of the Secrets Manager secret that holds the Client VPN SAML metadata document; populate this secret before enabling the VPN"
+  value       = try(aws_secretsmanager_secret.client_vpn_saml[0].arn, null)
+}

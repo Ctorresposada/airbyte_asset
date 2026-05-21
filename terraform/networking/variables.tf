@@ -103,3 +103,37 @@ variable "flow_log_per_hour_partition" {
   type        = bool
   default     = false
 }
+
+# ---------------------------------------------------------------------------
+# Client VPN variables
+# ---------------------------------------------------------------------------
+
+variable "enable_client_vpn" {
+  description = "Whether to provision the Client VPN endpoint and all associated resources. Set to false to skip Client VPN creation entirely."
+  type        = bool
+  default     = false
+}
+
+variable "client_vpn_client_cidr" {
+  description = "IPv4 CIDR block (minimum /22) from which Client VPN assigns addresses to connecting clients. Must not overlap with the VPC CIDR or any peered network."
+  type        = string
+  default     = ""
+}
+
+variable "client_vpn_server_certificate_arn" {
+  description = "ARN of the ACM certificate used as the VPN server certificate. Must be in the same region as the VPN endpoint."
+  type        = string
+  default     = ""
+}
+
+variable "client_vpn_log_retention_days" {
+  description = "Number of days to retain Client VPN connection logs in CloudWatch Logs."
+  type        = number
+  default     = 90
+}
+
+variable "client_vpn_log_kms_key_arn" {
+  description = "ARN of a KMS key used to encrypt the Client VPN CloudWatch Log Group. Leave empty to use the default CloudWatch service key."
+  type        = string
+  default     = ""
+}

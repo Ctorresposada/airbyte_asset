@@ -26,7 +26,15 @@ This stack deploys the Region 20 VPC networking layer into a target AWS account 
 
 | Name | Type |
 |------|------|
+| [aws_cloudwatch_log_group.client_vpn](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/cloudwatch_log_group) | resource |
+| [aws_ec2_client_vpn_authorization_rule.vpc_cidr](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/ec2_client_vpn_authorization_rule) | resource |
+| [aws_ec2_client_vpn_endpoint.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/ec2_client_vpn_endpoint) | resource |
+| [aws_ec2_client_vpn_network_association.private](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/ec2_client_vpn_network_association) | resource |
+| [aws_iam_saml_provider.client_vpn](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_saml_provider) | resource |
+| [aws_secretsmanager_secret.client_vpn_saml](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/secretsmanager_secret) | resource |
+| [aws_security_group.client_vpn](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group) | resource |
 | [aws_caller_identity.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/caller_identity) | data source |
+| [aws_secretsmanager_secret_version.client_vpn_saml](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/secretsmanager_secret_version) | data source |
 
 ## Inputs
 
@@ -35,8 +43,13 @@ This stack deploys the Region 20 VPC networking layer into a target AWS account 
 | <a name="input_account_id"></a> [account\_id](#input\_account\_id) | AWS account ID of the target account; used to construct the cross-account assume\_role ARN | `string` | n/a | yes |
 | <a name="input_aws_region"></a> [aws\_region](#input\_aws\_region) | Target deployment region | `string` | n/a | yes |
 | <a name="input_azs"></a> [azs](#input\_azs) | List of availability zone names to deploy subnets into | `list(string)` | n/a | yes |
+| <a name="input_client_vpn_client_cidr"></a> [client\_vpn\_client\_cidr](#input\_client\_vpn\_client\_cidr) | IPv4 CIDR block (minimum /22) from which Client VPN assigns addresses to connecting clients. Must not overlap with the VPC CIDR or any peered network. | `string` | `""` | no |
+| <a name="input_client_vpn_log_kms_key_arn"></a> [client\_vpn\_log\_kms\_key\_arn](#input\_client\_vpn\_log\_kms\_key\_arn) | ARN of a KMS key used to encrypt the Client VPN CloudWatch Log Group. Leave empty to use the default CloudWatch service key. | `string` | `""` | no |
+| <a name="input_client_vpn_log_retention_days"></a> [client\_vpn\_log\_retention\_days](#input\_client\_vpn\_log\_retention\_days) | Number of days to retain Client VPN connection logs in CloudWatch Logs. | `number` | `90` | no |
+| <a name="input_client_vpn_server_certificate_arn"></a> [client\_vpn\_server\_certificate\_arn](#input\_client\_vpn\_server\_certificate\_arn) | ARN of the ACM certificate used as the VPN server certificate. Must be in the same region as the VPN endpoint. | `string` | `""` | no |
 | <a name="input_company_name"></a> [company\_name](#input\_company\_name) | Name to be appended to all resources as prefix | `string` | n/a | yes |
 | <a name="input_create"></a> [create](#input\_create) | Whether this stack should provision its resources. Set to false to soft-delete everything the stack manages while preserving state and code. | `bool` | `true` | no |
+| <a name="input_enable_client_vpn"></a> [enable\_client\_vpn](#input\_enable\_client\_vpn) | Whether to provision the Client VPN endpoint and all associated resources. Set to false to skip Client VPN creation entirely. | `bool` | `false` | no |
 | <a name="input_enable_flow_logs"></a> [enable\_flow\_logs](#input\_enable\_flow\_logs) | Whether to create the aws\_flow\_log resource for this VPC. Set false to skip flow log creation entirely (e.g., in non-production environments). | `bool` | `true` | no |
 | <a name="input_environment"></a> [environment](#input\_environment) | Target deployment environment | `string` | n/a | yes |
 | <a name="input_flow_log_bucket_arn"></a> [flow\_log\_bucket\_arn](#input\_flow\_log\_bucket\_arn) | ARN of the centralized S3 bucket in the audit account that receives VPC Flow Logs from this VPC | `string` | n/a | yes |
@@ -56,6 +69,8 @@ This stack deploys the Region 20 VPC networking layer into a target AWS account 
 | Name | Description |
 |------|-------------|
 | <a name="output_aws_caller_identity"></a> [aws\_caller\_identity](#output\_aws\_caller\_identity) | AWS caller identity information, or null when the stack is disabled (create = false) |
+| <a name="output_client_vpn_endpoint_id"></a> [client\_vpn\_endpoint\_id](#output\_client\_vpn\_endpoint\_id) | ID of the Client VPN endpoint, or null when Client VPN is disabled |
+| <a name="output_client_vpn_saml_secret_arn"></a> [client\_vpn\_saml\_secret\_arn](#output\_client\_vpn\_saml\_secret\_arn) | ARN of the Secrets Manager secret that holds the Client VPN SAML metadata document; populate this secret before enabling the VPN |
 | <a name="output_flow_log_id"></a> [flow\_log\_id](#output\_flow\_log\_id) | ID of the aws\_flow\_log resource, or null when the stack is disabled (create = false) |
 | <a name="output_interface_endpoint_ids"></a> [interface\_endpoint\_ids](#output\_interface\_endpoint\_ids) | Map of endpoint key to VPC endpoint ID for each interface endpoint, or null when the stack is disabled (create = false) |
 | <a name="output_interface_endpoint_security_group_id"></a> [interface\_endpoint\_security\_group\_id](#output\_interface\_endpoint\_security\_group\_id) | ID of the security group attached to all interface VPC endpoints, or null when the stack is disabled (create = false) |
