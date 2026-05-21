@@ -1,5 +1,5 @@
 # ---------------------------------------------------------------------------
-# Secrets Manager Secret for Airbyte Cloud: stores Airbyte IAM credentials securely
+# Secrets Manager Secret for Airbyte Cloud: stores Airbyte IAM credentials
 # ---------------------------------------------------------------------------
 resource "aws_secretsmanager_secret" "airbyte_credentials" {
   #checkov:skip=CKV2_AWS_57: Automatic rotation requires Lambda or manual change, for now leaving as static in DEV
