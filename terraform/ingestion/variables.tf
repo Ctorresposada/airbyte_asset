@@ -95,3 +95,15 @@ variable "airbyte_s3_force_destroy" {
   type        = bool
   default     = false
 }
+
+variable "airbyte_alb_allowed_cidr_blocks" {
+  description = "CIDR blocks permitted to reach the Airbyte ALB on ports 80 and 443. Passed directly to the airbyte module's allowed_cidr_blocks. Include the Client VPN client CIDR so VPN-connected users can access the Airbyte UI through the load balancer."
+  type        = list(string)
+  default     = []
+}
+
+variable "airbyte_instance_direct_cidr_blocks" {
+  description = "CIDR blocks permitted to reach the Airbyte EC2 instance directly on port 80, bypassing the ALB. Intended for debugging only; set to [] in production."
+  type        = list(string)
+  default     = []
+}

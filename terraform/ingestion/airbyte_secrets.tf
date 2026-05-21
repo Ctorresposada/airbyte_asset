@@ -53,23 +53,6 @@ resource "aws_secretsmanager_secret_policy" "airbyte_credentials" {
         ]
         Resource = "*"
       },
-      {
-        Sid    = "DenyAllOtherPrincipals"
-        Effect = "Deny"
-        Principal = {
-          AWS = "*"
-        }
-        Action   = "secretsmanager:GetSecretValue"
-        Resource = "*"
-        Condition = {
-          StringNotEquals = {
-            "aws:PrincipalArn" = [
-              "arn:aws:iam::${var.account_id}:root",
-              aws_iam_user.airbyte.arn
-            ]
-          }
-        }
-      }
     ]
   })
 }

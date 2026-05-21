@@ -162,5 +162,18 @@ module "airbyte" {
   # ALB disabled until DNS and certificate are provisioned
   create_alb = false
 
+  allowed_cidr_blocks = var.airbyte_alb_allowed_cidr_blocks
+
   tags = var.tags
+}
+
+resource "aws_vpc_security_group_ingress_rule" "airbyte_instance_from_vpn" {
+  for_each = var.create && length(var.airbyte_instance_direct_cidr_blocks) > 0 ? toset(var.airbyte_instance_direct_cidr_blocks) : toset([])
+
+  security_group_id = module.airbyte[0].instance_sg_id
+  description       = "Direct HTTP ingress for debugging — bypasses ALB"
+  from_port         = 80
+  to_port           = 80
+  ip_protocol       = "tcp"
+  cidr_ipv4         = each.value
 }

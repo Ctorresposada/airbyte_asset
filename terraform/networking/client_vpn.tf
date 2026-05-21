@@ -142,4 +142,9 @@ resource "aws_ec2_client_vpn_authorization_rule" "vpc_cidr" {
   target_network_cidr    = var.vpc_cidr
   authorize_all_groups   = true
   description            = "Allow all IDC-authenticated VPN users to reach the full VPC CIDR"
+
+  timeouts {
+    create = "20m"
+  }
 }
+
