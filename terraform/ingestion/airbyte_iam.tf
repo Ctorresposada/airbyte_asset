@@ -57,8 +57,8 @@ resource "aws_iam_policy" "airbyte" {
         ]
         Resource = [
           "arn:aws:glue:${var.aws_region}:${var.account_id}:catalog",
-          "arn:aws:glue:${var.aws_region}:${var.account_id}:database/escr20-bronze-dev",
-          "arn:aws:glue:${var.aws_region}:${var.account_id}:table/escr20-bronze-dev/*"
+          "arn:aws:glue:${var.aws_region}:${var.account_id}:database/escr20_bronze_dev",
+          "arn:aws:glue:${var.aws_region}:${var.account_id}:table/escr20_bronze_dev/*"
         ]
       },
       # KMS - use the Airbyte CMK for S3 encryption/decryption
@@ -82,7 +82,7 @@ resource "aws_iam_policy" "airbyte" {
 # Policy Attachment: bind the policy to the Airbyte IAM user
 # ---------------------------------------------------------------------------
 resource "aws_iam_user_policy_attachment" "airbyte" {
-  #checkov:skip=CKV_AWS_40: Airbyte Cloud IAM user, it can be swap to a group, but not mandatory, since only airbyte will use this user.
+  #checkov:skip=CKV_AWS_40: Airbyte Cloud IAM user, it can be swap to a group, but not mandatory, since only airbyte will use this user
   user       = aws_iam_user.airbyte.name
   policy_arn = aws_iam_policy.airbyte.arn
 }
