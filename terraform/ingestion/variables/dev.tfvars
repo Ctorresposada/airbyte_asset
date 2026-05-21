@@ -31,11 +31,11 @@ buckets = {
 #All Glue Databases Configuration in DEV
 glue_databases = {
   bronze = {
-    name        = "escr20-bronze"
+    name        = "escr20_bronze"
     description = "Bronze layer — raw ingested data from all sources"
   }
   silver = {
-    name        = "escr20-silver"
+    name        = "escr20_silver"
     description = "Silver layer — curated and transformed data"
   }
 }

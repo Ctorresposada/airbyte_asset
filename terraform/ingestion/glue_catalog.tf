@@ -4,7 +4,7 @@
 resource "aws_glue_catalog_database" "databases" {
   for_each = var.glue_databases
 
-  name        = "${each.value.name}-${var.environment}"
+  name        = "${each.value.name}_${var.environment}"
   description = each.value.description
 
   tags = merge(var.tags, {
