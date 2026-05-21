@@ -56,3 +56,15 @@ output "user_data_script" {
   sensitive   = true
 }
 
+# ---------------------------------------------------------------------------
+# Airbyte: expose secret ARN for reference (never expose the actual values)
+# ---------------------------------------------------------------------------
+output "airbyte_secret_arn" {
+  description = "ARN of the Secrets Manager secret storing Airbyte credentials"
+  value       = aws_secretsmanager_secret.airbyte_credentials.arn
+}
+
+output "airbyte_iam_user_arn" {
+  description = "ARN of the Airbyte Cloud IAM user"
+  value       = aws_iam_user.airbyte.arn
+}

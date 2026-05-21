@@ -1,4 +1,6 @@
+# ---------------------------------------------------------------------------
 # Glue Databases for layers (bronze / silver)
+# ---------------------------------------------------------------------------
 resource "aws_glue_catalog_database" "databases" {
   for_each = var.glue_databases
 
