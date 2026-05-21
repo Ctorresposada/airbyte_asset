@@ -152,6 +152,7 @@ module "airbyte" {
 
   instance_type           = var.airbyte_instance_type
   rds_instance_class      = var.airbyte_rds_instance_class
+  rds_db_name             = "airbyte"
   log_retention_days      = var.airbyte_log_retention_days
   rds_multi_az            = var.airbyte_rds_multi_az
   rds_skip_final_snapshot = var.airbyte_rds_skip_final_snapshot

@@ -1,103 +1,87 @@
 #!/usr/bin/env bash
-# user-data.sh.tpl
-# Bootstrap script for self-hosted Airbyte on Amazon Linux 2023.
-# Rendered by templatefile() in main.tf; all $${...} tokens are Terraform
-# template variables -- not shell variables.
-#
-# Steps:
-#   1. Install Docker (if not pre-baked into the AMI)
-#   2. Install abctl ${abctl_version} with checksum verification
-#   3. Ensure SSM Agent is running
-#   4. Pull Airbyte Helm values from SSM Parameter Store
-#   5. Run abctl local install
-#   6. Log health status
+# Bootstrap: install Docker, abctl, and Airbyte on Amazon Linux 2023.
 set -euxo pipefail
-# Variable convention:
-#   $${var}   -- Terraform template injection (single dollar in rendered output); used at assignment lines below
-#   $${VAR}   -- Renders to shell variable reference in bash; used for all downstream expansions
 
-LOG_GROUP="${log_group_name}"
-REGION="${aws_region}"
 ABCTL_VERSION="${abctl_version}"
+AWS_REGION="${aws_region}"
 SSM_PARAM="${ssm_parameter_name}"
 
-# ---------------------------------------------------------------------------
-# 1. Docker install (AL2023 -- dnf-based)
-# ---------------------------------------------------------------------------
+# 1. Install Docker if not already present
 if ! command -v docker &>/dev/null; then
   dnf install -y docker
   systemctl enable --now docker
 fi
-
-# Ensure the ec2-user can run docker without sudo (takes effect on next login;
-# abctl runs as root via user-data, so this is for interactive debugging only).
 usermod -aG docker ec2-user || true
+usermod -aG docker ssm-user || true
 
-# ---------------------------------------------------------------------------
-# 2. Install abctl with checksum verification
-# ---------------------------------------------------------------------------
-ARCH="$(uname -m)"
-case "$ARCH" in
-  x86_64)  ARCH="amd64" ;;
-  aarch64) ARCH="arm64" ;;
-  *)
-    echo "ERROR: unsupported architecture: $ARCH"
-    exit 1
-    ;;
-esac
+# 2. Download and install abctl with checksum verification
+ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
+TARBALL_NAME="abctl-$ABCTL_VERSION-linux-$ARCH"
+TARBALL="$TARBALL_NAME.tar.gz"
+CHECKSUMS="abctl_$(echo "$ABCTL_VERSION" | sed 's/^v//')_checksums.txt"
+RELEASE_URL="https://github.com/airbytehq/abctl/releases/download/$ABCTL_VERSION"
 
-ABCTL_TARBALL="abctl-$${ABCTL_VERSION}-linux-$${ARCH}.tar.gz"
-CHECKSUMS_FILE="abctl_$${ABCTL_VERSION#v}_checksums.txt"
-BASE_URL="https://github.com/airbytehq/abctl/releases/download/$${ABCTL_VERSION}"
+WORKDIR=$(mktemp -d)
+trap 'rm -rf "$WORKDIR"' EXIT
 
-TMPDIR="$(mktemp -d)"
-trap 'rm -rf "$TMPDIR"' EXIT
+curl -fsSL "$RELEASE_URL/$TARBALL"   -o "$WORKDIR/$TARBALL"
+curl -fsSL "$RELEASE_URL/$CHECKSUMS" -o "$WORKDIR/$CHECKSUMS"
 
-# Strip the leading 'v' from the version for the checksums filename.
-# abctl_0.30.4_checksums.txt (not abctl_v0.30.4_checksums.txt).
-CHECKSUMS_FILENAME="abctl_$${ABCTL_VERSION#v}_checksums.txt"
+(cd "$WORKDIR" && sha256sum --check --ignore-missing "$CHECKSUMS")
+tar -xzf "$WORKDIR/$TARBALL" -C "$WORKDIR"
+install -m 0755 "$WORKDIR/$TARBALL_NAME/abctl" /usr/local/bin/abctl
 
-curl -fsSL "$${BASE_URL}/$${ABCTL_TARBALL}"          -o "$${TMPDIR}/$${ABCTL_TARBALL}"
-curl -fsSL "$${BASE_URL}/$${CHECKSUMS_FILENAME}"     -o "$${TMPDIR}/$${CHECKSUMS_FILENAME}"
+# 3. Install kubectl (latest stable: 1.35 from Amazon EKS S3)
+KUBECTL_ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
+curl -O https://s3.us-west-2.amazonaws.com/amazon-eks/1.35.3/2026-04-08/bin/linux/$KUBECTL_ARCH/kubectl
+curl -O https://s3.us-west-2.amazonaws.com/amazon-eks/1.35.3/2026-04-08/bin/linux/$KUBECTL_ARCH/kubectl.sha256
+sha256sum -c kubectl.sha256
+chmod +x ./kubectl
+install -m 0755 ./kubectl /usr/local/bin/kubectl
+rm -f ./kubectl ./kubectl.sha256
 
-pushd "$TMPDIR"
-sha256sum --check --ignore-missing "$${CHECKSUMS_FILENAME}"
-popd
+# 4. Install postgresql15 client (psql only, for RDS connectivity debugging)
+dnf install -y postgresql15 jq
 
-tar -xzf "$${TMPDIR}/$${ABCTL_TARBALL}" -C "$TMPDIR"
-install -m 0755 "$${TMPDIR}/abctl" /usr/local/bin/abctl
-
-# ---------------------------------------------------------------------------
-# 3. Ensure SSM Agent is running (pre-installed on AL2023)
-# ---------------------------------------------------------------------------
+# 5. Ensure SSM Agent is running (pre-installed on AL2023)
 systemctl enable --now amazon-ssm-agent || true
 
-# ---------------------------------------------------------------------------
-# 4. Pull the Airbyte Helm values file from SSM Parameter Store
-# ---------------------------------------------------------------------------
+# 6. Pull Airbyte Helm values from SSM Parameter Store
 mkdir -p /etc/airbyte
-
 aws ssm get-parameter \
-  --name "$${SSM_PARAM}" \
+  --name "$SSM_PARAM" \
   --with-decryption \
-  --region "$${REGION}" \
+  --region "$AWS_REGION" \
   --query Parameter.Value \
   --output text > /etc/airbyte/values.yaml
-
 chmod 600 /etc/airbyte/values.yaml
 
-# ---------------------------------------------------------------------------
-# 5. Run abctl local install
-# ---------------------------------------------------------------------------
-# --low-resource-mode=false: the instance is sized (m6a.2xlarge by default)
-# to handle the full control-plane footprint plus sync worker headroom.
-abctl local install \
-  --chart-values /etc/airbyte/values.yaml \
-  --low-resource-mode=false
+# 7. Create db-airbyte on RDS if it does not exist
+# Airbyte bootloader requires this name; RDS was provisioned with "airbyte"
+# because the AWS API rejects hyphens in the initial database name.
+# Password is fetched at runtime from Secrets Manager so it is never baked
+# into the launch template user-data.
+set +x
+DB_PASS=$(aws secretsmanager get-secret-value \
+  --secret-id "${rds_secret_arn}" \
+  --region "${aws_region}" \
+  --query SecretString \
+  --output text | jq -r '.password')
+set -x
 
-# ---------------------------------------------------------------------------
-# 6. Log health status (non-fatal)
-# ---------------------------------------------------------------------------
+DB_EXISTS=$(PGPASSWORD="$DB_PASS" psql \
+  -h "${db_host}" -p ${db_port} -U "${db_user}" -d "${db_name}" \
+  -tAc "SELECT 1 FROM pg_database WHERE datname='db-airbyte';")
+if [[ "$DB_EXISTS" != "1" ]]; then
+  PGPASSWORD="$DB_PASS" psql \
+    -h "${db_host}" -p ${db_port} -U "${db_user}" -d "${db_name}" \
+    -c 'CREATE DATABASE "db-airbyte";'
+fi
+
+# 8. Install Airbyte
+abctl local install --values /etc/airbyte/values.yaml
+
+# 9. Confirm Airbyte is running
 abctl local status || true
 
 echo "Airbyte bootstrap complete."

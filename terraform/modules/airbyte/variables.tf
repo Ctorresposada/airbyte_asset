@@ -70,7 +70,7 @@ variable "allowed_cidr_blocks" {
 variable "rds_db_name" {
   description = "Name of the PostgreSQL database used by Airbyte for configuration storage."
   type        = string
-  default     = "airbyte"
+  default     = "db-airbyte"
 }
 
 variable "rds_temporal_db_name" {

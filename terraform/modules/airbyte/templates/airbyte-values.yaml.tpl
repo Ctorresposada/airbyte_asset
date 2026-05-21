@@ -16,6 +16,7 @@
 global:
   database:
     # External RDS PostgreSQL for Airbyte configuration storage.
+    type: "external"
     host: "${db_host}"
     port: ${db_port}
     database: "${db_name}"
@@ -58,3 +59,13 @@ webapp:
 # Disable internal PostgreSQL; using external RDS above.
 postgresql:
   enabled: false
+
+server:
+  extraEnv:
+    - name: AWS_DEFAULT_REGION
+      value: "${s3_region}"
+
+worker:
+  extraEnv:
+    - name: AWS_DEFAULT_REGION
+      value: "${s3_region}"

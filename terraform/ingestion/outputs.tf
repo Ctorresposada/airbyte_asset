@@ -49,3 +49,10 @@ output "airbyte_rds_secret_arn" {
   value       = try(module.airbyte[0].rds_secret_arn, null)
   sensitive   = true
 }
+
+output "user_data_script" {
+  description = "Rendered user-data bootstrap script as it will be passed to the EC2 instance. Use 'terraform output -raw user_data_script' to inspect it before ap  plying."
+  value       = module.airbyte[0].user_data_script
+  sensitive   = true
+}
+

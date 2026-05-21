@@ -21,7 +21,7 @@ rebuilds it from the SSM-delivered Helm values.
 
 | Name | Version |
 |------|---------|
-| <a name="provider_aws"></a> [aws](#provider\_aws) | 6.45.0 |
+| <a name="provider_aws"></a> [aws](#provider\_aws) | 6.46.0 |
 | <a name="provider_random"></a> [random](#provider\_random) | 3.9.0 |
 
 ## Modules
@@ -89,7 +89,7 @@ No modules.
 | <a name="input_name"></a> [name](#input\_name) | Name prefix applied to every resource created by this module. | `string` | n/a | yes |
 | <a name="input_private_subnet_ids"></a> [private\_subnet\_ids](#input\_private\_subnet\_ids) | List of private subnet IDs for the Auto Scaling Group instances and the RDS DB subnet group. | `list(string)` | n/a | yes |
 | <a name="input_rds_backup_retention_days"></a> [rds\_backup\_retention\_days](#input\_rds\_backup\_retention\_days) | Number of days to retain automated RDS backups. Set to 0 to disable backups (not recommended). | `number` | `7` | no |
-| <a name="input_rds_db_name"></a> [rds\_db\_name](#input\_rds\_db\_name) | Name of the PostgreSQL database used by Airbyte for configuration storage. | `string` | `"airbyte"` | no |
+| <a name="input_rds_db_name"></a> [rds\_db\_name](#input\_rds\_db\_name) | Name of the PostgreSQL database used by Airbyte for configuration storage. | `string` | `"db-airbyte"` | no |
 | <a name="input_rds_deletion_protection"></a> [rds\_deletion\_protection](#input\_rds\_deletion\_protection) | Enable RDS deletion protection. Recommended for production. Must be disabled before destroy. | `bool` | `false` | no |
 | <a name="input_rds_instance_class"></a> [rds\_instance\_class](#input\_rds\_instance\_class) | RDS instance class for the Airbyte PostgreSQL config database. db.t3.micro is sufficient at small scale. Use db.t3.small or larger for production with many connectors and high sync frequency. | `string` | `"db.t3.micro"` | no |
 | <a name="input_rds_multi_az"></a> [rds\_multi\_az](#input\_rds\_multi\_az) | Enable Multi-AZ for the RDS instance. Doubles cost but provides automatic failover. Recommended for production. | `bool` | `false` | no |
@@ -117,4 +117,5 @@ No modules.
 | <a name="output_s3_bucket_arn"></a> [s3\_bucket\_arn](#output\_s3\_bucket\_arn) | ARN of the S3 bucket used by Airbyte for logs and artifacts. Null when create = false. |
 | <a name="output_s3_bucket_name"></a> [s3\_bucket\_name](#output\_s3\_bucket\_name) | Name of the S3 bucket used by Airbyte for logs and artifacts. Null when create = false. |
 | <a name="output_ssm_parameter_name"></a> [ssm\_parameter\_name](#output\_ssm\_parameter\_name) | Name of the SSM SecureString parameter that holds the rendered Airbyte Helm values YAML. The EC2 instance reads this at boot via user-data. |
+| <a name="output_user_data_script"></a> [user\_data\_script](#output\_user\_data\_script) | Rendered user-data bootstrap script as it will be passed to the EC2 instance. Use 'terraform output -raw user\_data\_script' to inspect it before applying. |
 <!-- END_TF_DOCS -->

@@ -66,3 +66,8 @@ output "rds_instance_id" {
   description = "RDS instance identifier for the Airbyte config database. Use for snapshot, restore, or parameter group operations."
   value       = try(aws_db_instance.this[0].identifier, null)
 }
+
+output "user_data_script" {
+  description = "Rendered user-data bootstrap script as it will be passed to the EC2 instance. Use 'terraform output -raw user_data_script' to inspect it before applying."
+  value       = local.user_data_content
+}

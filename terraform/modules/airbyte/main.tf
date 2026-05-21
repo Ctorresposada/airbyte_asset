@@ -47,6 +47,11 @@ locals {
     aws_region         = data.aws_region.current.region
     abctl_version      = local.abctl_version
     log_group_name     = try(aws_cloudwatch_log_group.this[0].name, "")
+    db_host            = try(aws_db_instance.this[0].address, "")
+    db_port            = try(aws_db_instance.this[0].port, 5432)
+    db_user            = var.rds_username
+    db_name            = var.rds_db_name
+    rds_secret_arn     = try(aws_secretsmanager_secret.rds[0].arn, "")
   })
 }
 
@@ -148,6 +153,7 @@ data "aws_iam_policy_document" "airbyte_inline" {
     ]
     resources = [
       "arn:aws:secretsmanager:${data.aws_region.current.region}:${data.aws_caller_identity.current.account_id}:secret:airbyte/*",
+      try(aws_secretsmanager_secret.rds[0].arn, "arn:aws:secretsmanager:::secret:placeholder"),
     ]
   }
 
