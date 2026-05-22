@@ -107,3 +107,15 @@ variable "vpn_available" {
   type        = bool
   default     = false
 }
+
+variable "lakeformation_terraform_role_name" {
+  description = "Name of the IAM role used by Terraform to manage this stack. Registered as a Lake Formation admin so Terraform retains the ability to manage LF resources after location registration."
+  type        = string
+  default     = "region-20-terraform-execution-role"
+}
+
+variable "lakeformation_admin_arns" {
+  description = "Additional IAM principal ARNs (roles or users) to grant Lake Formation admin rights beyond the Terraform execution role. Useful for granting data platform team members LF admin access."
+  type        = list(string)
+  default     = []
+}
