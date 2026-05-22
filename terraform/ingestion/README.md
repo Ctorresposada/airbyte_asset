@@ -60,12 +60,16 @@ s3://escr20-landing-zone-raw-{env}/
   └── connect20/   (Connect20 files)
 ```
 
-File naming convention: TBD
+File naming convention:
 
 ```
-{source}_{table}_{YYYYMMDD}.csv
-e.g. ascender_user_20260520.csv
-     tea_students_20260520.csv
+Daily:   {source}_{table}_{YYYYMMDD}.csv
+Hourly:  {source}_{table}_{YYYYMMDD}_{HHMMSS}.csv
+Examples:
+  ascender_user_20260520.csv
+  ascender_user_20260520_020000.csv
+  tea_students_20260520.csv
+  tea_students_20260520_140000.csv
 ```
 
 These three prefixes are materialised as zero-byte objects so the folders exist before any file lands. A bucket policy on the raw bucket grants the Ascender source account's S3 CRR service role (`arn:aws:iam::472646798982:role/service-role/s3crr_role_for_esc20-ascender-data-warehouse-798982-us-east-1`) permission to replicate objects into the `ascender/` prefix only, plus the bucket-level `List*` / `GetBucketVersioning` actions S3 requires for destination validation.
