@@ -101,4 +101,19 @@ variable "athena_results" {
     transition_glacier = number
     expiration_days    = number
   })
+
+  validation {
+    condition     = var.athena_results.transition_ia >= 30
+    error_message = "transition_ia must be >= 30 days (S3 STANDARD_IA minimum)."
+  }
+
+  validation {
+    condition     = var.athena_results.transition_glacier > var.athena_results.transition_ia
+    error_message = "transition_glacier must be greater than transition_ia."
+  }
+
+  validation {
+    condition     = var.athena_results.expiration_days > var.athena_results.transition_glacier
+    error_message = "expiration_days must be greater than transition_glacier."
+  }
 }
