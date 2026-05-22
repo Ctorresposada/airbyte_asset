@@ -197,7 +197,6 @@ data "aws_iam_policy_document" "raw_bucket_connect20_delivery" {
     actions = [
       "s3:PutObject",
       "s3:PutObjectAcl",
-      "s3:AbortMultipartUpload",
     ]
 
     resources = ["${aws_s3_bucket.buckets["raw"].arn}/connect20/*"]
@@ -207,6 +206,25 @@ data "aws_iam_policy_document" "raw_bucket_connect20_delivery" {
       variable = "s3:x-amz-acl"
       values   = ["bucket-owner-full-control"]
     }
+  }
+
+  # AbortMultipartUpload does not support the s3:x-amz-acl condition key,
+  # so it must live in a separate statement without a condition block.
+  statement {
+    sid    = "AllowConnect20DeliveryAbortMPU"
+    effect = "Allow"
+
+    principals {
+      type = "AWS"
+      identifiers = [
+        "arn:aws:iam::471808368523:role/developworks-egress-r20-delivery-role-dev",
+        "arn:aws:iam::198058783748:role/developworks-egress-r20-delivery-role",
+      ]
+    }
+
+    actions = ["s3:AbortMultipartUpload"]
+
+    resources = ["${aws_s3_bucket.buckets["raw"].arn}/connect20/*"]
   }
 }
 
