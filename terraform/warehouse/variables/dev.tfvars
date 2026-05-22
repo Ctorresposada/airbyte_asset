@@ -15,6 +15,6 @@ athena_results = {
   name               = "escr20-athena-results-dev"
   layer              = "athena"
   transition_ia      = 30
-  transition_glacier = 30
+  transition_glacier = 60
   expiration_days    = 90
 }
