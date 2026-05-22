@@ -12,7 +12,7 @@ redshift_log_retention_days = 30
 
 #Athena configurations
 athena_results = {
-  name               = "escr20-athena-results"
+  name               = "query-athena-results-dev"
   layer              = "athena"
   transition_ia      = 7
   transition_glacier = 30
