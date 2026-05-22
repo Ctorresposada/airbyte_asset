@@ -68,3 +68,13 @@ output "airbyte_iam_user_arn" {
   description = "ARN of the Airbyte Cloud IAM user"
   value       = aws_iam_user.airbyte.arn
 }
+
+output "lakeformation_bronze_location_arn" {
+  description = "ARN of the S3 bronze bucket registered as a Lake Formation data lake location"
+  value       = try(aws_lakeformation_resource.bronze[0].arn, null)
+}
+
+output "lakeformation_silver_location_arn" {
+  description = "ARN of the S3 silver bucket registered as a Lake Formation data lake location"
+  value       = try(aws_lakeformation_resource.silver[0].arn, null)
+}
