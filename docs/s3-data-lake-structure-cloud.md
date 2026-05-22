@@ -124,7 +124,7 @@ S3 lifecycle rule: expire all objects after 7 days. Do not place application dat
 |--------|------------------------------------------|----------------------|
 | Bronze | Iceberg-managed (`{uuid}-{seq}.parquet`) | Airbyte Cloud        |
 | Silver | Iceberg-managed (`{uuid}-{seq}.parquet`) | dbt Cloud + Athena   |
-| Manual uploads (Ascender, TEA) | `{source}_{YYYYMMDD}[_{descriptor}].parquet` | Manual convention |
+| Manual uploads (Ascender, TEA) | `{source}_{table_name}_{YYYYMMDD}[_{descriptor}].csv` | Manual convention |
 
 Rules:
 - **Lowercase + underscores** for all manually named files.
