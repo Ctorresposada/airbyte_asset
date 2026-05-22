@@ -35,10 +35,6 @@ resource "aws_iam_saml_provider" "client_vpn" {
 
   name                   = "${local.name}-client-vpn-idp"
   saml_metadata_document = data.aws_secretsmanager_secret_version.client_vpn_saml[0].secret_string
-
-  lifecycle {
-    ignore_changes = [saml_metadata_document]
-  }
 }
 
 # ---------------------------------------------------------------------------
@@ -145,6 +141,7 @@ resource "aws_ec2_client_vpn_authorization_rule" "vpc_cidr" {
 
   timeouts {
     create = "20m"
+    delete = "20m"
   }
 }
 

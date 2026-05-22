@@ -49,5 +49,5 @@ airbyte_rds_skip_final_snapshot = true
 airbyte_rds_deletion_protection = false
 airbyte_s3_force_destroy        = true
 
-airbyte_alb_allowed_cidr_blocks     = ["10.200.0.0/22"]
-airbyte_instance_direct_cidr_blocks = ["10.200.0.0/22"]
+airbyte_alb_allowed_cidr_blocks = ["10.200.0.0/22"]
+vpn_available                   = true

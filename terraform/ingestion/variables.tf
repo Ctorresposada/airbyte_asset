@@ -102,8 +102,8 @@ variable "airbyte_alb_allowed_cidr_blocks" {
   default     = []
 }
 
-variable "airbyte_instance_direct_cidr_blocks" {
-  description = "CIDR blocks permitted to reach the Airbyte EC2 instance directly on port 80, bypassing the ALB. Intended for debugging only; set to [] in production."
-  type        = list(string)
-  default     = []
+variable "vpn_available" {
+  description = "Whether the Client VPN endpoint and its security group are deployed in this environment. When false, no direct ingress rules are added to the Airbyte instance SG from the VPN. Set to false in environments where the VPN has not yet been provisioned."
+  type        = bool
+  default     = false
 }

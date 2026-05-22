@@ -167,13 +167,36 @@ module "airbyte" {
   tags = var.tags
 }
 
-resource "aws_vpc_security_group_ingress_rule" "airbyte_instance_from_vpn" {
-  for_each = var.create && length(var.airbyte_instance_direct_cidr_blocks) > 0 ? toset(var.airbyte_instance_direct_cidr_blocks) : toset([])
+# ---------------------------------------------------------------------------
+# Client VPN SG lookup -- resolved when vpn_available = true
+# ---------------------------------------------------------------------------
+data "aws_security_groups" "client_vpn" {
+  count = var.create && var.vpn_available ? 1 : 0
 
-  security_group_id = module.airbyte[0].instance_sg_id
-  description       = "Direct HTTP ingress for debugging, bypasses ALB"
-  from_port         = 80
-  to_port           = 80
-  ip_protocol       = "tcp"
-  cidr_ipv4         = each.value
+  filter {
+    name   = "vpc-id"
+    values = [data.aws_vpc.this[0].id]
+  }
+
+  filter {
+    name   = "group-name"
+    values = ["${local.name}-client-vpn-*"]
+  }
+}
+
+# ---------------------------------------------------------------------------
+# Airbyte instance ingress from Client VPN (SG-to-SG, not CIDR-based)
+# ---------------------------------------------------------------------------
+
+resource "aws_vpc_security_group_ingress_rule" "airbyte_instance_from_vpn_ui" {
+  count = var.create && var.vpn_available ? 1 : 0
+
+  security_group_id            = module.airbyte[0].instance_sg_id
+  description                  = "Airbyte UI direct access from Client VPN on port 8000"
+  from_port                    = 8000
+  to_port                      = 8000
+  ip_protocol                  = "tcp"
+  referenced_security_group_id = data.aws_security_groups.client_vpn[0].ids[0]
+
+  tags = var.tags
 }

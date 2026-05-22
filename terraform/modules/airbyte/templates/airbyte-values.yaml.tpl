@@ -14,6 +14,8 @@
 #     instance profile.
 
 global:
+  auth:
+    enabled: false
   database:
     # External RDS PostgreSQL for Airbyte configuration storage.
     type: "external"
@@ -51,7 +53,7 @@ temporal:
 minio:
   enabled: false
 
-# Expose Airbyte webapp on HTTP port 80 (TLS is terminated at the ALB).
+# Webapp service port; actual HTTP exposure is handled by ingress-nginx below.
 webapp:
   service:
     port: 80
