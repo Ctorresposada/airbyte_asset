@@ -9,3 +9,12 @@ redshift_key_users = ["arn:aws:iam::784590287037:role/aws-reserved/sso.amazonaws
 data_lake_bucket_arns       = ["arn:aws:s3:::escr20-bronce-dev", "arn:aws:s3:::escr20-silver-dev"]
 redshift_max_capacity       = 32
 redshift_log_retention_days = 30
+
+#Athena configurations
+athena_results = {
+  name               = "query-athena-results-dev"
+  layer              = "athena"
+  transition_ia      = 7
+  transition_glacier = 30
+  expiration_days    = 90
+}

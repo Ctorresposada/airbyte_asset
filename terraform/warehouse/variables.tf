@@ -85,3 +85,20 @@ variable "data_lake_bucket_arns" {
   type        = list(string)
   default     = []
 }
+
+variable "tags" {
+  description = "Common tags to apply to all resources"
+  type        = map(string)
+  default     = {}
+}
+
+variable "athena_results" {
+  description = "Configuration for the Athena query results S3 bucket. name sets the bucket name; layer is a tag value; transition_ia/transition_glacier are days before moving objects to STANDARD_IA/GLACIER; expiration_days is when objects are permanently deleted."
+  type = object({
+    name               = string
+    layer              = string
+    transition_ia      = number
+    transition_glacier = number
+    expiration_days    = number
+  })
+}
