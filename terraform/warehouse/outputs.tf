@@ -47,3 +47,13 @@ output "redshift_log_group_arns" {
   description = "ARNs of the CloudWatch log groups receiving Redshift Serverless log exports, or null when the stack is disabled (create = false)."
   value       = try([for lg in aws_cloudwatch_log_group.redshift : lg.arn], null)
 }
+
+output "athena_workgroup_name" {
+  description = "Athena primary workgroup name, or null when the stack is disabled."
+  value       = try(aws_athena_workgroup.primary[0].name, null)
+}
+
+output "athena_results_bucket" {
+  description = "S3 bucket ID for Athena query results, or null when the stack is disabled."
+  value       = try(aws_s3_bucket.buckets["athena_results"].id, null)
+}

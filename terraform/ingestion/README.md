@@ -63,7 +63,7 @@ s3://escr20-landing-zone-raw-{env}/
 File naming convention: TBD
 
 ```
-Reommendation: {source}_{table}_{YYYYMMDD}.csv
+{source}_{table}_{YYYYMMDD}.csv
 e.g. ascender_user_20260520.csv
      tea_students_20260520.csv
 ```
