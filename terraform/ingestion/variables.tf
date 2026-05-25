@@ -120,20 +120,3 @@ variable "lakeformation_admin_arns" {
   default     = []
 }
 
-variable "lakeformation_de_role_names" {
-  description = "Names of IAM roles for the Data Engineer SSO permission set. Granted lakeformation:GetDataAccess via an inline IAM policy (SSO reserved roles cannot be LF admins). In a future state where IAMAllowedPrincipals defaults are removed, these roles will also receive explicit LF CREATE_TABLE + SELECT grants."
-  type        = list(string)
-  default     = []
-}
-
-variable "lakeformation_analyst_role_names" {
-  description = "Names of IAM roles for the Analyst SSO permission set (read-only). Granted lakeformation:GetDataAccess via an inline IAM policy so the Analyst team can query Glue tables via Athena."
-  type        = list(string)
-  default     = []
-}
-
-variable "lakeformation_auditor_role_names" {
-  description = "Names of IAM roles for the Auditor SSO permission set (read-only). Granted lakeformation:GetDataAccess via an inline IAM policy so auditors can query Glue tables via Athena."
-  type        = list(string)
-  default     = []
-}
