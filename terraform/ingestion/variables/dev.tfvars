@@ -52,19 +52,16 @@ airbyte_s3_force_destroy        = true
 airbyte_alb_allowed_cidr_blocks = ["10.200.0.0/22"]
 vpn_available                   = true
 
-# Lake Formation: grant lakeformation:GetDataAccess to SSO roles via inline IAM policy.
-# SSO reserved roles (/aws-reserved/sso.amazonaws.com/) cannot be LF admins
-# (PutDataLakeSettings rejects them), so GetDataAccess is granted via an inline IAM policy instead.
-lakeformation_admin_arns = []
-
-lakeformation_de_role_names = [
-  "AWSReservedSSO_DataEngineer_Dev_cd1bbeb9335fcaa8",
-]
-
+# Lake Formation: lakeformation_admin_arns intentionally empty.
+# SSO reserved roles (/aws-reserved/sso.amazonaws.com/) are rejected by PutDataLakeSettings.
+#
+# MANUAL STEP REQUIRED (Identity Center management account):
+#   Add lakeformation:GetDataAccess (Resource: *) to the following SSO permission sets
+#   so their roles can call LF-vended credentials via Athena:
+#     - DataEngineer  (AWSReservedSSO_DataEngineer_Dev_cd1bbeb9335fcaa8)
+#     - Analyst       (permission set not yet created — see TECH DEBT below)
+#     - Auditor       (permission set not yet created — see TECH DEBT below)
+#
 # TECH DEBT: Analyst and Auditor SSO permission sets do not exist in Identity Center yet
 # (confirmed via aws iam list-roles --path-prefix /aws-reserved/sso.amazonaws.com/ on 2026-05-25).
-# Once the permission sets are created and assigned to this account, populate with:
-#   AWSReservedSSO_Analyst_Dev_<hash>
-#   AWSReservedSSO_Auditor_Dev_<hash>
-lakeformation_analyst_role_names = []
-lakeformation_auditor_role_names = []
+lakeformation_admin_arns = []

@@ -101,40 +101,18 @@ resource "aws_lakeformation_permissions" "airbyte_bronze_database" {
 }
 
 # ---------------------------------------------------------------------------
-# Grant lakeformation:GetDataAccess to all SSO roles that need Athena access.
+# NOTE: lakeformation:GetDataAccess for SSO roles (DataEngineer, Analyst,
+# Auditor) cannot be granted from Terraform in this account.
 #
-# SSO reserved roles (/aws-reserved/sso.amazonaws.com/) are rejected by
-# PutDataLakeSettings when added as LF admins. With IAMAllowedPrincipals:ALL
-# defaults active, LF-level access is already granted to all IAM principals.
-# The only missing piece is the IAM-level GetDataAccess permission, which
-# allows Athena to call LF-vended credentials on behalf of the caller.
-# An inline policy is the only Terraform-reachable path since the SSO
-# permission sets live in a separate management account.
+# SSO reserved roles (/aws-reserved/sso.amazonaws.com/) are fully protected
+# by AWS — PutRolePolicy is rejected with UnmodifiableEntity. The permission
+# must be added to each SSO permission set in the Identity Center management
+# account:
 #
-# Covered groups: Data Engineer (read/write), Analyst (read-only), Auditor (read-only).
+#   Action: lakeformation:GetDataAccess
+#   Resource: *
+#
+# With IAMAllowedPrincipals:ALL defaults active, LF-level access is already
+# granted to all IAM principals. This IAM permission is the only missing
+# piece for Athena to call LF-vended credentials on behalf of the caller.
 # ---------------------------------------------------------------------------
-locals {
-  lf_athena_role_names = toset(concat(
-    var.lakeformation_de_role_names,
-    var.lakeformation_analyst_role_names,
-    var.lakeformation_auditor_role_names,
-  ))
-}
-
-resource "aws_iam_role_policy" "lakeformation_get_data_access" {
-  for_each = var.create ? local.lf_athena_role_names : toset([])
-
-  name = "lakeformation-get-data-access"
-  role = each.value
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Effect   = "Allow"
-        Action   = "lakeformation:GetDataAccess"
-        Resource = "*"
-      }
-    ]
-  })
-}
