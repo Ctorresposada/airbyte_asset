@@ -51,3 +51,8 @@ airbyte_s3_force_destroy        = true
 
 airbyte_alb_allowed_cidr_blocks = ["10.200.0.0/22"]
 vpn_available                   = true
+
+# Lake Formation: grant DE SSO role admin access so the team can query Glue tables via Athena
+lakeformation_admin_arns = [
+  "arn:aws:iam::784590287037:role/aws-reserved/sso.amazonaws.com/us-east-1/AWSReservedSSO_DataEngineer_Dev_cd1bbeb9335fcaa8",
+]
