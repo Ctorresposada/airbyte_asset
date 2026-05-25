@@ -61,6 +61,10 @@ lakeformation_de_role_names = [
   "AWSReservedSSO_DataEngineer_Dev_cd1bbeb9335fcaa8",
 ]
 
-# TODO: fill in the exact SSO role names once confirmed with the team
+# TECH DEBT: Analyst and Auditor SSO permission sets do not exist in Identity Center yet
+# (confirmed via aws iam list-roles --path-prefix /aws-reserved/sso.amazonaws.com/ on 2026-05-25).
+# Once the permission sets are created and assigned to this account, populate with:
+#   AWSReservedSSO_Analyst_Dev_<hash>
+#   AWSReservedSSO_Auditor_Dev_<hash>
 lakeformation_analyst_role_names = []
 lakeformation_auditor_role_names = []
