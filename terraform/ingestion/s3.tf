@@ -176,11 +176,72 @@ data "aws_iam_policy_document" "raw_bucket_ascender_crr" {
   }
 }
 
+# ---------------------------------------------------------------------------
+# Connect20 cross-account delivery policy -- connect20/* prefix on raw bucket
+# ---------------------------------------------------------------------------
+data "aws_iam_policy_document" "raw_bucket_connect20_delivery" {
+  count = var.create ? 1 : 0
+
+  statement {
+    sid    = "AllowConnect20DeliveryWrites"
+    effect = "Allow"
+
+    principals {
+      type = "AWS"
+      identifiers = [
+        "arn:aws:iam::471808368523:role/developworks-egress-r20-delivery-role-dev",
+        "arn:aws:iam::198058783748:role/developworks-egress-r20-delivery-role",
+      ]
+    }
+
+    actions = [
+      "s3:PutObject",
+      "s3:PutObjectAcl",
+    ]
+
+    resources = ["${aws_s3_bucket.buckets["raw"].arn}/connect20/*"]
+
+    condition {
+      test     = "StringEquals"
+      variable = "s3:x-amz-acl"
+      values   = ["bucket-owner-full-control"]
+    }
+  }
+
+  # AbortMultipartUpload does not support the s3:x-amz-acl condition key,
+  # so it must live in a separate statement without a condition block.
+  statement {
+    sid    = "AllowConnect20DeliveryAbortMPU"
+    effect = "Allow"
+
+    principals {
+      type = "AWS"
+      identifiers = [
+        "arn:aws:iam::471808368523:role/developworks-egress-r20-delivery-role-dev",
+        "arn:aws:iam::198058783748:role/developworks-egress-r20-delivery-role",
+      ]
+    }
+
+    actions = ["s3:AbortMultipartUpload"]
+
+    resources = ["${aws_s3_bucket.buckets["raw"].arn}/connect20/*"]
+  }
+}
+
+data "aws_iam_policy_document" "raw_bucket_policy" {
+  count = var.create ? 1 : 0
+
+  source_policy_documents = [
+    data.aws_iam_policy_document.raw_bucket_ascender_crr[0].json,
+    data.aws_iam_policy_document.raw_bucket_connect20_delivery[0].json,
+  ]
+}
+
 resource "aws_s3_bucket_policy" "raw_ascender_crr" {
   count = var.create ? 1 : 0
 
   bucket = aws_s3_bucket.buckets["raw"].id
-  policy = data.aws_iam_policy_document.raw_bucket_ascender_crr[0].json
+  policy = data.aws_iam_policy_document.raw_bucket_policy[0].json
 
   depends_on = [aws_s3_bucket_public_access_block.buckets]
 }

@@ -18,3 +18,7 @@ athena_results = {
   transition_glacier = 60
   expiration_days    = 90
 }
+
+bastion_instance_type      = "t3.micro"
+bastion_log_retention_days = 30
+

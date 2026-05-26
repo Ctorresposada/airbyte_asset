@@ -49,5 +49,19 @@ airbyte_rds_skip_final_snapshot = true
 airbyte_rds_deletion_protection = false
 airbyte_s3_force_destroy        = true
 
-airbyte_alb_allowed_cidr_blocks     = ["10.200.0.0/22"]
-airbyte_instance_direct_cidr_blocks = ["10.200.0.0/22"]
+airbyte_alb_allowed_cidr_blocks = ["10.200.0.0/22"]
+vpn_available                   = true
+
+# Lake Formation: lakeformation_admin_arns intentionally empty.
+# SSO reserved roles (/aws-reserved/sso.amazonaws.com/) are rejected by PutDataLakeSettings.
+#
+# MANUAL STEP REQUIRED (Identity Center management account):
+#   Add lakeformation:GetDataAccess (Resource: *) to the following SSO permission sets
+#   so their roles can call LF-vended credentials via Athena:
+#     - DataEngineer  (AWSReservedSSO_DataEngineer_Dev_cd1bbeb9335fcaa8)
+#     - Analyst       (permission set not yet created — see TECH DEBT below)
+#     - Auditor       (permission set not yet created — see TECH DEBT below)
+#
+# TECH DEBT: Analyst and Auditor SSO permission sets do not exist in Identity Center yet
+# (confirmed via aws iam list-roles --path-prefix /aws-reserved/sso.amazonaws.com/ on 2026-05-25).
+lakeformation_admin_arns = []
