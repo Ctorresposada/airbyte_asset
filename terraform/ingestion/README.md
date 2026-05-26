@@ -3,132 +3,93 @@
 This stack provisions the AWS infrastructure for the Region 20 Data Lake ingestion layer: the S3 medallion storage (raw / bronze / silver), the Glue Catalog databases that sit on top of bronze and silver, the self-managed Airbyte compute platform that loads data into the lake, and the dedicated Airbyte Cloud IAM user with its credentials secret. It also wires up the cross-account replication policy that lets the Ascender source account write into the raw landing zone. State is stored in the shared `region-20-tf-state` S3 bucket under the `ingestion/terraform.tfstate` key, using Terraform workspaces keyed by environment name.
 
 <!-- BEGIN_TF_DOCS -->
-## Data sources
+## Requirements
 
-| Source         | Type              | Ingestion method                   | Format  |
-| -------------- | ----------------- | ---------------------------------- | ------- |
-| Oracle APEX    | On-premises DB    | Airbyte Cloud (JDBC + CDC)         | Parquet |
-| SQL Server (TAS) | On-premises DB  | Airbyte Cloud (JDBC + CDC)         | Parquet |
-| Docebo         | REST API          | Airbyte Cloud (custom connector)   | Parquet |
-| Ascender       | Manual file drop  | S3 raw → Airbyte                   | CSV     |
-| TEA            | Manual file drop  | S3 raw → Airbyte                   | CSV     |
-| ESCWorks       | Manual file drop  | S3 raw → Airbyte                   | CSV     |
+| Name | Version |
+| ---- | ------- |
+| <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.11.0 |
+| <a name="requirement_aws"></a> [aws](#requirement\_aws) | ~> 6.0 |
 
-## Architecture overview
+## Providers
 
-```
-On-premises Sources                                                    SaaS
-─────────────────                                                     ───────
-  Oracle APEX (JDBC)  ──┐
-  SQL Server / TAS    ──┤-----------------------------► Airbyte Cloud ──► S3 Bronze (Parquet/Iceberg)
-  Docebo API          ──┘                                              │
-                                                                       ▼
-Manual file drops                        
-(Ascender, TEA, ESCWorks) ─► S3 Raw (landing zone) -> Airbyte Cloud ──► S3 Bronze (Parquet/Iceberg)
-                                                                      ▼
-                                                            Glue Catalog (bronze_db)
-                                                                      │
-                                                                      ▼
-                                                          dbt Cloud (transformation)
-                                                                      │
-                                                                      ▼
-                                                          S3 Silver (Parquet/Iceberg)
-                                                                      │
-                                                                      ▼
-                                                          Redshift DW Gold (BI-ready)
-                    ```
+| Name | Version |
+| ---- | ------- |
+| <a name="provider_aws"></a> [aws](#provider\_aws) | 6.45.0 |
 
-## What this stack provisions
+## Modules
 
-### S3 medallion buckets ([s3.tf](s3.tf))
+| Name | Source | Version |
+| ---- | ------ | ------- |
+| <a name="module_airbyte"></a> [airbyte](#module\_airbyte) | ../modules/airbyte | n/a |
 
-Three buckets keyed by layer, named `<bucket_name>-<environment>` (e.g., `escr20-bronze-dev`). Each bucket is created with:
+## Resources
 
-- Public access fully blocked (`block_public_acls`, `block_public_policy`, `ignore_public_acls`, `restrict_public_buckets`).
-- SSE-S3 (`AES256`) default encryption with bucket-key enabled.
-- Versioning enabled.
-- A lifecycle policy that transitions current objects to `STANDARD_IA` after `transition_ia` days, to `GLACIER` after `transition_glacier` days, expires them after `expiration_days`, and aborts incomplete multipart uploads after 7 days.
+| Name | Type |
+| ---- | ---- |
+| [aws_glue_catalog_database.databases](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/glue_catalog_database) | resource |
+| [aws_iam_access_key.airbyte](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_access_key) | resource |
+| [aws_iam_policy.airbyte](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_policy) | resource |
+| [aws_iam_user.airbyte](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_user) | resource |
+| [aws_iam_user_policy_attachment.airbyte](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_user_policy_attachment) | resource |
+| [aws_kms_alias.airbyte](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/kms_alias) | resource |
+| [aws_kms_key.airbyte](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/kms_key) | resource |
+| [aws_s3_bucket.buckets](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket) | resource |
+| [aws_s3_bucket_lifecycle_configuration.buckets](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket_lifecycle_configuration) | resource |
+| [aws_s3_bucket_policy.raw_ascender_crr](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket_policy) | resource |
+| [aws_s3_bucket_public_access_block.buckets](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket_public_access_block) | resource |
+| [aws_s3_bucket_server_side_encryption_configuration.buckets](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket_server_side_encryption_configuration) | resource |
+| [aws_s3_bucket_versioning.buckets](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket_versioning) | resource |
+| [aws_s3_object.ascender_prefix](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_object) | resource |
+| [aws_s3_object.connect20_prefix](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_object) | resource |
+| [aws_s3_object.tea_prefix](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_object) | resource |
+| [aws_secretsmanager_secret.airbyte_credentials](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/secretsmanager_secret) | resource |
+| [aws_secretsmanager_secret_policy.airbyte_credentials](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/secretsmanager_secret_policy) | resource |
+| [aws_secretsmanager_secret_version.airbyte_credentials](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/secretsmanager_secret_version) | resource |
+| [aws_vpc_security_group_ingress_rule.airbyte_instance_from_vpn](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/vpc_security_group_ingress_rule) | resource |
+| [aws_caller_identity.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/caller_identity) | data source |
+| [aws_iam_policy_document.airbyte_kms](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
+| [aws_iam_policy_document.raw_bucket_ascender_crr](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
+| [aws_ssm_parameter.al2023_ami](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/ssm_parameter) | data source |
+| [aws_subnets.private](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/subnets) | data source |
+| [aws_vpc.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/vpc) | data source |
 
-#### Raw bucket prefixes
+## Inputs
 
-Manual file drops are organised by source under the raw landing zone:
+| Name | Description | Type | Default | Required |
+| ---- | ----------- | ---- | ------- | :------: |
+| <a name="input_account_id"></a> [account\_id](#input\_account\_id) | AWS account ID of the target account; used to construct the cross-account assume\_role ARN | `string` | n/a | yes |
+| <a name="input_airbyte_alb_allowed_cidr_blocks"></a> [airbyte\_alb\_allowed\_cidr\_blocks](#input\_airbyte\_alb\_allowed\_cidr\_blocks) | CIDR blocks permitted to reach the Airbyte ALB on ports 80 and 443. Passed directly to the airbyte module's allowed\_cidr\_blocks. Include the Client VPN client CIDR so VPN-connected users can access the Airbyte UI through the load balancer. | `list(string)` | `[]` | no |
+| <a name="input_airbyte_instance_direct_cidr_blocks"></a> [airbyte\_instance\_direct\_cidr\_blocks](#input\_airbyte\_instance\_direct\_cidr\_blocks) | CIDR blocks permitted to reach the Airbyte EC2 instance directly on port 80, bypassing the ALB. Intended for debugging only; set to [] in production. | `list(string)` | `[]` | no |
+| <a name="input_airbyte_instance_type"></a> [airbyte\_instance\_type](#input\_airbyte\_instance\_type) | EC2 instance type for the Airbyte ASG. Use m6a.xlarge for dev (minimum viable) and m6a.2xlarge for production. | `string` | `"m6a.2xlarge"` | no |
+| <a name="input_airbyte_log_retention_days"></a> [airbyte\_log\_retention\_days](#input\_airbyte\_log\_retention\_days) | CloudWatch log retention in days for the Airbyte log group. Use 30 for dev to control cost; 365 for production. | `number` | `365` | no |
+| <a name="input_airbyte_rds_deletion_protection"></a> [airbyte\_rds\_deletion\_protection](#input\_airbyte\_rds\_deletion\_protection) | Enable RDS deletion protection on the Airbyte config database. Disable in dev; enable in production to prevent accidental deletion. | `bool` | `false` | no |
+| <a name="input_airbyte_rds_instance_class"></a> [airbyte\_rds\_instance\_class](#input\_airbyte\_rds\_instance\_class) | RDS instance class for the Airbyte PostgreSQL config database. db.t3.micro for dev; db.t3.small or larger for production. | `string` | `"db.t3.small"` | no |
+| <a name="input_airbyte_rds_multi_az"></a> [airbyte\_rds\_multi\_az](#input\_airbyte\_rds\_multi\_az) | Enable RDS Multi-AZ standby for the Airbyte config database. Disable in dev for cost; enable in production. | `bool` | `false` | no |
+| <a name="input_airbyte_rds_skip_final_snapshot"></a> [airbyte\_rds\_skip\_final\_snapshot](#input\_airbyte\_rds\_skip\_final\_snapshot) | Skip the final RDS snapshot on destroy. Set to true for dev environments; false for production to prevent data loss. | `bool` | `true` | no |
+| <a name="input_airbyte_s3_force_destroy"></a> [airbyte\_s3\_force\_destroy](#input\_airbyte\_s3\_force\_destroy) | Allow Terraform to empty and destroy the Airbyte S3 bucket on destroy. Safe in dev; must be false in production. | `bool` | `false` | no |
+| <a name="input_aws_region"></a> [aws\_region](#input\_aws\_region) | Target deployment region | `string` | n/a | yes |
+| <a name="input_buckets"></a> [buckets](#input\_buckets) | Map of S3 buckets to manage | <pre>map(object({<br/>    name               = string<br/>    layer              = string<br/>    transition_ia      = number<br/>    transition_glacier = number<br/>    expiration_days    = number<br/>  }))</pre> | n/a | yes |
+| <a name="input_company_name"></a> [company\_name](#input\_company\_name) | Company name prefix used in resource names and to look up shared networking resources by tag. | `string` | n/a | yes |
+| <a name="input_create"></a> [create](#input\_create) | Whether this stack should provision its resources. Set to false to soft-delete everything the stack manages while preserving state and code. | `bool` | `true` | no |
+| <a name="input_environment"></a> [environment](#input\_environment) | Target deployment environment | `string` | n/a | yes |
+| <a name="input_glue_databases"></a> [glue\_databases](#input\_glue\_databases) | Map of Glue catalog databases to manage | <pre>map(object({<br/>    name        = string<br/>    description = string<br/>  }))</pre> | n/a | yes |
+| <a name="input_tags"></a> [tags](#input\_tags) | Common tags to apply to all resources | `map(string)` | `{}` | no |
+| <a name="input_team"></a> [team](#input\_team) | Team that manages this project | `string` | n/a | yes |
 
-```
-s3://escr20-landing-zone-raw-{env}/
-  ├── ascender/    (Ascender files — e.g. ascender_user_YYYYMMDD.csv)
-  ├── tea/         (TEA files — e.g. tea_students_YYYYMMDD.csv)
-  └── connect20/   (Connect20 files)
-```
+## Outputs
 
-File naming convention:
-
-```
-Daily:   {source}_{table}_{YYYYMMDD}.csv
-Hourly:  {source}_{table}_{YYYYMMDD}_{HHMMSS}.csv
-Examples:
-  ascender_user_20260520.csv
-  ascender_user_20260520_020000.csv
-  tea_students_20260520.csv
-  tea_students_20260520_140000.csv
-```
-
-These three prefixes are materialised as zero-byte objects so the folders exist before any file lands. A bucket policy on the raw bucket grants the Ascender source account's S3 CRR service role (`arn:aws:iam::472646798982:role/service-role/s3crr_role_for_esc20-ascender-data-warehouse-798982-us-east-1`) permission to replicate objects into the `ascender/` prefix only, plus the bucket-level `List*` / `GetBucketVersioning` actions S3 requires for destination validation.
-
-### Glue Catalog databases ([glue_catalog.tf](glue_catalog.tf))
-
-One Glue database per entry in `var.glue_databases`, named `<database_name>_<environment>`. Each database's `location_uri` resolves to the matching S3 layer bucket.
-
-| Database                  | Purpose                                                          |
-| ------------------------- | ---------------------------------------------------------------- |
-| `escr20_bronze_{env}`     | External table definitions pointing to S3 Bronze                 |
-| `escr20_silver_{env}`     | External table definitions pointing to S3 Silver (Iceberg)       |
-
-### Airbyte compute ([airbyte.tf](airbyte.tf))
-
-Wraps `../modules/airbyte` and supplies it with shared infrastructure:
-
-- AMI: latest Amazon Linux 2023 x86_64, resolved at plan time from the public SSM parameter `/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64`.
-- Networking: the VPC and `Tier=private-app` subnets are discovered by tag from the shared networking stack — this stack does not create its own VPC.
-- KMS: a dedicated CMK (`alias/<company>-<env>-airbyte`) with key rotation enabled and a 14-day deletion window. The key policy grants:
-  - Full key administration to the account root.
-  - The EC2 Auto Scaling service-linked role (`AWSServiceRoleForAutoScaling`) the encrypt/decrypt/grant permissions it needs for EBS volume encryption on ASG-launched instances.
-  - The regional CloudWatch Logs service principal encrypt/decrypt access scoped via `kms:EncryptionContext:aws:logs:arn` to the Airbyte log group only.
-
-The module itself stands up the Airbyte EC2 ASG, the RDS PostgreSQL config database, the Airbyte logs/artifacts S3 bucket, the CloudWatch log group, and the ALB. The ALB is currently disabled (`create_alb = false`) pending DNS and ACM certificate provisioning. An optional `aws_vpc_security_group_ingress_rule` loop opens port 80 directly on the EC2 instance from `var.airbyte_instance_direct_cidr_blocks` for debugging — leave this list empty in production.
-
-### Airbyte Cloud IAM user ([airbyte_iam.tf](airbyte_iam.tf))
-
-A dedicated long-lived IAM user `airbyte-cloud-data-ingestion` (path `/airbyte/`) with a programmatic access key. Static credentials are required because Airbyte Cloud does not support SSO for external destinations. The attached customer-managed policy grants least-privilege access only to:
-
-- The bronze S3 bucket (`escr20-bronze-dev`): `PutObject`, `GetObject`, `DeleteObject`, `ListBucket`, `GetBucketLocation`.
-- The bronze Glue catalog database (`escr20_bronze_dev`) and its tables: `CreateTable`, `UpdateTable`, `DeleteTable`, `GetTable`, `GetTables`, `GetDatabase`, `GetDatabases`, `CreateDatabase`.
-- The Airbyte CMK: `Decrypt`, `GenerateDataKey`, `DescribeKey` (required so the user can read/write encrypted objects).
-
-### Airbyte credentials secret ([airbyte_secrets.tf](airbyte_secrets.tf))
-
-The access key and secret access key are written into a Secrets Manager secret named `airbyte/client-credentials`, encrypted with the Airbyte CMK. A resource policy on the secret restricts read access to the account root (full access) and the Airbyte IAM user itself (`GetSecretValue`, `DescribeSecret`). Recovery window is 14 days; automatic rotation is intentionally not configured in dev.
-
-## File structure
-
-```
-terraform/ingestion/
-  ├── main.tf              # aws_caller_identity data source
-  ├── providers.tf         # AWS provider + cross-account assume_role
-  ├── terraform.tf         # required_version, required_providers, S3 backend
-  ├── locals.tf            # local.name = "<company>-<env>"
-  ├── variables.tf         # input variable definitions
-  ├── outputs.tf           # output values (bucket names, ARNs, database names, Airbyte metadata)
-  ├── s3.tf                # S3 buckets, lifecycle, encryption, versioning, raw prefixes, Ascender CRR policy
-  ├── glue_catalog.tf      # Glue Catalog databases
-  ├── airbyte.tf           # Airbyte module wrapping + KMS CMK + VPC/subnet/AMI lookups
-  ├── airbyte_iam.tf       # Airbyte Cloud IAM user, access key, least-privilege policy
-  ├── airbyte_secrets.tf   # Secrets Manager secret holding Airbyte credentials
-  └── variables/
-        └── dev.tfvars     # Development environment values
-```
-
-## Soft-delete switch
-
-All resources outside of `aws_glue_catalog_database`, `aws_s3_bucket`, and the Airbyte IAM/Secrets resources are gated on `var.create`. Set `create = false` to soft-delete the conditional resources while keeping state and code intact — useful for tearing down compute (Airbyte EC2/RDS/ALB, KMS key) without losing the catalog and storage layer.
-
+| Name | Description |
+| ---- | ----------- |
+| <a name="output_airbyte_asg_name"></a> [airbyte\_asg\_name](#output\_airbyte\_asg\_name) | Auto Scaling Group name for the Airbyte EC2 instance. |
+| <a name="output_airbyte_iam_user_arn"></a> [airbyte\_iam\_user\_arn](#output\_airbyte\_iam\_user\_arn) | ARN of the Airbyte Cloud IAM user |
+| <a name="output_airbyte_instance_sg_id"></a> [airbyte\_instance\_sg\_id](#output\_airbyte\_instance\_sg\_id) | Instance security group ID for the Airbyte EC2 instance. Use this to allow ingress from other resources. |
+| <a name="output_airbyte_rds_endpoint"></a> [airbyte\_rds\_endpoint](#output\_airbyte\_rds\_endpoint) | RDS PostgreSQL endpoint for the Airbyte config database. |
+| <a name="output_airbyte_rds_secret_arn"></a> [airbyte\_rds\_secret\_arn](#output\_airbyte\_rds\_secret\_arn) | ARN of the Secrets Manager secret holding Airbyte RDS credentials. |
+| <a name="output_airbyte_s3_bucket_name"></a> [airbyte\_s3\_bucket\_name](#output\_airbyte\_s3\_bucket\_name) | S3 bucket name used by Airbyte for logs and artifacts. |
+| <a name="output_airbyte_secret_arn"></a> [airbyte\_secret\_arn](#output\_airbyte\_secret\_arn) | ARN of the Secrets Manager secret storing Airbyte credentials |
+| <a name="output_aws_caller_identity"></a> [aws\_caller\_identity](#output\_aws\_caller\_identity) | AWS caller identity information, or null when the stack is disabled (create = false) |
+| <a name="output_bucket_arns"></a> [bucket\_arns](#output\_bucket\_arns) | All S3 bucket ARNs |
+| <a name="output_bucket_names"></a> [bucket\_names](#output\_bucket\_names) | All S3 bucket names |
+| <a name="output_glue_database_names"></a> [glue\_database\_names](#output\_glue\_database\_names) | Glue catalog database names |
+| <a name="output_user_data_script"></a> [user\_data\_script](#output\_user\_data\_script) | Rendered user-data bootstrap script as it will be passed to the EC2 instance. Use 'terraform output -raw user\_data\_script' to inspect it before ap  plying. |
 <!-- END_TF_DOCS -->
