@@ -38,3 +38,9 @@ terraform.rc
 *.swp
 *.local.md
 
+# Python
+.venv/
+.ruff_cache/
+__pycache__/
+*.pyc
+
