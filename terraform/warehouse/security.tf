@@ -99,13 +99,16 @@ resource "aws_vpc_security_group_egress_rule" "bastion_redshift" {
   referenced_security_group_id = aws_security_group.redshift[0].id
 }
 
-resource "aws_vpc_security_group_egress_rule" "bastion_https_vpc" {
+resource "aws_vpc_security_group_egress_rule" "bastion_https_internet" {
+  #checkov:skip=CKV_AWS_382: Public bastion requires unrestricted HTTPS egress — SSM, ssmmessages, ec2messages, and CloudWatch are public endpoints with no interface endpoints in this VPC; dnf also requires HTTPS to Amazon Linux repos.
   count = var.create ? 1 : 0
 
   security_group_id = aws_security_group.bastion[0].id
-  description       = "HTTPS to VPC CIDR (SSM and CloudWatch endpoints)"
+  description       = "HTTPS to internet (SSM agent, CloudWatch agent, dnf repos)"
   ip_protocol       = "tcp"
   from_port         = 443
   to_port           = 443
-  cidr_ipv4         = data.aws_vpc.this[0].cidr_block
+  cidr_ipv4         = "0.0.0.0/0"
 }
+
+
