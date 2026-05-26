@@ -101,6 +101,74 @@ resource "aws_lakeformation_permissions" "airbyte_bronze_database" {
 }
 
 # ---------------------------------------------------------------------------
+# Data Engineer LF grants: DESCRIBE on databases, SELECT/DESCRIBE (+ DROP in
+# dev) on all tables in bronze and silver.
+# Table-level permissions are driven by lakeformation_de_table_permissions so
+# dev can include DROP without touching prod/stg tfvars.
+# ---------------------------------------------------------------------------
+resource "aws_lakeformation_permissions" "de_bronze_database" {
+  for_each = var.create ? toset(var.lakeformation_de_role_arns) : toset([])
+
+  principal = each.value
+
+  database {
+    name = aws_glue_catalog_database.databases["bronze"].name
+  }
+
+  permissions                   = var.lakeformation_de_database_permissions
+  permissions_with_grant_option = []
+
+  depends_on = [aws_lakeformation_data_lake_settings.this]
+}
+
+resource "aws_lakeformation_permissions" "de_silver_database" {
+  for_each = var.create ? toset(var.lakeformation_de_role_arns) : toset([])
+
+  principal = each.value
+
+  database {
+    name = aws_glue_catalog_database.databases["silver"].name
+  }
+
+  permissions                   = var.lakeformation_de_database_permissions
+  permissions_with_grant_option = []
+
+  depends_on = [aws_lakeformation_data_lake_settings.this]
+}
+
+resource "aws_lakeformation_permissions" "de_bronze_tables" {
+  for_each = var.create ? toset(var.lakeformation_de_role_arns) : toset([])
+
+  principal = each.value
+
+  table {
+    database_name = aws_glue_catalog_database.databases["bronze"].name
+    wildcard      = true
+  }
+
+  permissions                   = var.lakeformation_de_table_permissions
+  permissions_with_grant_option = []
+
+  depends_on = [aws_lakeformation_data_lake_settings.this]
+}
+
+resource "aws_lakeformation_permissions" "de_silver_tables" {
+  for_each = var.create ? toset(var.lakeformation_de_role_arns) : toset([])
+
+  principal = each.value
+
+  table {
+    database_name = aws_glue_catalog_database.databases["silver"].name
+    wildcard      = true
+  }
+
+  permissions                   = var.lakeformation_de_table_permissions
+  permissions_with_grant_option = []
+
+  depends_on = [aws_lakeformation_data_lake_settings.this]
+}
+
+# ---------------------------------------------------------------------------
 # NOTE: lakeformation:GetDataAccess for SSO roles (DataEngineer, Analyst,
 # Auditor) cannot be granted from Terraform in this account.
 #

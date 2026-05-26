@@ -120,3 +120,21 @@ variable "lakeformation_admin_arns" {
   default     = []
 }
 
+variable "lakeformation_de_role_arns" {
+  description = "ARNs of Data Engineer SSO roles to grant Lake Formation data permissions on bronze and silver databases. Permissions at the table level are controlled by lakeformation_de_table_permissions."
+  type        = list(string)
+  default     = []
+}
+
+variable "lakeformation_de_database_permissions" {
+  description = "Lake Formation database-level permissions granted to the Data Engineer role on bronze and silver. Defaults to DESCRIBE only. Add DROP in dev to allow cleanup of test databases — remove before replicating to stg/prod."
+  type        = list(string)
+  default     = ["DESCRIBE"]
+}
+
+variable "lakeformation_de_table_permissions" {
+  description = "Lake Formation table-level permissions granted to the Data Engineer role on bronze and silver. Defaults to read-only. Add DROP in dev to allow cleanup of test tables — remove before replicating to stg/prod."
+  type        = list(string)
+  default     = ["SELECT", "DESCRIBE"]
+}
+
