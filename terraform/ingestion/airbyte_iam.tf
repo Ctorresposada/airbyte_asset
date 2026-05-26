@@ -26,6 +26,20 @@ resource "aws_iam_policy" "airbyte" {
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
+      # S3 - read-only access to the raw landing zone (source for Airbyte ingestion)
+      {
+        Sid    = "S3LandingZoneReadAccess"
+        Effect = "Allow"
+        Action = [
+          "s3:GetObject",
+          "s3:ListBucket",
+          "s3:GetBucketLocation"
+        ]
+        Resource = [
+          aws_s3_bucket.buckets["raw"].arn,
+          "${aws_s3_bucket.buckets["raw"].arn}/*"
+        ]
+      },
       # S3 - scoped to bronze bucket only
       {
         Sid    = "S3BronzeBucketAccess"
@@ -38,8 +52,8 @@ resource "aws_iam_policy" "airbyte" {
           "s3:GetBucketLocation"
         ]
         Resource = [
-          "arn:aws:s3:::escr20-bronze-dev",
-          "arn:aws:s3:::escr20-bronze-dev/*"
+          aws_s3_bucket.buckets["bronze"].arn,
+          "${aws_s3_bucket.buckets["bronze"].arn}/*"
         ]
       },
       # Glue - scoped to bronze database and its tables only
