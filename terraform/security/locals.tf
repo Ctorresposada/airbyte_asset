@@ -14,6 +14,7 @@ locals {
           "lakeformation:Describe*",
           "lakeformation:List*",
         ]
+        Resource = ["*"]
     }]
   })
   data_engineer_dev_inline_policy = jsonencode({
