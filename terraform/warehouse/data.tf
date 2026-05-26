@@ -26,3 +26,38 @@ data "aws_vpc_endpoint" "s3" {
   service_name = "com.amazonaws.${var.aws_region}.s3"
 }
 
+data "aws_subnets" "public" {
+  count = var.create ? 1 : 0
+
+  filter {
+    name   = "vpc-id"
+    values = [data.aws_vpc.this[0].id]
+  }
+
+  tags = {
+    Tier = "public"
+  }
+}
+
+data "aws_ami" "al2023" {
+  count = var.create ? 1 : 0
+
+  most_recent = true
+  owners      = ["amazon"]
+
+  filter {
+    name   = "name"
+    values = ["al2023-ami-2023.*-x86_64"]
+  }
+
+  filter {
+    name   = "architecture"
+    values = ["x86_64"]
+  }
+
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
+  }
+}
+

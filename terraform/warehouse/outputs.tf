@@ -57,3 +57,19 @@ output "athena_results_bucket" {
   description = "S3 bucket ID for Athena query results, or null when the stack is disabled."
   value       = try(aws_s3_bucket.buckets["athena_results"].id, null)
 }
+
+output "bastion_eip" {
+  description = "Public Elastic IP address of the bastion host, or null when the stack is disabled."
+  value       = try(aws_eip.bastion[0].public_ip, null)
+}
+
+output "bastion_instance_id" {
+  description = "EC2 instance ID of the bastion host, or null when the stack is disabled."
+  value       = try(aws_instance.bastion[0].id, null)
+}
+
+output "bastion_security_group_id" {
+  description = "Security group ID attached to the bastion host, or null when the stack is disabled."
+  value       = try(aws_security_group.bastion[0].id, null)
+}
+

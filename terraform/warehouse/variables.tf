@@ -117,3 +117,20 @@ variable "athena_results" {
     error_message = "expiration_days must be greater than transition_glacier."
   }
 }
+
+variable "bastion_instance_type" {
+  description = "EC2 instance type for the SSH bastion host. t3.micro is sufficient for SSH tunneling workloads."
+  type        = string
+  default     = "t3.micro"
+}
+
+variable "bastion_log_retention_days" {
+  description = "Retention in days for bastion CloudWatch log groups (auth logs). Must be one of the values accepted by CloudWatch Logs."
+  type        = number
+  default     = 30
+
+  validation {
+    condition     = contains([1, 3, 5, 7, 14, 30, 60, 90, 120, 150, 180, 365, 400, 545, 731, 1827, 2192, 2557, 2922, 3288, 3653], var.bastion_log_retention_days)
+    error_message = "bastion_log_retention_days must be one of the values CloudWatch Logs accepts: 1, 3, 5, 7, 14, 30, 60, 90, 120, 150, 180, 365, 400, 545, 731, 1827, 2192, 2557, 2922, 3288, 3653."
+  }
+}
