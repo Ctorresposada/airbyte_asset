@@ -92,6 +92,17 @@ locals {
           "lakeformation:Get*",
           "lakeformation:List*",
           "lakeformation:Describe*",
+          "glue:GetDatabase",
+          "glue:GetDatabases",
+          "glue:GetTable",
+          "glue:GetTables",
+          "glue:GetPartition",
+          "glue:GetPartitions",
+          "glue:CreateTable",
+          "glue:UpdateTable",
+          "glue:DeleteTable",
+          "glue:BatchCreatePartition",
+          "glue:BatchDeletePartition",
         ]
         Resource = ["*"]
       },
