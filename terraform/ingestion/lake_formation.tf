@@ -169,18 +169,8 @@ resource "aws_lakeformation_permissions" "de_silver_tables" {
 }
 
 # ---------------------------------------------------------------------------
-# NOTE: lakeformation:GetDataAccess for SSO roles (DataEngineer, Analyst,
-# Auditor) cannot be granted from Terraform in this account.
-#
-# SSO reserved roles (/aws-reserved/sso.amazonaws.com/) are fully protected
-# by AWS — PutRolePolicy is rejected with UnmodifiableEntity. The permission
-# must be added to each SSO permission set in the Identity Center management
-# account:
-#
-#   Action: lakeformation:GetDataAccess
-#   Resource: *
-#
-# With IAMAllowedPrincipals:ALL defaults active, LF-level access is already
-# granted to all IAM principals. This IAM permission is the only missing
-# piece for Athena to call LF-vended credentials on behalf of the caller.
+# NOTE: lakeformation:GetDataAccess for SSO roles is managed via the security
+# stack (terraform/security/locals.tf), not here. DataEngineer inline policies
+# include lakeformation:Get* which covers GetDataAccess. Analyst and Auditor
+# permission sets should be added there when their SSO permission sets are created.
 # ---------------------------------------------------------------------------
