@@ -6,27 +6,27 @@ Redshift data warehouse (used with Spectrum over S3) and its supporting KMS CMKs
 ## Requirements
 
 | Name | Version |
-|------|---------|
+| ---- | ------- |
 | <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.11.0 |
 | <a name="requirement_aws"></a> [aws](#requirement\_aws) | ~> 6.0 |
 
 ## Providers
 
 | Name | Version |
-|------|---------|
+| ---- | ------- |
 | <a name="provider_aws"></a> [aws](#provider\_aws) | 6.46.0 |
 
 ## Modules
 
 | Name | Source | Version |
-|------|--------|---------|
+| ---- | ------ | ------- |
 | <a name="module_bastion_kms"></a> [bastion\_kms](#module\_bastion\_kms) | terraform-aws-modules/kms/aws | ~> 3.0 |
 | <a name="module_redshift_kms"></a> [redshift\_kms](#module\_redshift\_kms) | terraform-aws-modules/kms/aws | ~> 3.0 |
 
 ## Resources
 
 | Name | Type |
-|------|------|
+| ---- | ---- |
 | [aws_athena_workgroup.primary](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/athena_workgroup) | resource |
 | [aws_cloudwatch_log_group.bastion_auth](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/cloudwatch_log_group) | resource |
 | [aws_cloudwatch_log_group.bastion_metrics](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/cloudwatch_log_group) | resource |
@@ -67,7 +67,7 @@ Redshift data warehouse (used with Spectrum over S3) and its supporting KMS CMKs
 ## Inputs
 
 | Name | Description | Type | Default | Required |
-|------|-------------|------|---------|:--------:|
+| ---- | ----------- | ---- | ------- | :------: |
 | <a name="input_account_id"></a> [account\_id](#input\_account\_id) | AWS account ID of the target account; used to construct the cross-account assume\_role ARN | `string` | n/a | yes |
 | <a name="input_athena_results"></a> [athena\_results](#input\_athena\_results) | Configuration for the Athena query results S3 bucket. name sets the bucket name; layer is a tag value; transition\_ia/transition\_glacier are days before moving objects to STANDARD\_IA/GLACIER; expiration\_days is when objects are permanently deleted. | <pre>object({<br/>    name               = string<br/>    layer              = string<br/>    transition_ia      = number<br/>    transition_glacier = number<br/>    expiration_days    = number<br/>  })</pre> | n/a | yes |
 | <a name="input_aws_region"></a> [aws\_region](#input\_aws\_region) | Target deployment region | `string` | n/a | yes |
@@ -89,7 +89,7 @@ Redshift data warehouse (used with Spectrum over S3) and its supporting KMS CMKs
 ## Outputs
 
 | Name | Description |
-|------|-------------|
+| ---- | ----------- |
 | <a name="output_athena_results_bucket"></a> [athena\_results\_bucket](#output\_athena\_results\_bucket) | S3 bucket ID for Athena query results, or null when the stack is disabled. |
 | <a name="output_athena_workgroup_name"></a> [athena\_workgroup\_name](#output\_athena\_workgroup\_name) | Athena primary workgroup name, or null when the stack is disabled. |
 | <a name="output_bastion_eip"></a> [bastion\_eip](#output\_bastion\_eip) | Public Elastic IP address of the bastion host, or null when the stack is disabled. |
