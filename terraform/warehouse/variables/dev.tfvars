@@ -22,3 +22,7 @@ athena_results = {
 bastion_instance_type      = "t3.micro"
 bastion_log_retention_days = 30
 
+# Glue Catalog database names — must match ingestion stack outputs (escr20_<layer>_<env>)
+glue_bronze_db_name = "escr20_bronze_dev"
+glue_silver_db_name = "escr20_silver_dev"
+

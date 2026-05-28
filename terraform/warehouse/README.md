@@ -9,12 +9,14 @@ Redshift data warehouse (used with Spectrum over S3) and its supporting KMS CMKs
 | ---- | ------- |
 | <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.11.0 |
 | <a name="requirement_aws"></a> [aws](#requirement\_aws) | ~> 6.0 |
+| <a name="requirement_null"></a> [null](#requirement\_null) | ~> 3.0 |
 
 ## Providers
 
 | Name | Version |
 | ---- | ------- |
 | <a name="provider_aws"></a> [aws](#provider\_aws) | 6.47.0 |
+| <a name="provider_null"></a> [null](#provider\_null) | 3.3.0 |
 
 ## Modules
 
@@ -57,6 +59,7 @@ Redshift data warehouse (used with Spectrum over S3) and its supporting KMS CMKs
 | [aws_vpc_security_group_egress_rule.redshift_sql_vpc](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/vpc_security_group_egress_rule) | resource |
 | [aws_vpc_security_group_ingress_rule.bastion_ssh_dbt](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/vpc_security_group_ingress_rule) | resource |
 | [aws_vpc_security_group_ingress_rule.redshift_from_bastion](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/vpc_security_group_ingress_rule) | resource |
+| [null_resource.redshift_schemas](https://registry.terraform.io/providers/hashicorp/null/latest/docs/resources/resource) | resource |
 | [aws_ami.al2023](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/ami) | data source |
 | [aws_iam_policy_document.redshift_serverless](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
 | [aws_subnets.private](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/subnets) | data source |
@@ -77,6 +80,8 @@ Redshift data warehouse (used with Spectrum over S3) and its supporting KMS CMKs
 | <a name="input_create"></a> [create](#input\_create) | Whether this stack should provision its resources. Set to false to soft-delete everything the stack manages while preserving state and code. | `bool` | `true` | no |
 | <a name="input_data_lake_bucket_arns"></a> [data\_lake\_bucket\_arns](#input\_data\_lake\_bucket\_arns) | List of S3 bucket ARNs the Redshift cluster IAM role can read via Spectrum or COPY (e.g. the gold layer bucket). Empty list means no S3 read policy is attached. Pass full ARNs like "arn:aws:s3:::escr20-gold-dev"; the cluster gets s3:GetObject on <bucket-arn>/* and s3:ListBucket on <bucket-arn>. | `list(string)` | `[]` | no |
 | <a name="input_environment"></a> [environment](#input\_environment) | Target deployment environment | `string` | n/a | yes |
+| <a name="input_glue_bronze_db_name"></a> [glue\_bronze\_db\_name](#input\_glue\_bronze\_db\_name) | Glue Catalog database name for the bronze layer. Used to create the Spectrum external schema in Redshift Serverless. Must match the name provisioned by the ingestion stack. | `string` | n/a | yes |
+| <a name="input_glue_silver_db_name"></a> [glue\_silver\_db\_name](#input\_glue\_silver\_db\_name) | Glue Catalog database name for the silver layer. Used to create the Spectrum external schema in Redshift Serverless. Must match the name provisioned by the ingestion stack. | `string` | n/a | yes |
 | <a name="input_redshift_admin_username"></a> [redshift\_admin\_username](#input\_redshift\_admin\_username) | Username for the Redshift admin user. The password is managed by Redshift in Secrets Manager (manage\_admin\_password = true), so no password is set in Terraform. | `string` | `"admin"` | no |
 | <a name="input_redshift_base_capacity"></a> [redshift\_base\_capacity](#input\_redshift\_base\_capacity) | Base RPU capacity for the workgroup. Minimum allowed by Redshift Serverless is 8. | `number` | `8` | no |
 | <a name="input_redshift_db_name"></a> [redshift\_db\_name](#input\_redshift\_db\_name) | Initial database name created inside the Redshift Serverless namespace. Per R2EP2IC-31, Redshift hosts the GOLD layer only. | `string` | `"gold"` | no |
