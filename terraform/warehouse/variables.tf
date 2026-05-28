@@ -124,6 +124,16 @@ variable "bastion_instance_type" {
   default     = "t3.micro"
 }
 
+variable "glue_bronze_db_name" {
+  description = "Glue Catalog database name for the bronze layer. Used to create the Spectrum external schema in Redshift Serverless. Must match the name provisioned by the ingestion stack."
+  type        = string
+}
+
+variable "glue_silver_db_name" {
+  description = "Glue Catalog database name for the silver layer. Used to create the Spectrum external schema in Redshift Serverless. Must match the name provisioned by the ingestion stack."
+  type        = string
+}
+
 variable "bastion_log_retention_days" {
   description = "Retention in days for bastion CloudWatch log groups (auth logs). Must be one of the values accepted by CloudWatch Logs."
   type        = number
