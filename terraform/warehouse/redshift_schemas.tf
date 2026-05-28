@@ -30,6 +30,19 @@ resource "null_resource" "redshift_schemas" {
     command = <<-EOT
       set -euo pipefail
 
+      # The local-exec runner uses the base OIDC credentials (tooling account).
+      # Assume the target-account execution role so Redshift Data API calls
+      # reach the correct account (${var.account_id}).
+      echo "==> Assuming execution role in account ${var.account_id}"
+      CREDS=$(aws sts assume-role \
+        --role-arn 'arn:aws:iam::${var.account_id}:role/region-20-terraform-execution-role' \
+        --role-session-name 'terraform-redshift-schema-setup' \
+        --output json)
+      export AWS_ACCESS_KEY_ID=$(echo "$CREDS" | jq -r '.Credentials.AccessKeyId')
+      export AWS_SECRET_ACCESS_KEY=$(echo "$CREDS" | jq -r '.Credentials.SecretAccessKey')
+      export AWS_SESSION_TOKEN=$(echo "$CREDS" | jq -r '.Credentials.SessionToken')
+      echo "  assumed role ok"
+
       run_sql() {
         local sql="$1"
         local stmt_id
