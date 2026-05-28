@@ -22,6 +22,11 @@ output "instance_role_arn" {
   value       = try(aws_iam_role.this[0].arn, null)
 }
 
+output "instance_role_name" {
+  description = "Name of the IAM role attached to the Airbyte EC2 instance profile. Use this to attach additional policies at the stack level."
+  value       = try(aws_iam_role.this[0].name, null)
+}
+
 output "instance_sg_id" {
   description = "ID of the security group attached to the Airbyte EC2 instance."
   value       = try(aws_security_group.instance[0].id, null)

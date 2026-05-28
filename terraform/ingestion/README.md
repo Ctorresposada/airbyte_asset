@@ -6,29 +6,31 @@ This stack provisions the AWS infrastructure for the Region 20 Data Lake ingesti
 ## Requirements
 
 | Name | Version |
-| ---- | ------- |
+|------|---------|
 | <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.11.0 |
 | <a name="requirement_aws"></a> [aws](#requirement\_aws) | ~> 6.0 |
 
 ## Providers
 
 | Name | Version |
-| ---- | ------- |
+|------|---------|
 | <a name="provider_aws"></a> [aws](#provider\_aws) | 6.46.0 |
 
 ## Modules
 
 | Name | Source | Version |
-| ---- | ------ | ------- |
+|------|--------|---------|
 | <a name="module_airbyte"></a> [airbyte](#module\_airbyte) | ../modules/airbyte | n/a |
 
 ## Resources
 
 | Name | Type |
-| ---- | ---- |
+|------|------|
 | [aws_glue_catalog_database.databases](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/glue_catalog_database) | resource |
 | [aws_iam_access_key.airbyte](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_access_key) | resource |
 | [aws_iam_policy.airbyte](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_policy) | resource |
+| [aws_iam_policy.airbyte_instance_s3_bronze](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_policy) | resource |
+| [aws_iam_role_policy_attachment.airbyte_instance_s3_bronze](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy_attachment) | resource |
 | [aws_iam_user.airbyte](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_user) | resource |
 | [aws_iam_user_policy_attachment.airbyte](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_user_policy_attachment) | resource |
 | [aws_kms_alias.airbyte](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/kms_alias) | resource |
@@ -69,7 +71,7 @@ This stack provisions the AWS infrastructure for the Region 20 Data Lake ingesti
 ## Inputs
 
 | Name | Description | Type | Default | Required |
-| ---- | ----------- | ---- | ------- | :------: |
+|------|-------------|------|---------|:--------:|
 | <a name="input_account_id"></a> [account\_id](#input\_account\_id) | AWS account ID of the target account; used to construct the cross-account assume\_role ARN | `string` | n/a | yes |
 | <a name="input_airbyte_alb_allowed_cidr_blocks"></a> [airbyte\_alb\_allowed\_cidr\_blocks](#input\_airbyte\_alb\_allowed\_cidr\_blocks) | CIDR blocks permitted to reach the Airbyte ALB on ports 80 and 443. Passed directly to the airbyte module's allowed\_cidr\_blocks. Include the Client VPN client CIDR so VPN-connected users can access the Airbyte UI through the load balancer. | `list(string)` | `[]` | no |
 | <a name="input_airbyte_instance_type"></a> [airbyte\_instance\_type](#input\_airbyte\_instance\_type) | EC2 instance type for the Airbyte ASG. Use m6a.xlarge for dev (minimum viable) and m6a.2xlarge for production. | `string` | `"m6a.2xlarge"` | no |
@@ -97,7 +99,7 @@ This stack provisions the AWS infrastructure for the Region 20 Data Lake ingesti
 ## Outputs
 
 | Name | Description |
-| ---- | ----------- |
+|------|-------------|
 | <a name="output_airbyte_asg_name"></a> [airbyte\_asg\_name](#output\_airbyte\_asg\_name) | Auto Scaling Group name for the Airbyte EC2 instance. |
 | <a name="output_airbyte_iam_user_arn"></a> [airbyte\_iam\_user\_arn](#output\_airbyte\_iam\_user\_arn) | ARN of the Airbyte Cloud IAM user |
 | <a name="output_airbyte_instance_sg_id"></a> [airbyte\_instance\_sg\_id](#output\_airbyte\_instance\_sg\_id) | Instance security group ID for the Airbyte EC2 instance. Use this to allow ingress from other resources. |

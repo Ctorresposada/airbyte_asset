@@ -91,3 +91,28 @@ worker:
   extraEnv:
     - name: AWS_DEFAULT_REGION
       value: "${s3_region}"
+
+workloadLauncher:
+  extraEnv:
+    - name: AWS_DEFAULT_REGION
+      value: "${s3_region}"
+
+workloadApiServer:
+  extraEnv:
+    - name: AWS_DEFAULT_REGION
+      value: "${s3_region}"
+
+connectorBuilderServer:
+  extraEnv:
+    - name: AWS_DEFAULT_REGION
+      value: "${s3_region}"
+
+apiServer:
+  extraEnv:
+    - name: AWS_DEFAULT_REGION
+      value: "${s3_region}"
+
+cron:
+  extraEnv:
+    - name: AWS_DEFAULT_REGION
+      value: "${s3_region}"

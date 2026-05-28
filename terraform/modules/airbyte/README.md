@@ -12,7 +12,7 @@ rebuilds it from the SSM-delivered Helm values.
 ## Requirements
 
 | Name | Version |
-| ---- | ------- |
+|------|---------|
 | <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.11.0 |
 | <a name="requirement_aws"></a> [aws](#requirement\_aws) | ~> 6.0 |
 | <a name="requirement_random"></a> [random](#requirement\_random) | ~> 3.0 |
@@ -20,8 +20,8 @@ rebuilds it from the SSM-delivered Helm values.
 ## Providers
 
 | Name | Version |
-| ---- | ------- |
-| <a name="provider_aws"></a> [aws](#provider\_aws) | 6.46.0 |
+|------|---------|
+| <a name="provider_aws"></a> [aws](#provider\_aws) | 6.47.0 |
 | <a name="provider_random"></a> [random](#provider\_random) | 3.9.0 |
 
 ## Modules
@@ -31,7 +31,7 @@ No modules.
 ## Resources
 
 | Name | Type |
-| ---- | ---- |
+|------|------|
 | [aws_autoscaling_group.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/autoscaling_group) | resource |
 | [aws_cloudwatch_log_group.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/cloudwatch_log_group) | resource |
 | [aws_db_instance.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/db_instance) | resource |
@@ -76,7 +76,7 @@ No modules.
 ## Inputs
 
 | Name | Description | Type | Default | Required |
-| ---- | ----------- | ---- | ------- | :------: |
+|------|-------------|------|---------|:--------:|
 | <a name="input_alb_certificate_arn"></a> [alb\_certificate\_arn](#input\_alb\_certificate\_arn) | ACM certificate ARN for the ALB HTTPS listener. Required when create\_alb = true. | `string` | `""` | no |
 | <a name="input_alb_subnet_ids"></a> [alb\_subnet\_ids](#input\_alb\_subnet\_ids) | List of private subnet IDs for the internal Application Load Balancer. Required when create\_alb = true; ignored otherwise. | `list(string)` | `[]` | no |
 | <a name="input_allowed_cidr_blocks"></a> [allowed\_cidr\_blocks](#input\_allowed\_cidr\_blocks) | CIDR blocks permitted to reach the ALB on port 443 (and port 80 for HTTPS redirect). Typically the VPC CIDR or a bastion range. Required when create\_alb = true; ignored otherwise. | `list(string)` | `[]` | no |
@@ -103,11 +103,12 @@ No modules.
 ## Outputs
 
 | Name | Description |
-| ---- | ----------- |
+|------|-------------|
 | <a name="output_alb_dns_name"></a> [alb\_dns\_name](#output\_alb\_dns\_name) | Internal ALB DNS name. Null when create\_alb = false. |
 | <a name="output_alb_sg_id"></a> [alb\_sg\_id](#output\_alb\_sg\_id) | ID of the security group attached to the internal ALB. Null when create\_alb = false. |
 | <a name="output_asg_name"></a> [asg\_name](#output\_asg\_name) | Name of the Auto Scaling Group managing the Airbyte EC2 instance. |
 | <a name="output_instance_role_arn"></a> [instance\_role\_arn](#output\_instance\_role\_arn) | ARN of the IAM role attached to the Airbyte EC2 instance profile. Grant this role additional permissions at the stack level if needed. |
+| <a name="output_instance_role_name"></a> [instance\_role\_name](#output\_instance\_role\_name) | Name of the IAM role attached to the Airbyte EC2 instance profile. Use this to attach additional policies at the stack level. |
 | <a name="output_instance_sg_id"></a> [instance\_sg\_id](#output\_instance\_sg\_id) | ID of the security group attached to the Airbyte EC2 instance. |
 | <a name="output_log_group_name"></a> [log\_group\_name](#output\_log\_group\_name) | Name of the CloudWatch log group for Airbyte system and pod logs. |
 | <a name="output_rds_endpoint"></a> [rds\_endpoint](#output\_rds\_endpoint) | RDS PostgreSQL endpoint in host:port format. Null when create = false. |

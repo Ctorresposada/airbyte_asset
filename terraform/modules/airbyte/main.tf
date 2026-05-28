@@ -120,11 +120,19 @@ data "aws_iam_policy_document" "airbyte_inline" {
     sid    = "AirbyteS3Objects"
     effect = "Allow"
     actions = [
-      "s3:GetObject",
       "s3:PutObject",
+      "s3:GetObject",
       "s3:DeleteObject",
+      "s3:PutObjectAcl",
+      "s3:ListBucket",
+      "s3:ListBucketMultipartUploads",
+      "s3:AbortMultipartUpload",
+      "s3:GetBucketLocation"
     ]
-    resources = [try("${aws_s3_bucket.this[0].arn}/*", "arn:aws:s3:::placeholder-never-used/*")]
+    resources = [
+      try("${aws_s3_bucket.this[0].arn}/*", "arn:aws:s3:::placeholder-never-used/*"),
+      try(aws_s3_bucket.this[0].arn, "arn:aws:s3:::placeholder-never-used/*")
+    ]
   }
 
   statement {
@@ -596,6 +604,7 @@ resource "aws_launch_template" "this" {
   count = var.create ? 1 : 0
 
   #checkov:skip=CKV_AWS_88: Instances are in private subnets; associate_public_ip_address is false by subnet design
+  #checkov:skip=CKV_AWS_341: hop_limit > 1 required for Docker/kind containers running inside the instance to reach IMDS
   name_prefix = "${local.name_prefix}-airbyte-"
   description = "Launch template for self-hosted Airbyte running abctl on ${var.name}"
 
@@ -611,10 +620,11 @@ resource "aws_launch_template" "this" {
   user_data = base64encode(local.user_data_content)
 
   # IMDSv2 required -- prevents SSRF-based metadata access.
+  # hop_limit is required for Docker/kind containers to reach IMDS (each container adds one hop).
   metadata_options {
     http_endpoint               = "enabled"
     http_tokens                 = "required"
-    http_put_response_hop_limit = 1
+    http_put_response_hop_limit = 3
   }
 
   # Detailed CloudWatch monitoring.
