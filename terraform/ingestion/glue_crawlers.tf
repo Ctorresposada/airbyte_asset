@@ -1,7 +1,7 @@
 # ---------------------------------------------------------------------------
 # Connect20 Glue Crawler resources
 # Crawls raw/connect20/ on a nightly schedule, detects Parquet schema, and
-# registers tables into the bronze Glue database.
+# registers tables into the bronze Glue database
 # ---------------------------------------------------------------------------
 resource "aws_glue_crawler" "connect20" {
   count = var.create ? 1 : 0
