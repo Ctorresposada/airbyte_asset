@@ -14,7 +14,7 @@ This stack provisions the AWS infrastructure for the Region 20 Data Lake ingesti
 
 | Name | Version |
 | ---- | ------- |
-| <a name="provider_aws"></a> [aws](#provider\_aws) | 6.45.0 |
+| <a name="provider_aws"></a> [aws](#provider\_aws) | 6.46.0 |
 
 ## Modules
 
@@ -27,12 +27,22 @@ This stack provisions the AWS infrastructure for the Region 20 Data Lake ingesti
 | Name | Type |
 | ---- | ---- |
 | [aws_glue_catalog_database.databases](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/glue_catalog_database) | resource |
+| [aws_glue_crawler.connect20](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/glue_crawler) | resource |
 | [aws_iam_access_key.airbyte](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_access_key) | resource |
 | [aws_iam_policy.airbyte](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_policy) | resource |
+| [aws_iam_role.glue_connect20_crawler](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role) | resource |
+| [aws_iam_role_policy.glue_connect20_crawler_s3](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy) | resource |
+| [aws_iam_role_policy_attachment.glue_connect20_crawler_service](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy_attachment) | resource |
 | [aws_iam_user.airbyte](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_user) | resource |
 | [aws_iam_user_policy_attachment.airbyte](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_user_policy_attachment) | resource |
 | [aws_kms_alias.airbyte](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/kms_alias) | resource |
 | [aws_kms_key.airbyte](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/kms_key) | resource |
+| [aws_lakeformation_data_lake_settings.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/lakeformation_data_lake_settings) | resource |
+| [aws_lakeformation_permissions.airbyte_bronze_database](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/lakeformation_permissions) | resource |
+| [aws_lakeformation_permissions.airbyte_bronze_location](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/lakeformation_permissions) | resource |
+| [aws_lakeformation_permissions.glue_connect20_crawler_bronze_db](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/lakeformation_permissions) | resource |
+| [aws_lakeformation_resource.bronze](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/lakeformation_resource) | resource |
+| [aws_lakeformation_resource.silver](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/lakeformation_resource) | resource |
 | [aws_s3_bucket.buckets](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket) | resource |
 | [aws_s3_bucket_lifecycle_configuration.buckets](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket_lifecycle_configuration) | resource |
 | [aws_s3_bucket_policy.raw_ascender_crr](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket_policy) | resource |
@@ -45,10 +55,16 @@ This stack provisions the AWS infrastructure for the Region 20 Data Lake ingesti
 | [aws_secretsmanager_secret.airbyte_credentials](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/secretsmanager_secret) | resource |
 | [aws_secretsmanager_secret_policy.airbyte_credentials](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/secretsmanager_secret_policy) | resource |
 | [aws_secretsmanager_secret_version.airbyte_credentials](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/secretsmanager_secret_version) | resource |
-| [aws_vpc_security_group_ingress_rule.airbyte_instance_from_vpn](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/vpc_security_group_ingress_rule) | resource |
+| [aws_vpc_security_group_ingress_rule.airbyte_instance_from_vpn_ui](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/vpc_security_group_ingress_rule) | resource |
 | [aws_caller_identity.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/caller_identity) | data source |
 | [aws_iam_policy_document.airbyte_kms](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
+| [aws_iam_policy_document.glue_connect20_crawler_s3](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
+| [aws_iam_policy_document.glue_crawler_assume_role](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
 | [aws_iam_policy_document.raw_bucket_ascender_crr](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
+| [aws_iam_policy_document.raw_bucket_connect20_delivery](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
+| [aws_iam_policy_document.raw_bucket_policy](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
+| [aws_iam_role.terraform_execution](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_role) | data source |
+| [aws_security_groups.client_vpn](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/security_groups) | data source |
 | [aws_ssm_parameter.al2023_ami](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/ssm_parameter) | data source |
 | [aws_subnets.private](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/subnets) | data source |
 | [aws_vpc.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/vpc) | data source |
@@ -59,7 +75,6 @@ This stack provisions the AWS infrastructure for the Region 20 Data Lake ingesti
 | ---- | ----------- | ---- | ------- | :------: |
 | <a name="input_account_id"></a> [account\_id](#input\_account\_id) | AWS account ID of the target account; used to construct the cross-account assume\_role ARN | `string` | n/a | yes |
 | <a name="input_airbyte_alb_allowed_cidr_blocks"></a> [airbyte\_alb\_allowed\_cidr\_blocks](#input\_airbyte\_alb\_allowed\_cidr\_blocks) | CIDR blocks permitted to reach the Airbyte ALB on ports 80 and 443. Passed directly to the airbyte module's allowed\_cidr\_blocks. Include the Client VPN client CIDR so VPN-connected users can access the Airbyte UI through the load balancer. | `list(string)` | `[]` | no |
-| <a name="input_airbyte_instance_direct_cidr_blocks"></a> [airbyte\_instance\_direct\_cidr\_blocks](#input\_airbyte\_instance\_direct\_cidr\_blocks) | CIDR blocks permitted to reach the Airbyte EC2 instance directly on port 80, bypassing the ALB. Intended for debugging only; set to [] in production. | `list(string)` | `[]` | no |
 | <a name="input_airbyte_instance_type"></a> [airbyte\_instance\_type](#input\_airbyte\_instance\_type) | EC2 instance type for the Airbyte ASG. Use m6a.xlarge for dev (minimum viable) and m6a.2xlarge for production. | `string` | `"m6a.2xlarge"` | no |
 | <a name="input_airbyte_log_retention_days"></a> [airbyte\_log\_retention\_days](#input\_airbyte\_log\_retention\_days) | CloudWatch log retention in days for the Airbyte log group. Use 30 for dev to control cost; 365 for production. | `number` | `365` | no |
 | <a name="input_airbyte_rds_deletion_protection"></a> [airbyte\_rds\_deletion\_protection](#input\_airbyte\_rds\_deletion\_protection) | Enable RDS deletion protection on the Airbyte config database. Disable in dev; enable in production to prevent accidental deletion. | `bool` | `false` | no |
@@ -72,9 +87,13 @@ This stack provisions the AWS infrastructure for the Region 20 Data Lake ingesti
 | <a name="input_company_name"></a> [company\_name](#input\_company\_name) | Company name prefix used in resource names and to look up shared networking resources by tag. | `string` | n/a | yes |
 | <a name="input_create"></a> [create](#input\_create) | Whether this stack should provision its resources. Set to false to soft-delete everything the stack manages while preserving state and code. | `bool` | `true` | no |
 | <a name="input_environment"></a> [environment](#input\_environment) | Target deployment environment | `string` | n/a | yes |
+| <a name="input_glue_connect20_crawler_schedule"></a> [glue\_connect20\_crawler\_schedule](#input\_glue\_connect20\_crawler\_schedule) | AWS cron expression for the Connect20 Glue crawler. Defaults to 02:00 UTC daily — adjust per environment to fire after the expected nightly file delivery. | `string` | `"cron(0 2 * * ? *)"` | no |
 | <a name="input_glue_databases"></a> [glue\_databases](#input\_glue\_databases) | Map of Glue catalog databases to manage | <pre>map(object({<br/>    name        = string<br/>    description = string<br/>  }))</pre> | n/a | yes |
+| <a name="input_lakeformation_admin_arns"></a> [lakeformation\_admin\_arns](#input\_lakeformation\_admin\_arns) | Additional IAM principal ARNs (roles or users) to grant Lake Formation admin rights beyond the Terraform execution role. Useful for granting data platform team members LF admin access. | `list(string)` | `[]` | no |
+| <a name="input_lakeformation_terraform_role_name"></a> [lakeformation\_terraform\_role\_name](#input\_lakeformation\_terraform\_role\_name) | Name of the IAM role used by Terraform to manage this stack. Registered as a Lake Formation admin so Terraform retains the ability to manage LF resources after location registration. | `string` | `"region-20-terraform-execution-role"` | no |
 | <a name="input_tags"></a> [tags](#input\_tags) | Common tags to apply to all resources | `map(string)` | `{}` | no |
 | <a name="input_team"></a> [team](#input\_team) | Team that manages this project | `string` | n/a | yes |
+| <a name="input_vpn_available"></a> [vpn\_available](#input\_vpn\_available) | Whether the Client VPN endpoint and its security group are deployed in this environment. When false, no direct ingress rules are added to the Airbyte instance SG from the VPN. Set to false in environments where the VPN has not yet been provisioned. | `bool` | `false` | no |
 
 ## Outputs
 
@@ -91,5 +110,7 @@ This stack provisions the AWS infrastructure for the Region 20 Data Lake ingesti
 | <a name="output_bucket_arns"></a> [bucket\_arns](#output\_bucket\_arns) | All S3 bucket ARNs |
 | <a name="output_bucket_names"></a> [bucket\_names](#output\_bucket\_names) | All S3 bucket names |
 | <a name="output_glue_database_names"></a> [glue\_database\_names](#output\_glue\_database\_names) | Glue catalog database names |
+| <a name="output_lakeformation_bronze_location_arn"></a> [lakeformation\_bronze\_location\_arn](#output\_lakeformation\_bronze\_location\_arn) | ARN of the S3 bronze bucket registered as a Lake Formation data lake location |
+| <a name="output_lakeformation_silver_location_arn"></a> [lakeformation\_silver\_location\_arn](#output\_lakeformation\_silver\_location\_arn) | ARN of the S3 silver bucket registered as a Lake Formation data lake location |
 | <a name="output_user_data_script"></a> [user\_data\_script](#output\_user\_data\_script) | Rendered user-data bootstrap script as it will be passed to the EC2 instance. Use 'terraform output -raw user\_data\_script' to inspect it before ap  plying. |
 <!-- END_TF_DOCS -->

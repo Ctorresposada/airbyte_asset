@@ -101,6 +101,26 @@ resource "aws_lakeformation_permissions" "airbyte_bronze_database" {
 }
 
 # ---------------------------------------------------------------------------
+# Grant Connect20 Glue crawler role CREATE_TABLE / ALTER / DESCRIBE on the
+# bronze database. Explicit grants ensure the crawler keeps working if
+# IAMAllowedPrincipals defaults are later removed.
+# ---------------------------------------------------------------------------
+resource "aws_lakeformation_permissions" "glue_connect20_crawler_bronze_db" {
+  count = var.create ? 1 : 0
+
+  principal = aws_iam_role.glue_connect20_crawler[0].arn
+
+  database {
+    name = aws_glue_catalog_database.databases["bronze"].name
+  }
+
+  permissions                   = ["CREATE_TABLE", "ALTER", "DESCRIBE"]
+  permissions_with_grant_option = []
+
+  depends_on = [aws_lakeformation_data_lake_settings.this]
+}
+
+# ---------------------------------------------------------------------------
 # NOTE: lakeformation:GetDataAccess for SSO roles (DataEngineer, Analyst,
 # Auditor) cannot be granted from Terraform in this account.
 #

@@ -120,3 +120,9 @@ variable "lakeformation_admin_arns" {
   default     = []
 }
 
+variable "glue_connect20_crawler_schedule" {
+  description = "AWS cron expression for the Connect20 Glue crawler. Defaults to 02:00 UTC daily — adjust per environment to fire after the expected nightly file delivery."
+  type        = string
+  default     = "cron(0 2 * * ? *)"
+}
+
