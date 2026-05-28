@@ -14,7 +14,7 @@ Redshift data warehouse (used with Spectrum over S3) and its supporting KMS CMKs
 
 | Name | Version |
 | ---- | ------- |
-| <a name="provider_aws"></a> [aws](#provider\_aws) | 6.46.0 |
+| <a name="provider_aws"></a> [aws](#provider\_aws) | 6.47.0 |
 
 ## Modules
 
