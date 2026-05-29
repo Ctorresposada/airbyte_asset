@@ -44,7 +44,7 @@ variable "glue_databases" {
 }
 
 variable "tags" {
-  description = "Common tags to apply to all resources"
+  description = "Common tags to apply to all resources required"
   type        = map(string)
   default     = {}
 }
