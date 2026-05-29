@@ -48,3 +48,19 @@ resource "aws_secretsmanager_secret_policy" "airbyte_oracle_credentials" {
 }
 
 
+resource "aws_secretsmanager_secret" "airbyte_google_drive_credentials" {
+  #checkov:skip=CKV2_AWS_57: Automatic rotation requires Lambda or manual change, for now leaving as static in DEV
+  name                    = "airbyte/google-drive-credentials"
+  description             = "Google service account JSON for Google Drive data ingestion"
+  kms_key_id              = aws_kms_key.airbyte[0].arn
+  recovery_window_in_days = 14
+
+  tags = merge(var.tags, { Name = "${local.name}-airbyte-google-drive-credentials" })
+}
+
+resource "aws_secretsmanager_secret_policy" "airbyte_google_drive_credentials" {
+  secret_arn = aws_secretsmanager_secret.airbyte_google_drive_credentials.arn
+  policy     = local.airbyte_secret_policy
+}
+
+
