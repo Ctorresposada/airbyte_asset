@@ -31,7 +31,7 @@ buckets = {
 #All Glue Databases Configuration in DEV
 glue_databases = {
   raw = {
-    name        = "escr20_test"
+    name        = "escr20_raw"
     description = "Raw layer — unprocessed files from landing zone from external sources"
   }
   bronze = {
