@@ -104,10 +104,10 @@ variable "mssql_secret_arn" {
   type        = string
 }
 
-#tflint-ignore: terraform_unused_declarations
-variable "google_drive_secret_arn" {
+variable "google_drive_sm_arn" {
   description = "ARN of the Secrets Manager secret holding the Google service account JSON used by the Google Drive source. Expected JSON key: service_account_json (a JSON string)."
   type        = string
+  default     = "airbyte/google-drive-credentials"
 }
 
 #tflint-ignore: terraform_unused_declarations
@@ -168,7 +168,6 @@ variable "oracle_service_name" {
   type        = string
 }
 
-#tflint-ignore: terraform_unused_declarations
 variable "google_drive_folder_url" {
   description = "Google Drive folder URL to sync from (e.g. https://drive.google.com/drive/folders/<folder_id>)."
   type        = string

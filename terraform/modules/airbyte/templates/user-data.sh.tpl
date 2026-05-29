@@ -5,6 +5,7 @@ set -euxo pipefail
 ABCTL_VERSION="${abctl_version}"
 AWS_REGION="${aws_region}"
 SSM_PARAM="${ssm_parameter_name}"
+AIRBYTE_ADMIN_SECRET_ARN="${airbyte_admin_secret_arn}"
 
 # 1. Install Docker if not already present
 if ! command -v docker &>/dev/null; then
@@ -83,5 +84,23 @@ abctl local install --values /etc/airbyte/values.yaml
 
 # 9. Confirm Airbyte is running
 abctl local status || true
+
+# 10. Push the generated Airbyte web UI admin credentials to Secrets Manager.
+# abctl stores the generated admin username/password in the Kubernetes secret
+# airbyte-auth-secrets (namespace airbyte-abctl), base64-encoded. Extract them
+# using the abctl-managed kubeconfig and push them to Secrets Manager so the
+# credentials are retrievable without shelling into the instance. kubectl calls
+# are guarded with || true because abctl may take a moment to finish reconciling
+# the secret after install returns.
+export KUBECONFIG=/.airbyte/abctl/abctl.kubeconfig
+set +x
+ADMIN_PASSWORD=$(kubectl get secret airbyte-auth-secrets -n airbyte-abctl -o jsonpath='{.data.instance-admin-password}' | base64 -d || true)
+if [[ -n "$ADMIN_PASSWORD" ]]; then
+  aws secretsmanager put-secret-value \
+    --secret-id "$AIRBYTE_ADMIN_SECRET_ARN" \
+    --region "$AWS_REGION" \
+    --secret-string "$(jq -n  --arg p "$ADMIN_PASSWORD" '{password:$p}')" || true
+fi
+set -x
 
 echo "Airbyte bootstrap complete."

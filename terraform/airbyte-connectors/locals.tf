@@ -5,7 +5,7 @@ locals {
   s3_creds     = try(jsondecode(data.aws_secretsmanager_secret_version.s3_credentials[0].secret_string), {})
   oracle_creds = try(jsondecode(data.aws_secretsmanager_secret_version.oracle_credentials[0].secret_string), {})
   #  mssql_creds        = try(jsondecode(data.aws_secretsmanager_secret_version.mssql[0].secret_string), {})
-  #  google_drive_creds = try(jsondecode(data.aws_secretsmanager_secret_version.google_drive[0].secret_string), {})
+  google_drive_creds = try(jsondecode(data.aws_secretsmanager_secret_version.google_drive[0].secret_string), {})
   #  docebo_creds       = try(jsondecode(data.aws_secretsmanager_secret_version.docebo[0].secret_string), {})
   #
   # Known Airbyte connector definition IDs for built-in connectors.

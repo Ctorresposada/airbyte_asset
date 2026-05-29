@@ -53,6 +53,7 @@ No modules.
 | [aws_s3_bucket_public_access_block.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket_public_access_block) | resource |
 | [aws_s3_bucket_server_side_encryption_configuration.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket_server_side_encryption_configuration) | resource |
 | [aws_s3_bucket_versioning.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket_versioning) | resource |
+| [aws_secretsmanager_secret.airbyte_admin](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/secretsmanager_secret) | resource |
 | [aws_secretsmanager_secret.rds](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/secretsmanager_secret) | resource |
 | [aws_secretsmanager_secret_version.rds](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/secretsmanager_secret_version) | resource |
 | [aws_security_group.alb](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group) | resource |
@@ -104,6 +105,7 @@ No modules.
 
 | Name | Description |
 | ---- | ----------- |
+| <a name="output_airbyte_admin_secret_arn"></a> [airbyte\_admin\_secret\_arn](#output\_airbyte\_admin\_secret\_arn) | ARN of the Secrets Manager secret containing the Airbyte web UI admin credentials (username, password). Populated at instance boot by user-data. Null when create = false. |
 | <a name="output_alb_dns_name"></a> [alb\_dns\_name](#output\_alb\_dns\_name) | Internal ALB DNS name. Null when create\_alb = false. |
 | <a name="output_alb_sg_id"></a> [alb\_sg\_id](#output\_alb\_sg\_id) | ID of the security group attached to the internal ALB. Null when create\_alb = false. |
 | <a name="output_asg_name"></a> [asg\_name](#output\_asg\_name) | Name of the Auto Scaling Group managing the Airbyte EC2 instance. |

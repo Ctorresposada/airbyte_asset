@@ -57,6 +57,11 @@ output "rds_sg_id" {
   value       = try(aws_security_group.rds[0].id, null)
 }
 
+output "airbyte_admin_secret_arn" {
+  description = "ARN of the Secrets Manager secret containing the Airbyte web UI admin credentials (username, password). Populated at instance boot by user-data. Null when create = false."
+  value       = try(aws_secretsmanager_secret.airbyte_admin[0].arn, null)
+}
+
 output "s3_bucket_name" {
   description = "Name of the S3 bucket used by Airbyte for logs and artifacts. Null when create = false."
   value       = try(aws_s3_bucket.this[0].id, null)
