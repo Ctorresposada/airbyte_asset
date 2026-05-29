@@ -131,18 +131,6 @@ resource "aws_s3_object" "connect20_prefix" {
     Layer  = "raw"
   })
 }
-# Prefix created to hold the Glue Raw Database files within the raw layer
-resource "aws_s3_object" "raw_db_prefix" {
-  bucket  = aws_s3_bucket.buckets["raw"].id
-  key     = "raw-db/"
-  content = ""
-
-  tags = merge(var.tags, {
-    Prefix = "raw-db"
-    Source = "RAW_DB"
-    Layer  = "raw"
-  })
-}
 
 # Cross-account CRR destination policy: allow the Ascender source account's
 # replication role to write into raw/ascender/ only. Bucket-level list and
