@@ -29,11 +29,12 @@ data "aws_secretsmanager_secret_version" "oracle_credentials" {
 #  secret_id = var.mssql_secret_arn
 #}
 #
-#data "aws_secretsmanager_secret_version" "google_drive" {
-#  count = var.create ? 1 : 0
-#
-#  secret_id = var.google_drive_secret_arn
-#}
+# Google service account JSON consumed by the Airbyte Google Drive source connector.
+data "aws_secretsmanager_secret_version" "google_drive" {
+  count = var.create ? 1 : 0
+
+  secret_id = var.google_drive_sm_arn
+}
 #
 #data "aws_secretsmanager_secret_version" "docebo" {
 #  count = var.create ? 1 : 0

@@ -16,9 +16,9 @@ destination_s3_bucket_name = "escr20-bronze-dev"
 glue_database_name         = "escr20_bronze_dev"
 
 # Secrets Manager ARNs
-mssql_secret_arn        = "" # TODO: fill in
-google_drive_secret_arn = "" # TODO: fill in
-docebo_secret_arn       = "" # TODO: fill in
+mssql_secret_arn    = "" # TODO: fill in
+google_drive_sm_arn = "airbyte/google-drive-credentials"
+docebo_secret_arn   = "" # TODO: fill in
 
 # Oracle source
 oracle_host         = "192.168.1.12"
@@ -34,7 +34,7 @@ docebo_connector_definition_id = "" # Isadora's connector definition UUID
 docebo_base_url                = "" # e.g. https://yourcompany.docebosaas.com
 
 # Google Drive source
-google_drive_folder_url = "" # Full Google Drive folder URL to sync from
+google_drive_folder_url = "https://drive.google.com/drive/folders/0AC5xbBuRiUvXUk9PVA"
 
 # Per-connection cron schedules (Quartz syntax). Defaults are hourly.
 oracle_sync_cron       = "0 0 * * * ?"

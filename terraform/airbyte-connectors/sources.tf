@@ -38,3 +38,51 @@ resource "airbyte_source" "oracle" {
   definition_id = data.airbyte_connector_configuration.oracle_source_config[0].definition_id
   configuration = data.airbyte_connector_configuration.oracle_source_config[0].configuration_json
 }
+
+# ---------------------------------------------------------------------------
+# Google Drive source
+# ---------------------------------------------------------------------------
+data "airbyte_connector_configuration" "google_drive_source_config" {
+  count = var.create ? 1 : 0
+
+  connector_name = "source-google-drive"
+
+  configuration = {
+    streams = [
+      {
+        name  = "all_files"
+        globs = ["**"]
+        format = {
+          filetype = "unstructured"
+          strategy = "auto"
+          processing = {
+            mode = "local"
+          }
+          skip_unprocessable_files = true
+        }
+        schemaless                                = true
+        validation_policy                         = "Emit Record"
+        days_to_sync_if_history_is_full           = 3
+        use_first_found_file_for_schema_discovery = false
+      }
+    ]
+    folder_url = var.google_drive_folder_url
+    credentials = {
+      auth_type            = "Service"
+      service_account_info = jsonencode(local.google_drive_creds)
+    }
+    delivery_method = {
+      delivery_type                = "use_file_transfer"
+      preserve_directory_structure = true
+    }
+  }
+}
+
+resource "airbyte_source" "google_drive" {
+  count = var.create ? 1 : 0
+
+  name          = "TEA Google Drive"
+  workspace_id  = var.airbyte_workspace_id
+  definition_id = data.airbyte_connector_configuration.google_drive_source_config[0].definition_id
+  configuration = data.airbyte_connector_configuration.google_drive_source_config[0].configuration_json
+}
