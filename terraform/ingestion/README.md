@@ -52,7 +52,6 @@ This stack provisions the AWS infrastructure for the Region 20 Data Lake ingesti
 | [aws_s3_bucket_versioning.buckets](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket_versioning) | resource |
 | [aws_s3_object.ascender_prefix](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_object) | resource |
 | [aws_s3_object.connect20_prefix](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_object) | resource |
-| [aws_s3_object.raw_db_prefix](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_object) | resource |
 | [aws_s3_object.tea_prefix](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_object) | resource |
 | [aws_secretsmanager_secret.airbyte_credentials](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/secretsmanager_secret) | resource |
 | [aws_secretsmanager_secret.airbyte_google_drive_credentials](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/secretsmanager_secret) | resource |
