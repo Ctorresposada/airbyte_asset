@@ -4,6 +4,12 @@ variable "create" {
   default     = true
 }
 
+variable "create_oracle_connection" {
+  description = "Whether to provision the Oracle to S3 connection. Independent of var.create so the connection can be enabled after the source and destination are validated."
+  type        = bool
+  default     = false
+}
+
 variable "environment" {
   description = "Target deployment environment"
   type        = string
@@ -54,9 +60,18 @@ variable "airbyte_client_secret" {
 }
 
 #tflint-ignore: terraform_unused_declarations
-variable "api_token" {
-  description = "Airbyte API token"
+variable "airbyte_cloud_client_id" {
+  description = "Airbyte Cloud API client ID for OAuth2 client-credentials authentication. Pass via TF_VAR_airbyte_client_id."
   type        = string
+  default     = ""
+  sensitive   = true
+}
+
+#tflint-ignore: terraform_unused_declarations
+variable "airbyte_cloud_client_secret" {
+  description = "Airbyte Cloud API client secret for OAuth2 client-credentials authentication. Pass via TF_VAR_airbyte_client_secret."
+  type        = string
+  default     = ""
   sensitive   = true
 }
 
@@ -74,15 +89,14 @@ variable "destination_s3_bucket_name" {
   type        = string
 }
 
+variable "glue_database_name" {
+  description = "Name of the Glue database used as the Airbyte S3 destination catalog."
+  type        = string
+}
+
 # ---------------------------------------------------------------------------
 # Secrets Manager ARNs for source credentials
 # ---------------------------------------------------------------------------
-
-#tflint-ignore: terraform_unused_declarations
-variable "oracle_secret_arn" {
-  description = "ARN of the Secrets Manager secret holding Oracle DB credentials. Expected JSON keys: host, port, sid, username, password, ssh_host, ssh_port, ssh_username, ssh_private_key."
-  type        = string
-}
 
 #tflint-ignore: terraform_unused_declarations
 variable "mssql_secret_arn" {
@@ -108,9 +122,51 @@ variable "s3_credentials_secret_id" {
   default     = "airbyte/client-credentials"
 }
 
+variable "oracle_credentials_secret_id" {
+  description = "ID or ARN of the Secrets Manager secret holding Oracle DB credentials for the Airbyte Oracle source connector. Expected JSON keys: db_password, ssh_key."
+  type        = string
+  default     = "airbyte/oracle-credentials"
+}
+
 # ---------------------------------------------------------------------------
-# Source-specific configuration
+# Oracle source configuration
 # ---------------------------------------------------------------------------
+
+variable "oracle_host" {
+  description = "Hostname or IP of the Oracle DB instance (reachable via SSH tunnel)."
+  type        = string
+}
+
+variable "oracle_port" {
+  description = "Port of the Oracle DB instance."
+  type        = number
+  default     = 1521
+}
+
+variable "oracle_schemas" {
+  description = "List of Oracle schemas to sync."
+  type        = list(string)
+}
+
+variable "oracle_username" {
+  description = "Oracle DB username used by Airbyte."
+  type        = string
+}
+
+variable "oracle_tunnel_host" {
+  description = "Public hostname or IP of the SSH bastion host used to tunnel into the Oracle DB."
+  type        = string
+}
+
+variable "oracle_tunnel_user" {
+  description = "SSH username on the tunnel bastion host."
+  type        = string
+}
+
+variable "oracle_service_name" {
+  description = "Oracle service name (used when connection_type is service_name)."
+  type        = string
+}
 
 #tflint-ignore: terraform_unused_declarations
 variable "google_drive_folder_url" {

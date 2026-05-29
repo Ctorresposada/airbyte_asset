@@ -24,3 +24,10 @@ provider "airbyte" {
   client_secret = var.airbyte_client_secret
   token_url     = "http://${var.airbyte_hostname}/api/public/v1/applications/token"
 }
+
+provider "airbyte" {
+  alias         = "airbyte_cloud"
+  client_id     = var.airbyte_cloud_client_id
+  client_secret = var.airbyte_cloud_client_secret
+}
+

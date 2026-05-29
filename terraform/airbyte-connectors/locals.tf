@@ -2,8 +2,8 @@ locals {
   # Decoded secret payloads. The try() fallback to an empty object keeps
   # `terraform plan` working when the stack is disabled (var.create = false)
   # and the data sources are not materialized.
-  s3_creds = try(jsondecode(data.aws_secretsmanager_secret_version.s3_credentials[0].secret_string), {})
-  #  oracle_creds       = try(jsondecode(data.aws_secretsmanager_secret_version.oracle[0].secret_string), {})
+  s3_creds     = try(jsondecode(data.aws_secretsmanager_secret_version.s3_credentials[0].secret_string), {})
+  oracle_creds = try(jsondecode(data.aws_secretsmanager_secret_version.oracle_credentials[0].secret_string), {})
   #  mssql_creds        = try(jsondecode(data.aws_secretsmanager_secret_version.mssql[0].secret_string), {})
   #  google_drive_creds = try(jsondecode(data.aws_secretsmanager_secret_version.google_drive[0].secret_string), {})
   #  docebo_creds       = try(jsondecode(data.aws_secretsmanager_secret_version.docebo[0].secret_string), {})

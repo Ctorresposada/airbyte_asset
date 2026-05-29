@@ -16,12 +16,13 @@ data "aws_secretsmanager_secret_version" "s3_credentials" {
   secret_id = var.s3_credentials_secret_id
 }
 
-#data "aws_secretsmanager_secret_version" "oracle" {
-#  count = var.create ? 1 : 0
-#
-#  secret_id = var.oracle_secret_arn
-#}
-#
+# Oracle DB credentials consumed by the Airbyte Oracle source connector.
+data "aws_secretsmanager_secret_version" "oracle_credentials" {
+  count = var.create ? 1 : 0
+
+  secret_id = var.oracle_credentials_secret_id
+}
+
 #data "aws_secretsmanager_secret_version" "mssql" {
 #  count = var.create ? 1 : 0
 #

@@ -8,14 +8,14 @@ The IDC instance is owned by the management account (`992382717104`); the stack 
 ## Requirements
 
 | Name | Version |
-|------|---------|
+| ---- | ------- |
 | <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.11.0 |
 | <a name="requirement_aws"></a> [aws](#requirement\_aws) | ~> 6.0 |
 
 ## Providers
 
 | Name | Version |
-|------|---------|
+| ---- | ------- |
 | <a name="provider_aws"></a> [aws](#provider\_aws) | 6.46.0 |
 
 ## Modules
@@ -25,7 +25,7 @@ No modules.
 ## Resources
 
 | Name | Type |
-|------|------|
+| ---- | ---- |
 | [aws_identitystore_group.data_lake_caylent](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/identitystore_group) | resource |
 | [aws_ssoadmin_account_assignment.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/ssoadmin_account_assignment) | resource |
 | [aws_ssoadmin_managed_policy_attachment.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/ssoadmin_managed_policy_attachment) | resource |
@@ -37,7 +37,7 @@ No modules.
 ## Inputs
 
 | Name | Description | Type | Default | Required |
-|------|-------------|------|---------|:--------:|
+| ---- | ----------- | ---- | ------- | :------: |
 | <a name="input_account_id"></a> [account\_id](#input\_account\_id) | AWS account ID where the stack runs. For the security stack this is the IAM Identity Center delegated administrator account, not the IDC owner (management) account. | `string` | n/a | yes |
 | <a name="input_aws_region"></a> [aws\_region](#input\_aws\_region) | Target deployment region. IAM Identity Center is region-pinned to the IDC home region; this should match it. | `string` | n/a | yes |
 | <a name="input_create"></a> [create](#input\_create) | Whether this stack should provision its resources. Set to false to soft-delete everything the stack manages while preserving state and code. | `bool` | `true` | no |
@@ -53,7 +53,7 @@ No modules.
 ## Outputs
 
 | Name | Description |
-|------|-------------|
+| ---- | ----------- |
 | <a name="output_account_assignments"></a> [account\_assignments](#output\_account\_assignments) | Map of account-assignment keys to their target account IDs and permission set ARNs. Empty when the stack is disabled (create = false). |
 | <a name="output_data_engineer_dev_permission_set_arn"></a> [data\_engineer\_dev\_permission\_set\_arn](#output\_data\_engineer\_dev\_permission\_set\_arn) | ARN of the DataEngineer\_Dev permission set, or null when the stack is disabled (create = false). |
 | <a name="output_data_engineer_prod_permission_set_arn"></a> [data\_engineer\_prod\_permission\_set\_arn](#output\_data\_engineer\_prod\_permission\_set\_arn) | ARN of the DataEngineer\_Prod permission set, or null when the stack is disabled (create = false). |
