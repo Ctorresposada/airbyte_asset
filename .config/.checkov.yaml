@@ -21,3 +21,5 @@ skip-check:
   - CKV_AWS_338  # Log retention is environment-driven via var.redshift_log_retention_days — dev uses 30 days to control cost; prod sets >= 365
   - CKV_AWS_99   # Glue security configuration S3 encryption uses SSE-S3 (consistent with CKV_AWS_145 — KMS not required for security requirements)
   - CKV2_AWS_64  # KMS key policy not explicitly defined — key is used solely for Glue crawler CloudWatch log encryption with no cross-account access
+  - CKV_AWS_109  # Resource:* in KMS key policies refers to the key itself — AWS-recommended root-access pattern for key management
+  - CKV_AWS_111  # kms:* on Resource:* is standard for KMS key policies and does not grant unconstrained write access to other resources
