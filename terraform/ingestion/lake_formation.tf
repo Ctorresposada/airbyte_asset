@@ -117,6 +117,20 @@ resource "aws_lakeformation_permissions" "airbyte_bronze_database" {
 # Connect20 crawler LF grant: allows the crawler role to create and update
 # tables in the raw Glue database.
 # ---------------------------------------------------------------------------
+resource "aws_lakeformation_permissions" "glue_connect20_crawler_raw_location" {
+  count = var.create ? 1 : 0
+
+  principal = aws_iam_role.glue_connect20_crawler[0].arn
+
+  data_location {
+    arn = aws_s3_bucket.buckets["raw"].arn
+  }
+
+  permissions = ["DATA_LOCATION_ACCESS"]
+
+  depends_on = [aws_lakeformation_resource.raw]
+}
+
 resource "aws_lakeformation_permissions" "glue_connect20_crawler_raw_db" {
   count = var.create ? 1 : 0
 
