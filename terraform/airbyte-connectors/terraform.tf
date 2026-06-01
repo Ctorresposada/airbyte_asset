@@ -6,15 +6,15 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 6.0"
     }
-    null = {
-      source  = "hashicorp/null"
-      version = "~> 3.0"
+    airbyte = {
+      source  = "airbytehq/airbyte"
+      version = "~> 1.2"
     }
   }
 
   backend "s3" {
     bucket       = "region-20-tf-state"
-    key          = "warehouse/terraform.tfstate"
+    key          = "airbyte-connections/terraform.tfstate"
     region       = "us-east-1"
     encrypt      = true
     use_lockfile = true

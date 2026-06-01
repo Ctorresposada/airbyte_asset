@@ -1,15 +1,16 @@
-create       = true
-environment  = "dev"
-aws_region   = "us-east-1"
-team         = "devops"
-company_name = "region-20"
-account_id   = "784590287037"
+create           = true
+environment      = "dev"
+aws_region       = "us-east-1"
+team             = "devops"
+company_name     = "region-20"
+account_id       = "784590287037"
+oci_bastion_host = "129.146.105.89/32"
 #All Buckets Configuration in DEV
 buckets = {
   raw = {
     name               = "escr20-landing-zone-raw"
     layer              = "raw"
-    transition_ia      = 90
+    transition_ia      = 100
     transition_glacier = 365
     expiration_days    = 2555
   }
@@ -30,6 +31,10 @@ buckets = {
 }
 #All Glue Databases Configuration in DEV
 glue_databases = {
+  raw = {
+    name        = "escr20_raw"
+    description = "Raw layer — unprocessed files from landing zone from external sources"
+  }
   bronze = {
     name        = "escr20_bronze"
     description = "Bronze layer — raw ingested data from all sources"

@@ -26,16 +26,30 @@ resource "aws_lakeformation_data_lake_settings" "this" {
     var.lakeformation_admin_arns
   )
 
-  create_database_default_permissions {
-    permissions = ["ALL"]
-    principal   = "IAM_ALLOWED_PRINCIPALS"
-  }
+  # create_database_default_permissions {
+  #   permissions = ["ALL"]
+  #   principal   = "IAM_ALLOWED_PRINCIPALS"
+  # }
 
-  create_table_default_permissions {
-    permissions = ["ALL"]
-    principal   = "IAM_ALLOWED_PRINCIPALS"
-  }
+  # create_table_default_permissions {
+  #   permissions = ["ALL"]
+  #   principal   = "IAM_ALLOWED_PRINCIPALS"
+  # }
 }
+
+# ---------------------------------------------------------------------------
+# Register raw S3 path as a Lake Formation data lake location.
+# Required so LF can vend S3 credentials to Athena for raw database queries.
+# ---------------------------------------------------------------------------
+resource "aws_lakeformation_resource" "raw" {
+  count = var.create ? 1 : 0
+
+  arn                     = aws_s3_bucket.buckets["raw"].arn
+  use_service_linked_role = true
+
+  depends_on = [aws_lakeformation_data_lake_settings.this]
+}
+
 
 # ---------------------------------------------------------------------------
 # Register bronze S3 path as a Lake Formation data lake location.
@@ -49,7 +63,6 @@ resource "aws_lakeformation_resource" "bronze" {
 
   depends_on = [aws_lakeformation_data_lake_settings.this]
 }
-
 # ---------------------------------------------------------------------------
 # Register silver S3 path as a Lake Formation data lake location.
 # ---------------------------------------------------------------------------
@@ -95,6 +108,39 @@ resource "aws_lakeformation_permissions" "airbyte_bronze_database" {
   }
 
   permissions                   = ["CREATE_TABLE", "DESCRIBE"]
+  permissions_with_grant_option = []
+
+  depends_on = [aws_lakeformation_data_lake_settings.this]
+}
+
+# ---------------------------------------------------------------------------
+# Connect20 crawler LF grant: allows the crawler role to create and update
+# tables in the raw Glue database.
+# ---------------------------------------------------------------------------
+resource "aws_lakeformation_permissions" "glue_connect20_crawler_raw_location" {
+  count = var.create ? 1 : 0
+
+  principal = aws_iam_role.glue_connect20_crawler[0].arn
+
+  data_location {
+    arn = aws_s3_bucket.buckets["raw"].arn
+  }
+
+  permissions = ["DATA_LOCATION_ACCESS"]
+
+  depends_on = [aws_lakeformation_resource.raw]
+}
+
+resource "aws_lakeformation_permissions" "glue_connect20_crawler_raw_db" {
+  count = var.create ? 1 : 0
+
+  principal = aws_iam_role.glue_connect20_crawler[0].arn
+
+  database {
+    name = aws_glue_catalog_database.databases["raw"].name
+  }
+
+  permissions                   = ["CREATE_TABLE", "ALTER", "DESCRIBE"]
   permissions_with_grant_option = []
 
   depends_on = [aws_lakeformation_data_lake_settings.this]
@@ -159,6 +205,37 @@ resource "aws_lakeformation_permissions" "de_silver_tables" {
 
   table {
     database_name = aws_glue_catalog_database.databases["silver"].name
+    wildcard      = true
+  }
+
+  permissions                   = var.lakeformation_de_table_permissions
+  permissions_with_grant_option = []
+
+  depends_on = [aws_lakeformation_data_lake_settings.this]
+}
+
+resource "aws_lakeformation_permissions" "de_raw_database" {
+  for_each = var.create ? toset(var.lakeformation_de_role_arns) : toset([])
+
+  principal = each.value
+
+  database {
+    name = aws_glue_catalog_database.databases["raw"].name
+  }
+
+  permissions                   = var.lakeformation_de_database_permissions
+  permissions_with_grant_option = []
+
+  depends_on = [aws_lakeformation_data_lake_settings.this]
+}
+
+resource "aws_lakeformation_permissions" "de_raw_tables" {
+  for_each = var.create ? toset(var.lakeformation_de_role_arns) : toset([])
+
+  principal = each.value
+
+  table {
+    database_name = aws_glue_catalog_database.databases["raw"].name
     wildcard      = true
   }
 

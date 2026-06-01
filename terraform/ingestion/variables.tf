@@ -44,7 +44,7 @@ variable "glue_databases" {
 }
 
 variable "tags" {
-  description = "Common tags to apply to all resources"
+  description = "Common tags to apply to all resources required"
   type        = map(string)
   default     = {}
 }
@@ -138,3 +138,13 @@ variable "lakeformation_de_table_permissions" {
   default     = ["SELECT", "DESCRIBE"]
 }
 
+variable "oci_bastion_host" {
+  type        = string
+  description = "OCI bastion host to forward traffic to the Oracle DB"
+}
+
+variable "glue_connect20_crawler_schedule" {
+  description = "AWS cron expression for the Connect20 Glue crawler nightly run (cron(0 3 * * ? *) -  9 PM CST) - 3 AM UTC). Set to null to disable scheduled runs."
+  type        = string
+  default     = "cron(0 3 * * ? *)"
+}

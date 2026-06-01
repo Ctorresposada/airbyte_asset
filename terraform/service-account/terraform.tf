@@ -6,15 +6,11 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 6.0"
     }
-    null = {
-      source  = "hashicorp/null"
-      version = "~> 3.0"
-    }
   }
 
   backend "s3" {
     bucket       = "region-20-tf-state"
-    key          = "warehouse/terraform.tfstate"
+    key          = "service-account/terraform.tfstate"
     region       = "us-east-1"
     encrypt      = true
     use_lockfile = true

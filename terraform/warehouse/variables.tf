@@ -47,6 +47,12 @@ variable "redshift_admin_username" {
   default     = "admin"
 }
 
+variable "dbt_redshift_user" {
+  description = "Redshift database user that dbt Core authenticates as via IAM-brokered credentials. Created with PASSWORD DISABLE so it is reachable only through redshift-serverless:GetCredentials (no static password). Granted USAGE+CREATE+ALL on the gold schema and USAGE+SELECT on the bronze/silver Spectrum schemas."
+  type        = string
+  default     = "dbt_service"
+}
+
 variable "redshift_base_capacity" {
   description = "Base RPU capacity for the workgroup. Minimum allowed by Redshift Serverless is 8."
   type        = number
@@ -122,6 +128,16 @@ variable "bastion_instance_type" {
   description = "EC2 instance type for the SSH bastion host. t3.micro is sufficient for SSH tunneling workloads."
   type        = string
   default     = "t3.micro"
+}
+
+variable "glue_bronze_db_name" {
+  description = "Glue Catalog database name for the bronze layer. Used to create the Spectrum external schema in Redshift Serverless. Must match the name provisioned by the ingestion stack."
+  type        = string
+}
+
+variable "glue_silver_db_name" {
+  description = "Glue Catalog database name for the silver layer. Used to create the Spectrum external schema in Redshift Serverless. Must match the name provisioned by the ingestion stack."
+  type        = string
 }
 
 variable "bastion_log_retention_days" {

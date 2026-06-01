@@ -52,6 +52,8 @@ locals {
     db_user            = var.rds_username
     db_name            = var.rds_db_name
     rds_secret_arn     = try(aws_secretsmanager_secret.rds[0].arn, "")
+
+    airbyte_admin_secret_arn = try(aws_secretsmanager_secret.airbyte_admin[0].arn, "")
   })
 }
 
@@ -120,11 +122,19 @@ data "aws_iam_policy_document" "airbyte_inline" {
     sid    = "AirbyteS3Objects"
     effect = "Allow"
     actions = [
-      "s3:GetObject",
       "s3:PutObject",
+      "s3:GetObject",
       "s3:DeleteObject",
+      "s3:PutObjectAcl",
+      "s3:ListBucket",
+      "s3:ListBucketMultipartUploads",
+      "s3:AbortMultipartUpload",
+      "s3:GetBucketLocation"
     ]
-    resources = [try("${aws_s3_bucket.this[0].arn}/*", "arn:aws:s3:::placeholder-never-used/*")]
+    resources = [
+      try("${aws_s3_bucket.this[0].arn}/*", "arn:aws:s3:::placeholder-never-used/*"),
+      try(aws_s3_bucket.this[0].arn, "arn:aws:s3:::placeholder-never-used/*")
+    ]
   }
 
   statement {
@@ -154,6 +164,7 @@ data "aws_iam_policy_document" "airbyte_inline" {
     resources = [
       "arn:aws:secretsmanager:${data.aws_region.current.region}:${data.aws_caller_identity.current.account_id}:secret:airbyte/*",
       try(aws_secretsmanager_secret.rds[0].arn, "arn:aws:secretsmanager:::secret:placeholder"),
+      try(aws_secretsmanager_secret.airbyte_admin[0].arn, "arn:aws:secretsmanager:::secret:placeholder-admin"),
     ]
   }
 
@@ -257,6 +268,25 @@ resource "aws_secretsmanager_secret_version" "rds" {
     port     = aws_db_instance.this[0].port
     dbname   = var.rds_db_name
   })
+}
+
+# ---------------------------------------------------------------------------
+# Secrets Manager -- Airbyte web UI admin credentials
+# ---------------------------------------------------------------------------
+
+# Holds the Airbyte web UI admin username/password. The value is populated at
+# instance boot by user-data, which extracts the generated credentials from the
+# abctl Kubernetes auth secret and pushes them here via put-secret-value.
+resource "aws_secretsmanager_secret" "airbyte_admin" {
+  count = var.create ? 1 : 0
+
+  #checkov:skip=CKV2_AWS_57: Automatic rotation requires a Lambda rotator and coordinated Airbyte restart; rotation is performed manually during maintenance windows
+  name                    = "${var.name}/airbyte-admin-creds"
+  description             = "Airbyte web UI admin credentials (${var.name})"
+  kms_key_id              = var.kms_key_arn
+  recovery_window_in_days = 7
+
+  tags = local.common_tags
 }
 
 # ---------------------------------------------------------------------------
@@ -596,6 +626,7 @@ resource "aws_launch_template" "this" {
   count = var.create ? 1 : 0
 
   #checkov:skip=CKV_AWS_88: Instances are in private subnets; associate_public_ip_address is false by subnet design
+  #checkov:skip=CKV_AWS_341: hop_limit > 1 required for Docker/kind containers running inside the instance to reach IMDS
   name_prefix = "${local.name_prefix}-airbyte-"
   description = "Launch template for self-hosted Airbyte running abctl on ${var.name}"
 
@@ -611,10 +642,11 @@ resource "aws_launch_template" "this" {
   user_data = base64encode(local.user_data_content)
 
   # IMDSv2 required -- prevents SSRF-based metadata access.
+  # hop_limit is required for Docker/kind containers to reach IMDS (each container adds one hop).
   metadata_options {
     http_endpoint               = "enabled"
     http_tokens                 = "required"
-    http_put_response_hop_limit = 1
+    http_put_response_hop_limit = 3
   }
 
   # Detailed CloudWatch monitoring.
