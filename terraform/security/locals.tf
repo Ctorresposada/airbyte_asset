@@ -102,11 +102,11 @@ locals {
           "glue:UpdateTable",
           "glue:DeleteTable",
           "glue:BatchCreatePartition",
-          "glue:BatchDeletePartition",
+          "glue:BatchDeletePartition"
         ]
         Resource = ["*"]
       },
-      # Allowing DE role to Direct S3 access to the raw files in raw bucket using Athena
+      #Allowing DE role to Direct S3 access to the raw files in raw bucket using Athena
       {
         Sid    = "ReadRawBucket"
         Effect = "Allow"

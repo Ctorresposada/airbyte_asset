@@ -26,28 +26,15 @@ resource "aws_lakeformation_data_lake_settings" "this" {
     var.lakeformation_admin_arns
   )
 
-  create_database_default_permissions {
-    permissions = ["ALL"]
-    principal   = "IAM_ALLOWED_PRINCIPALS"
-  }
+  # create_database_default_permissions {
+  #   permissions = ["ALL"]
+  #   principal   = "IAM_ALLOWED_PRINCIPALS"
+  # }
 
-  create_table_default_permissions {
-    permissions = ["ALL"]
-    principal   = "IAM_ALLOWED_PRINCIPALS"
-  }
-}
-
-# ---------------------------------------------------------------------------
-# Register bronze S3 path as a Lake Formation data lake location.
-# Pre-requisite for granting DATA_LOCATION_ACCESS to any principal.
-# ---------------------------------------------------------------------------
-resource "aws_lakeformation_resource" "bronze" {
-  count = var.create ? 1 : 0
-
-  arn                     = aws_s3_bucket.buckets["bronze"].arn
-  use_service_linked_role = true
-
-  depends_on = [aws_lakeformation_data_lake_settings.this]
+  # create_table_default_permissions {
+  #   permissions = ["ALL"]
+  #   principal   = "IAM_ALLOWED_PRINCIPALS"
+  # }
 }
 
 # ---------------------------------------------------------------------------
@@ -63,6 +50,19 @@ resource "aws_lakeformation_resource" "raw" {
   depends_on = [aws_lakeformation_data_lake_settings.this]
 }
 
+
+# ---------------------------------------------------------------------------
+# Register bronze S3 path as a Lake Formation data lake location.
+# Pre-requisite for granting DATA_LOCATION_ACCESS to any principal.
+# ---------------------------------------------------------------------------
+resource "aws_lakeformation_resource" "bronze" {
+  count = var.create ? 1 : 0
+
+  arn                     = aws_s3_bucket.buckets["bronze"].arn
+  use_service_linked_role = true
+
+  depends_on = [aws_lakeformation_data_lake_settings.this]
+}
 # ---------------------------------------------------------------------------
 # Register silver S3 path as a Lake Formation data lake location.
 # ---------------------------------------------------------------------------
