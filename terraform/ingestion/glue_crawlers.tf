@@ -107,6 +107,22 @@ resource "aws_iam_role_policy" "glue_connect20_crawler_s3" {
   policy = data.aws_iam_policy_document.glue_connect20_crawler_s3.json
 }
 
+data "aws_iam_policy_document" "glue_connect20_crawler_logs" {
+  statement {
+    sid       = "AssociateKmsKeyToLogGroup"
+    actions   = ["logs:AssociateKmsKey"]
+    resources = ["arn:aws:logs:${var.aws_region}:${var.account_id}:log-group:/aws-glue/crawlers-role/*"]
+  }
+}
+
+resource "aws_iam_role_policy" "glue_connect20_crawler_logs" {
+  count = var.create ? 1 : 0
+
+  name   = "connect20-cloudwatch-kms"
+  role   = aws_iam_role.glue_connect20_crawler[0].id
+  policy = data.aws_iam_policy_document.glue_connect20_crawler_logs.json
+}
+
 # ---------------------------------------------------------------------------
 # Glue security configuration — satisfies CKV_AWS_195
 # CloudWatch logs encrypted with a dedicated KMS key; S3 uses SSE-S3
