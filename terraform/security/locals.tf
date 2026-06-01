@@ -106,6 +106,19 @@ locals {
         ]
         Resource = ["*"]
       },
+      # Direct S3 access to the raw bucket is required because Glue crawler-created
+      # tables inherit IAM_ALLOWED_PRINCIPALS:ALL from the LF default settings,
+      # making them IAM-governed. LF does not vend credentials for IAM-governed
+      # tables, so Athena falls back to the querying role's direct IAM S3 permissions.
+      {
+        Sid    = "ReadRawBucket"
+        Effect = "Allow"
+        Action = ["s3:GetObject", "s3:ListBucket"]
+        Resource = [
+          "arn:aws:s3:::escr20-landing-zone-raw-${var.environment}/*",
+          "arn:aws:s3:::escr20-landing-zone-raw-${var.environment}",
+        ]
+      },
     ]
   })
 
