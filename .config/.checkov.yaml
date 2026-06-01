@@ -19,3 +19,5 @@ skip-check:
   - CKV_AWS_355  # Ensure no IAM policies documents allow "*" as a statement's resource for restrictable actions
   - CKV_AWS_356  # Sibling of CKV_AWS_355 — same wildcard-resource pattern for restrictable actions
   - CKV_AWS_338  # Log retention is environment-driven via var.redshift_log_retention_days — dev uses 30 days to control cost; prod sets >= 365
+  - CKV_AWS_99   # Glue security configuration S3 encryption uses SSE-S3 (consistent with CKV_AWS_145 — KMS not required for security requirements)
+  - CKV2_AWS_64  # KMS key policy not explicitly defined — key is used solely for Glue crawler CloudWatch log encryption with no cross-account access

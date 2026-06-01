@@ -10,7 +10,7 @@ buckets = {
   raw = {
     name               = "escr20-landing-zone-raw"
     layer              = "raw"
-    transition_ia      = 90
+    transition_ia      = 100
     transition_glacier = 365
     expiration_days    = 2555
   }
