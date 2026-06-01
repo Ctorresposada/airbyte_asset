@@ -47,6 +47,12 @@ variable "redshift_admin_username" {
   default     = "admin"
 }
 
+variable "dbt_redshift_user" {
+  description = "Redshift database user that dbt Core authenticates as via IAM-brokered credentials. Created with PASSWORD DISABLE so it is reachable only through redshift-serverless:GetCredentials (no static password). Granted USAGE+CREATE+ALL on the gold schema and USAGE+SELECT on the bronze/silver Spectrum schemas."
+  type        = string
+  default     = "dbt_service"
+}
+
 variable "redshift_base_capacity" {
   description = "Base RPU capacity for the workgroup. Minimum allowed by Redshift Serverless is 8."
   type        = number
