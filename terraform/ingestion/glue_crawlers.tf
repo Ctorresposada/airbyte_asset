@@ -6,10 +6,11 @@
 resource "aws_glue_crawler" "connect20" {
   count = var.create ? 1 : 0
 
-  name          = "${local.name}-connect20-crawler"
-  role          = aws_iam_role.glue_connect20_crawler[0].arn
-  database_name = aws_glue_catalog_database.databases["bronze"].name
-  schedule      = var.glue_connect20_crawler_schedule
+  name                   = "${local.name}-connect20-crawler"
+  role                   = aws_iam_role.glue_connect20_crawler[0].arn
+  database_name          = aws_glue_catalog_database.databases["raw"].name
+  schedule               = var.glue_connect20_crawler_schedule
+  security_configuration = aws_glue_security_configuration.connect20_crawler[0].name
 
   s3_target {
     path = "s3://${aws_s3_bucket.buckets["raw"].id}/connect20/"
@@ -38,13 +39,14 @@ resource "aws_glue_crawler" "connect20" {
     Name        = "${local.name}-connect20"
     Environment = var.environment
     Source      = "connect20"
-    Layer       = "bronze"
+    Layer       = "raw"
   })
 
   depends_on = [
     aws_iam_role_policy_attachment.glue_connect20_crawler_service,
     aws_iam_role_policy.glue_connect20_crawler_s3,
     aws_lakeformation_permissions.glue_connect20_crawler_bronze_db,
+    aws_glue_security_configuration.connect20_crawler,
   ]
 }
 
@@ -103,4 +105,50 @@ resource "aws_iam_role_policy" "glue_connect20_crawler_s3" {
   name   = "connect20-s3-read"
   role   = aws_iam_role.glue_connect20_crawler[0].id
   policy = data.aws_iam_policy_document.glue_connect20_crawler_s3.json
+}
+
+# ---------------------------------------------------------------------------
+# Glue security configuration — satisfies CKV_AWS_195
+# CloudWatch logs encrypted with a dedicated KMS key; S3 uses SSE-S3
+# (consistent with the rest of the stack).
+# ---------------------------------------------------------------------------
+resource "aws_kms_key" "glue_connect20_crawler" {
+  count = var.create ? 1 : 0
+
+  description             = "KMS key for Connect20 Glue crawler CloudWatch log encryption"
+  deletion_window_in_days = 7
+  enable_key_rotation     = true
+
+  tags = merge(var.tags, {
+    Name        = "${local.name}-glue-connect20-crawler"
+    Environment = var.environment
+  })
+}
+
+resource "aws_kms_alias" "glue_connect20_crawler" {
+  count = var.create ? 1 : 0
+
+  name          = "alias/${local.name}-glue-connect20-crawler"
+  target_key_id = aws_kms_key.glue_connect20_crawler[0].key_id
+}
+
+resource "aws_glue_security_configuration" "connect20_crawler" {
+  count = var.create ? 1 : 0
+
+  name = "${local.name}-connect20-crawler"
+
+  encryption_configuration {
+    cloudwatch_encryption {
+      cloudwatch_encryption_mode = "SSE-KMS"
+      kms_key_arn                = aws_kms_key.glue_connect20_crawler[0].arn
+    }
+
+    job_bookmarks_encryption {
+      job_bookmarks_encryption_mode = "DISABLED"
+    }
+
+    s3_encryption {
+      s3_encryption_mode = "SSE-S3"
+    }
+  }
 }
