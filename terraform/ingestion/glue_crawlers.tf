@@ -112,12 +112,47 @@ resource "aws_iam_role_policy" "glue_connect20_crawler_s3" {
 # CloudWatch logs encrypted with a dedicated KMS key; S3 uses SSE-S3
 # (consistent with the rest of the stack).
 # ---------------------------------------------------------------------------
+data "aws_iam_policy_document" "glue_connect20_crawler_kms" {
+  statement {
+    sid       = "EnableRootAccess"
+    actions   = ["kms:*"]
+    resources = ["*"]
+    principals {
+      type        = "AWS"
+      identifiers = ["arn:aws:iam::${var.account_id}:root"]
+    }
+  }
+
+  # CloudWatch Logs must be explicitly allowed to use the key for log group encryption.
+  statement {
+    sid = "AllowCloudWatchLogs"
+    actions = [
+      "kms:Encrypt*",
+      "kms:Decrypt*",
+      "kms:ReEncrypt*",
+      "kms:GenerateDataKey*",
+      "kms:Describe*",
+    ]
+    resources = ["*"]
+    principals {
+      type        = "Service"
+      identifiers = ["logs.${var.aws_region}.amazonaws.com"]
+    }
+    condition {
+      test     = "ArnLike"
+      variable = "kms:EncryptionContext:aws:logs:arn"
+      values   = ["arn:aws:logs:${var.aws_region}:${var.account_id}:*"]
+    }
+  }
+}
+
 resource "aws_kms_key" "glue_connect20_crawler" {
   count = var.create ? 1 : 0
 
   description             = "KMS key for Connect20 Glue crawler CloudWatch log encryption"
   deletion_window_in_days = 7
   enable_key_rotation     = true
+  policy                  = data.aws_iam_policy_document.glue_connect20_crawler_kms.json
 
   tags = merge(var.tags, {
     Name        = "${local.name}-glue-connect20-crawler"
