@@ -103,19 +103,20 @@ locals {
           "glue:DeleteTable",
           "glue:BatchCreatePartition",
           "glue:BatchDeletePartition",
+          "s3:*"
         ]
         Resource = ["*"]
       },
       # Allowing DE role to Direct S3 access to the raw files in raw bucket using Athena
-      {
-        Sid    = "ReadRawBucket"
-        Effect = "Allow"
-        Action = ["s3:GetObject", "s3:ListBucket"]
-        Resource = [
-          "arn:aws:s3:::escr20-landing-zone-raw-${var.environment}/*",
-          "arn:aws:s3:::escr20-landing-zone-raw-${var.environment}",
-        ]
-      },
+      # {
+      #   Sid    = "ReadRawBucket"
+      #   Effect = "Allow"
+      #   Action = ["s3:GetObject", "s3:ListBucket"]
+      #   Resource = [
+      #     "arn:aws:s3:::escr20-landing-zone-raw-${var.environment}/*",
+      #     "arn:aws:s3:::escr20-landing-zone-raw-${var.environment}",
+      #   ]
+      # },
     ]
   })
 
