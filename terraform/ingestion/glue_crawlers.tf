@@ -112,6 +112,8 @@ resource "aws_iam_role_policy" "glue_connect20_crawler_s3" {
 # CloudWatch logs encrypted with a dedicated KMS key; S3 uses SSE-S3
 # (consistent with the rest of the stack).
 # ---------------------------------------------------------------------------
+#checkov:skip=CKV_AWS_109: Resource:* in a KMS key policy refers to the key itself — this is the AWS-recommended root-access pattern for key management
+#checkov:skip=CKV_AWS_111: Same as above — kms:* on Resource:* is standard for KMS key policies and does not grant unconstrained write access to other resources
 data "aws_iam_policy_document" "glue_connect20_crawler_kms" {
   statement {
     sid       = "EnableRootAccess"
