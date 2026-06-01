@@ -1,9 +1,10 @@
-create       = true
-environment  = "dev"
-aws_region   = "us-east-1"
-team         = "devops"
-company_name = "region-20"
-account_id   = "784590287037"
+create           = true
+environment      = "dev"
+aws_region       = "us-east-1"
+team             = "devops"
+company_name     = "region-20"
+account_id       = "784590287037"
+oci_bastion_host = "129.146.105.89/32"
 #All Buckets Configuration in DEV
 buckets = {
   raw = {

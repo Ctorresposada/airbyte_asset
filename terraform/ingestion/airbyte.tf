@@ -200,3 +200,16 @@ resource "aws_vpc_security_group_ingress_rule" "airbyte_instance_from_vpn_ui" {
 
   tags = var.tags
 }
+
+resource "aws_vpc_security_group_egress_rule" "airbyte_instance_to_oci" {
+  count = var.create ? 1 : 0
+
+  security_group_id = module.airbyte[0].instance_sg_id
+  description       = "Airbyte access to OCI bastion"
+  from_port         = 22
+  to_port           = 22
+  ip_protocol       = "tcp"
+  cidr_ipv4         = var.oci_bastion_host
+
+  tags = var.tags
+}
