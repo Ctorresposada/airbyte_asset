@@ -45,7 +45,7 @@ resource "aws_glue_crawler" "connect20" {
   depends_on = [
     aws_iam_role_policy_attachment.glue_connect20_crawler_service,
     aws_iam_role_policy.glue_connect20_crawler_s3,
-    aws_lakeformation_permissions.glue_connect20_crawler_bronze_db,
+    aws_lakeformation_permissions.glue_connect20_crawler_raw_db,
     aws_glue_security_configuration.connect20_crawler,
   ]
 }

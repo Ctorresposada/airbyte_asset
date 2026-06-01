@@ -101,6 +101,25 @@ resource "aws_lakeformation_permissions" "airbyte_bronze_database" {
 }
 
 # ---------------------------------------------------------------------------
+# Connect20 crawler LF grant: allows the crawler role to create and update
+# tables in the raw Glue database.
+# ---------------------------------------------------------------------------
+resource "aws_lakeformation_permissions" "glue_connect20_crawler_raw_db" {
+  count = var.create ? 1 : 0
+
+  principal = aws_iam_role.glue_connect20_crawler[0].arn
+
+  database {
+    name = aws_glue_catalog_database.databases["raw"].name
+  }
+
+  permissions                   = ["CREATE_TABLE", "ALTER", "DESCRIBE"]
+  permissions_with_grant_option = []
+
+  depends_on = [aws_lakeformation_data_lake_settings.this]
+}
+
+# ---------------------------------------------------------------------------
 # Data Engineer LF grants: DESCRIBE on databases, SELECT/DESCRIBE (+ DROP in
 # dev) on all tables in bronze and silver.
 # Table-level permissions are driven by lakeformation_de_table_permissions so
