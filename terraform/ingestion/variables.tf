@@ -137,4 +137,3 @@ variable "lakeformation_de_table_permissions" {
   type        = list(string)
   default     = ["SELECT", "DESCRIBE"]
 }
-
