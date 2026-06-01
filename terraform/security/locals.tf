@@ -106,10 +106,7 @@ locals {
         ]
         Resource = ["*"]
       },
-      # Direct S3 access to the raw bucket is required because Glue crawler-created
-      # tables inherit IAM_ALLOWED_PRINCIPALS:ALL from the LF default settings,
-      # making them IAM-governed. LF does not vend credentials for IAM-governed
-      # tables, so Athena falls back to the querying role's direct IAM S3 permissions.
+      # Allowing DE role to Direct S3 access to the raw files in raw bucket using Athena
       {
         Sid    = "ReadRawBucket"
         Effect = "Allow"
