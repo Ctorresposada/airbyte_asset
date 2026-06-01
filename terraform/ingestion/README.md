@@ -27,10 +27,14 @@ This stack provisions the AWS infrastructure for the Region 20 Data Lake ingesti
 | Name | Type |
 | ---- | ---- |
 | [aws_glue_catalog_database.databases](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/glue_catalog_database) | resource |
+| [aws_glue_crawler.connect20](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/glue_crawler) | resource |
 | [aws_iam_access_key.airbyte](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_access_key) | resource |
 | [aws_iam_policy.airbyte](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_policy) | resource |
 | [aws_iam_policy.airbyte_instance_s3_bronze](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_policy) | resource |
+| [aws_iam_role.glue_connect20_crawler](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role) | resource |
+| [aws_iam_role_policy.glue_connect20_crawler_s3](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy) | resource |
 | [aws_iam_role_policy_attachment.airbyte_instance_s3_bronze](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy_attachment) | resource |
+| [aws_iam_role_policy_attachment.glue_connect20_crawler_service](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy_attachment) | resource |
 | [aws_iam_user.airbyte](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_user) | resource |
 | [aws_iam_user_policy_attachment.airbyte](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_user_policy_attachment) | resource |
 | [aws_kms_alias.airbyte](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/kms_alias) | resource |
@@ -60,9 +64,12 @@ This stack provisions the AWS infrastructure for the Region 20 Data Lake ingesti
 | [aws_secretsmanager_secret_policy.airbyte_google_drive_credentials](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/secretsmanager_secret_policy) | resource |
 | [aws_secretsmanager_secret_policy.airbyte_oracle_credentials](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/secretsmanager_secret_policy) | resource |
 | [aws_secretsmanager_secret_version.airbyte_credentials](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/secretsmanager_secret_version) | resource |
+| [aws_vpc_security_group_egress_rule.airbyte_instance_to_oci](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/vpc_security_group_egress_rule) | resource |
 | [aws_vpc_security_group_ingress_rule.airbyte_instance_from_vpn_ui](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/vpc_security_group_ingress_rule) | resource |
 | [aws_caller_identity.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/caller_identity) | data source |
 | [aws_iam_policy_document.airbyte_kms](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
+| [aws_iam_policy_document.glue_connect20_crawler_s3](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
+| [aws_iam_policy_document.glue_crawler_assume_role](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
 | [aws_iam_policy_document.raw_bucket_ascender_crr](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
 | [aws_iam_policy_document.raw_bucket_connect20_delivery](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
 | [aws_iam_policy_document.raw_bucket_policy](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
@@ -90,12 +97,14 @@ This stack provisions the AWS infrastructure for the Region 20 Data Lake ingesti
 | <a name="input_company_name"></a> [company\_name](#input\_company\_name) | Company name prefix used in resource names and to look up shared networking resources by tag. | `string` | n/a | yes |
 | <a name="input_create"></a> [create](#input\_create) | Whether this stack should provision its resources. Set to false to soft-delete everything the stack manages while preserving state and code. | `bool` | `true` | no |
 | <a name="input_environment"></a> [environment](#input\_environment) | Target deployment environment | `string` | n/a | yes |
+| <a name="input_glue_connect20_crawler_schedule"></a> [glue\_connect20\_crawler\_schedule](#input\_glue\_connect20\_crawler\_schedule) | AWS cron expression for the Connect20 Glue crawler nightly run (cron(0 3 * * ? *) -  9 PM CST) - 3 AM UTC). Set to null to disable scheduled runs. | `string` | `"cron(0 3 * * ? *)"` | no |
 | <a name="input_glue_databases"></a> [glue\_databases](#input\_glue\_databases) | Map of Glue catalog databases to manage | <pre>map(object({<br/>    name        = string<br/>    description = string<br/>  }))</pre> | n/a | yes |
 | <a name="input_lakeformation_admin_arns"></a> [lakeformation\_admin\_arns](#input\_lakeformation\_admin\_arns) | Additional IAM principal ARNs (roles or users) to grant Lake Formation admin rights beyond the Terraform execution role. Useful for granting data platform team members LF admin access. | `list(string)` | `[]` | no |
 | <a name="input_lakeformation_de_database_permissions"></a> [lakeformation\_de\_database\_permissions](#input\_lakeformation\_de\_database\_permissions) | Lake Formation database-level permissions granted to the Data Engineer role on bronze and silver. Defaults to DESCRIBE only. Add DROP in dev to allow cleanup of test databases — remove before replicating to stg/prod. | `list(string)` | <pre>[<br/>  "DESCRIBE"<br/>]</pre> | no |
 | <a name="input_lakeformation_de_role_arns"></a> [lakeformation\_de\_role\_arns](#input\_lakeformation\_de\_role\_arns) | ARNs of Data Engineer SSO roles to grant Lake Formation data permissions on bronze and silver databases. Permissions at the table level are controlled by lakeformation\_de\_table\_permissions. | `list(string)` | `[]` | no |
 | <a name="input_lakeformation_de_table_permissions"></a> [lakeformation\_de\_table\_permissions](#input\_lakeformation\_de\_table\_permissions) | Lake Formation table-level permissions granted to the Data Engineer role on bronze and silver. Defaults to read-only. Add DROP in dev to allow cleanup of test tables — remove before replicating to stg/prod. | `list(string)` | <pre>[<br/>  "SELECT",<br/>  "DESCRIBE"<br/>]</pre> | no |
 | <a name="input_lakeformation_terraform_role_name"></a> [lakeformation\_terraform\_role\_name](#input\_lakeformation\_terraform\_role\_name) | Name of the IAM role used by Terraform to manage this stack. Registered as a Lake Formation admin so Terraform retains the ability to manage LF resources after location registration. | `string` | `"region-20-terraform-execution-role"` | no |
+| <a name="input_oci_bastion_host"></a> [oci\_bastion\_host](#input\_oci\_bastion\_host) | OCI bastion host to forward traffic to the Oracle DB | `string` | n/a | yes |
 | <a name="input_tags"></a> [tags](#input\_tags) | Common tags to apply to all resources required | `map(string)` | `{}` | no |
 | <a name="input_team"></a> [team](#input\_team) | Team that manages this project | `string` | n/a | yes |
 | <a name="input_vpn_available"></a> [vpn\_available](#input\_vpn\_available) | Whether the Client VPN endpoint and its security group are deployed in this environment. When false, no direct ingress rules are added to the Airbyte instance SG from the VPN. Set to false in environments where the VPN has not yet been provisioned. | `bool` | `false` | no |
