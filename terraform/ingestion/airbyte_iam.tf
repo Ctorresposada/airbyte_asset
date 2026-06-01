@@ -87,3 +87,49 @@ resource "aws_iam_user_policy_attachment" "airbyte" {
   user       = aws_iam_user.airbyte.name
   policy_arn = aws_iam_policy.airbyte.arn
 }
+
+# ---------------------------------------------------------------------------
+# IAM Policy: S3 permissions on the bronze bucket for the Airbyte EC2 instance role
+# ---------------------------------------------------------------------------
+resource "aws_iam_policy" "airbyte_instance_s3_bronze" {
+  count = var.create ? 1 : 0
+
+  name        = "${local.name}-airbyte-instance-s3-bronze"
+  description = "S3 permissions for Airbyte EC2 instance on the bronze bucket"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "S3BronzeBucketInstanceAccess"
+        Effect = "Allow"
+        Action = [
+          "s3:PutObject",
+          "s3:GetObject",
+          "s3:DeleteObject",
+          "s3:PutObjectAcl",
+          "s3:ListBucket",
+          "s3:ListBucketMultipartUploads",
+          "s3:AbortMultipartUpload",
+          "s3:GetBucketLocation"
+        ]
+        Resource = [
+          aws_s3_bucket.buckets["bronze"].arn,
+          "${aws_s3_bucket.buckets["bronze"].arn}/*"
+        ]
+      }
+    ]
+  })
+
+  tags = merge(var.tags, { Name = "${local.name}-airbyte-instance-s3-bronze" })
+}
+
+# ---------------------------------------------------------------------------
+# Role Policy Attachment: bind the bronze S3 policy to the Airbyte EC2 instance role
+# ---------------------------------------------------------------------------
+resource "aws_iam_role_policy_attachment" "airbyte_instance_s3_bronze" {
+  count = var.create ? 1 : 0
+
+  role       = module.airbyte[0].instance_role_name
+  policy_arn = aws_iam_policy.airbyte_instance_s3_bronze[0].arn
+}

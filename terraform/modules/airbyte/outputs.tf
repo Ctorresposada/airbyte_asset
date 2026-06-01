@@ -22,6 +22,11 @@ output "instance_role_arn" {
   value       = try(aws_iam_role.this[0].arn, null)
 }
 
+output "instance_role_name" {
+  description = "Name of the IAM role attached to the Airbyte EC2 instance profile. Use this to attach additional policies at the stack level."
+  value       = try(aws_iam_role.this[0].name, null)
+}
+
 output "instance_sg_id" {
   description = "ID of the security group attached to the Airbyte EC2 instance."
   value       = try(aws_security_group.instance[0].id, null)
@@ -50,6 +55,11 @@ output "rds_secret_arn" {
 output "rds_sg_id" {
   description = "Security group ID of the RDS instance. Null when create = false."
   value       = try(aws_security_group.rds[0].id, null)
+}
+
+output "airbyte_admin_secret_arn" {
+  description = "ARN of the Secrets Manager secret containing the Airbyte web UI admin credentials (username, password). Populated at instance boot by user-data. Null when create = false."
+  value       = try(aws_secretsmanager_secret.airbyte_admin[0].arn, null)
 }
 
 output "s3_bucket_name" {

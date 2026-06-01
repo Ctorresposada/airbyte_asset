@@ -1,9 +1,10 @@
-create       = true
-environment  = "dev"
-aws_region   = "us-east-1"
-team         = "devops"
-company_name = "region-20"
-account_id   = "784590287037"
+create           = true
+environment      = "dev"
+aws_region       = "us-east-1"
+team             = "devops"
+company_name     = "region-20"
+account_id       = "784590287037"
+oci_bastion_host = "129.146.105.89/32"
 #All Buckets Configuration in DEV
 buckets = {
   raw = {
@@ -69,3 +70,13 @@ vpn_available                   = true
 # TECH DEBT: Analyst and Auditor SSO permission sets do not exist in Identity Center yet
 # (confirmed via aws iam list-roles --path-prefix /aws-reserved/sso.amazonaws.com/ on 2026-05-25).
 lakeformation_admin_arns = []
+
+# DE role: ARN without region segment (SSO reserved role path).
+lakeformation_de_role_arns = [
+  "arn:aws:iam::784590287037:role/aws-reserved/sso.amazonaws.com/AWSReservedSSO_DataEngineer_Dev_cd1bbeb9335fcaa8",
+]
+
+# DEV ONLY — DROP allows the team to clean up test databases and tables during development.
+# Remove DROP from both variables (keep DESCRIBE / SELECT + DESCRIBE only) when adding stg/prod tfvars.
+lakeformation_de_database_permissions = ["DESCRIBE", "DROP"]
+lakeformation_de_table_permissions    = ["SELECT", "DESCRIBE", "DROP"]

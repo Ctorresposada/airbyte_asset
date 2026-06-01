@@ -37,6 +37,14 @@ data "aws_iam_policy_document" "redshift_serverless" {
 
     resources = ["*"]
   }
+
+  statement {
+    sid    = "LakeFormationGetDataAccess"
+    effect = "Allow"
+
+    actions   = ["lakeformation:GetDataAccess"]
+    resources = ["*"]
+  }
 }
 
 resource "aws_iam_role" "redshift_serverless" {
