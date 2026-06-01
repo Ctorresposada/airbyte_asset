@@ -44,3 +44,4 @@ terraform.rc
 __pycache__/
 *.pyc
 
+logs/
