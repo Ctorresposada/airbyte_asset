@@ -14,6 +14,10 @@ resource "aws_security_group" "redshift" {
     cidr_blocks = [data.aws_vpc.this[0].cidr_block]
   }
 
+  tags = merge(var.tags, {
+    Name = "${local.name}-redshift"
+  })
+
   lifecycle {
     create_before_destroy = true
   }
