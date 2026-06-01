@@ -142,4 +142,3 @@ variable "oci_bastion_host" {
   type        = string
   description = "OCI bastion host to forward traffic to the Oracle DB"
 }
-
