@@ -11,6 +11,7 @@ resource "aws_glue_crawler" "connect20" {
   database_name          = aws_glue_catalog_database.databases["raw"].name
   schedule               = var.glue_connect20_crawler_schedule
   security_configuration = aws_glue_security_configuration.connect20_crawler[0].name
+  table_prefix           = "connect20_"
 
   s3_target {
     path = "s3://${aws_s3_bucket.buckets["raw"].id}/connect20/"
