@@ -104,6 +104,7 @@ locals {
           "glue:DeleteTable",
           "glue:BatchCreatePartition",
           "glue:BatchDeletePartition",
+          "cloudshell:*",
           # Lambda (TEA Google Drive sync)
           "lambda:CreateFunction",
           "lambda:UpdateFunctionCode",
