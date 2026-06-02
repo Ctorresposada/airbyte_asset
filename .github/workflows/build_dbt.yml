@@ -61,12 +61,20 @@ jobs:
     if: github.event_name == 'pull_request' && github.event.pull_request.draft == false
 
     steps:
+      - name: Configure AWS credentials (service account)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: GitHubActions-dbt-deploy-dev-svc-${{ github.run_id }}
+
       - name: Configure AWS credentials (DEV account)
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ vars.AWS_ROLE_ARN_DEV }}
           aws-region: ${{ env.AWS_REGION }}
           role-session-name: GitHubActions-dbt-deploy-dev-${{ github.run_id }}
+          role-chaining: true
 
       - name: Register new DEV task definition revision
         env:
@@ -100,12 +108,20 @@ jobs:
 
     steps:
       # Step 1: Read the current image tag from the DEV task definition.
+      - name: Configure AWS credentials (service account)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: GitHubActions-dbt-promote-dev-svc-${{ github.run_id }}
+
       - name: Configure AWS credentials (DEV account)
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ vars.AWS_ROLE_ARN_DEV }}
           aws-region: ${{ env.AWS_REGION }}
           role-session-name: GitHubActions-dbt-promote-dev-${{ github.run_id }}
+          role-chaining: true
 
       - name: Get current DEV image tag
         id: dev-image
@@ -170,6 +186,7 @@ jobs:
           role-to-assume: ${{ vars.AWS_ROLE_ARN_PROD }}
           aws-region: ${{ env.AWS_REGION }}
           role-session-name: GitHubActions-dbt-deploy-prod-${{ github.run_id }}
+          role-chaining: true
 
       - name: Register new PROD task definition revision
         env:

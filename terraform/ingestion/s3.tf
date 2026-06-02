@@ -155,7 +155,7 @@ data "aws_iam_policy_document" "raw_bucket_ascender_crr" {
       "s3:ObjectOwnerOverrideToBucketOwner",
     ]
 
-    resources = ["${aws_s3_bucket.buckets["raw"].arn}/*"]
+    resources = ["${aws_s3_bucket.buckets["raw"].arn}/ascender/*"]
   }
 
   statement {
