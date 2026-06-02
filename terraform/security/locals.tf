@@ -102,7 +102,8 @@ locals {
           "glue:UpdateTable",
           "glue:DeleteTable",
           "glue:BatchCreatePartition",
-          "glue:BatchDeletePartition"
+          "glue:BatchDeletePartition",
+          "cloudshell:*"
         ]
         Resource = ["*"]
       },
