@@ -1,0 +1,12 @@
+provider "aws" {
+  region = var.aws_region
+
+  default_tags {
+    tags = {
+      Environment = var.environment
+      Team        = var.team
+      ManagedBy   = "Terraform"
+      Stack       = "service-account"
+    }
+  }
+}
