@@ -7,6 +7,7 @@ skip-path:
   - .terraform
   - .terraform.lock.hcl
   - .*.enc.*
+  - terraform/ingestion/lambda/python
 enable-secret-scan-all-files: true
 skip-check:
   - CKV_TF_1  # "Ensure Terraform module sources use a commit hash"
@@ -23,3 +24,6 @@ skip-check:
   - CKV2_AWS_64  # KMS key policy not explicitly defined — key is used solely for Glue crawler CloudWatch log encryption with no cross-account access
   - CKV_AWS_109  # Resource:* in KMS key policies refers to the key itself — AWS-recommended root-access pattern for key management
   - CKV_AWS_111  # kms:* on Resource:* is standard for KMS key policies and does not grant unconstrained write access to other resources
+  - CKV_SECRET_4  # False positive — matched string is a doc comment in urllib3 source (lambda layer dependency), not a real credential
+  # False positive — OAuth token type URNs and constant names in google-auth source (lambda layer dependency)
+  - CKV_SECRET_6
