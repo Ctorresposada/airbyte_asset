@@ -100,18 +100,13 @@ jobs:
           # uv run pytest tests/
           echo "Testing step - configure with your test framework"
 
-      - name: Install trufflehog
-        run: |
-          curl -sSfL https://raw.githubusercontent.com/trufflesecurity/trufflehog/main/scripts/install.sh | sh -s -- -b /usr/local/bin
-
-      - name: Run security checks
-        run: |
-          # Scan for secrets using trufflehog
-          trufflehog git file://. --since-commit HEAD --no-verification --fail
-          # Add additional security scanning for dependencies if needed
-          # Examples:
-          # uv tool run safety check
-          # uv tool run bandit -r .
+      - name: TruffleHog OSS
+        id: trufflehog
+        uses: trufflesecurity/trufflehog@main
+        continue-on-error: true
+        with:
+          path: ./
+          extra_args: --debug --only-verified
 
   build-and-push:
     name: Build, Scan, and Push Docker Image

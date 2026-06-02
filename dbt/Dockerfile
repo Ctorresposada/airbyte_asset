@@ -10,7 +10,7 @@ LABEL org.opencontainers.image.created="${BUILD_DATE}" \
       org.opencontainers.image.version="${VERSION}" \
       org.opencontainers.image.revision="${REVISION}" \
       org.opencontainers.image.title="region-20-dbt-core" \
-      org.opencontainers.image.description="dbt-core transformation layer for Region 20 ESC"
+      org.opencontainers.image.description="dbt-core transformation layer ELT for Region 20 ESC"
 
 COPY --from=ghcr.io/astral-sh/uv:0.9.27 /uv /bin/uv
 

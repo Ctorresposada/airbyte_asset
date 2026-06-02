@@ -52,7 +52,7 @@ variable "ecr_repository_arn" {
 variable "enable_dbt_task" {
   description = "Whether to enable the dbt Core ECS task definition"
   type        = bool
-  default     = false
+  default     = true
 }
 
 variable "dbt_task_cpu" {

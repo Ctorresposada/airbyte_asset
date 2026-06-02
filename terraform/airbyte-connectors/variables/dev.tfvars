@@ -1,5 +1,5 @@
 create                   = true
-create_oracle_connection = false
+create_oracle_connection = true
 environment              = "dev"
 aws_region               = "us-east-1"
 team                     = "devops"
@@ -8,7 +8,7 @@ account_id               = "784590287037"
 
 # Airbyte API endpoint. Replace with the actual private hostname or IP of the
 # Airbyte EC2 instance reachable through the Client VPN.
-airbyte_hostname     = "172.17.61.111:8000"
+airbyte_hostname     = "172.17.55.75:8000"
 airbyte_workspace_id = "86c8759b-5b64-49f5-bb00-abaf1af53936"
 
 # Destination
