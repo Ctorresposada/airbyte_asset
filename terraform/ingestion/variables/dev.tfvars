@@ -80,3 +80,15 @@ lakeformation_de_role_arns = [
 # Remove DROP from both variables (keep DESCRIBE / SELECT + DESCRIBE only) when adding stg/prod tfvars.
 lakeformation_de_database_permissions = ["DESCRIBE", "DROP"]
 lakeformation_de_table_permissions    = ["SELECT", "DESCRIBE", "DROP"]
+
+# ---------------------------------------------------------------------------
+# Google Drive → S3 raw sync (Lambda)
+# ---------------------------------------------------------------------------
+# gdrive_tea_folder_id: already known — hardcoded in gdrive_to_s3.py as default
+gdrive_tea_folder_id = "0AC5xbBuRiUvXUk9PVA"
+
+gdrive_sync_enabled            = true
+gdrive_sync_schedule           = "cron(0 2 * * ? *)" # daily 02:00 UTC
+gdrive_sync_timeout            = 900
+gdrive_sync_memory             = 512
+gdrive_sync_log_retention_days = 30

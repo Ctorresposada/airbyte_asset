@@ -148,3 +148,41 @@ variable "glue_connect20_crawler_schedule" {
   type        = string
   default     = "cron(0 3 * * ? *)"
 }
+
+# ---------------------------------------------------------------------------
+# Google Drive → S3 raw sync (Lambda)
+# ---------------------------------------------------------------------------
+variable "gdrive_sync_enabled" {
+  description = "Whether to create the EventBridge Scheduler rule that triggers the gdrive sync Lambda. Set to false to deploy the function without scheduling (useful for manual testing)."
+  type        = bool
+  default     = true
+}
+
+variable "gdrive_tea_folder_id" {
+  description = "Google Drive folder ID for the TEA source folder. Found in the Drive URL: drive.google.com/drive/folders/<FOLDER_ID>."
+  type        = string
+}
+
+variable "gdrive_sync_schedule" {
+  description = "EventBridge Scheduler cron expression for the gdrive sync Lambda. Default is daily at 02:00 UTC."
+  type        = string
+  default     = "cron(0 2 * * ? *)"
+}
+
+variable "gdrive_sync_timeout" {
+  description = "Lambda timeout in seconds for the gdrive sync function. Max 900 (15 min). Increase if the TEA folder has many large files."
+  type        = number
+  default     = 900
+}
+
+variable "gdrive_sync_memory" {
+  description = "Lambda memory in MB for the gdrive sync function. Higher memory also increases CPU and network bandwidth."
+  type        = number
+  default     = 512
+}
+
+variable "gdrive_sync_log_retention_days" {
+  description = "CloudWatch log retention in days for the gdrive sync Lambda log group."
+  type        = number
+  default     = 30
+}

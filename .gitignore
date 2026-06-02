@@ -44,4 +44,7 @@ terraform.rc
 __pycache__/
 *.pyc
 
+# Lambda layer build artifacts — only the zip is committed, not the unpacked packages
+terraform/ingestion/lambda/python/
+
 logs/
