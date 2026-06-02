@@ -44,13 +44,12 @@ resource "aws_ecs_cluster_capacity_providers" "this" {
 }
 
 # ---------------------------------------------------------------------------
-# Task definition — single dbt Core container. Terraform creates the initial
-# revision with a static placeholder image; the dbt build pipeline takes over
-# from there, registering new revisions with immutable build tags via AWS CLI.
-# container_definitions is ignored on subsequent applies (see lifecycle block).
-# dbt reads source data from S3/Glue via Redshift Spectrum external schemas and
-# never connects to Redshift directly, so the only environment the container
-# needs is the S3 artifacts bucket and the AWS region.
+# Task definition — single dbt Core container. The image tag is resolved from the
+# live task definition at plan time (see local.dbt_image), so CI-managed build tags
+# registered out-of-band via AWS CLI are never overwritten by Terraform, while env
+# var and other container changes still apply normally.
+# dbt uses the Athena adapter to run transformations on S3 data, so the container
+# needs the artifacts, Athena results, and silver buckets plus the AWS region.
 # ---------------------------------------------------------------------------
 resource "aws_ecs_task_definition" "dbt_core" {
   count = var.create && var.enable_dbt_task ? 1 : 0
@@ -66,14 +65,17 @@ resource "aws_ecs_task_definition" "dbt_core" {
   container_definitions = jsonencode([
     {
       name      = "dbt-core"
-      image     = "${var.ecr_repository_url}:initial"
+      image     = local.dbt_image
       essential = true
 
-      # All non-secret. dbt reads source data from S3/Glue via Redshift Spectrum
-      # external schemas, so only the artifacts bucket and region are needed.
+      # All non-secret. dbt uses the Athena adapter: it writes query results to the
+      # Athena results bucket and reads silver-layer source data from the silver
+      # bucket, alongside its own artifacts bucket and the AWS region.
       environment = [
         { name = "DBT_ARTIFACTS_BUCKET", value = aws_s3_bucket.dbt_artifacts[0].id },
         { name = "AWS_REGION", value = var.aws_region },
+        { name = "ATHENA_RESULTS_BUCKET", value = data.aws_s3_bucket.athena_results[0].id },
+        { name = "SILVER_BUCKET", value = data.aws_s3_bucket.silver[0].id },
       ]
 
       logConfiguration = {
@@ -90,8 +92,4 @@ resource "aws_ecs_task_definition" "dbt_core" {
   tags = merge(var.tags, {
     Name = "${local.name}-dbt-core"
   })
-
-  lifecycle {
-    ignore_changes = [container_definitions]
-  }
 }

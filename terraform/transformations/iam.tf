@@ -1,7 +1,7 @@
 # ---------------------------------------------------------------------------
 # ECS task execution role — used by the ECS agent to pull the image and write
-# the initial log stream. No Secrets Manager access: dbt reads only S3/Glue via
-# Redshift Spectrum external schemas, so there is no secret to inject at task launch.
+# the initial log stream. No Secrets Manager access needed — dbt uses the task
+# role for AWS service access, so there is no secret to inject at task launch.
 # ---------------------------------------------------------------------------
 resource "aws_iam_role" "dbt_execution" {
   count = var.create ? 1 : 0
@@ -59,10 +59,10 @@ resource "aws_iam_role_policy" "dbt_execution" {
 
 # ---------------------------------------------------------------------------
 # ECS task role — the identity the dbt container itself assumes at runtime.
-# Grants S3 artifact access, CloudWatch Logs writes, and KMS use for SSE-KMS on
-# the artifacts bucket. dbt reads source data from S3/Glue via Redshift Spectrum
-# external schemas and never connects to Redshift directly, so no Redshift IAM is
-# required.
+# Grants S3 access to the artifacts, Athena results, and silver buckets,
+# CloudWatch Logs writes, and KMS use for SSE-KMS on the artifacts bucket. dbt
+# uses the Athena adapter to transform S3 data and never connects to Redshift
+# directly, so no Redshift IAM is required.
 # ---------------------------------------------------------------------------
 resource "aws_iam_role" "dbt_task" {
   count = var.create ? 1 : 0
@@ -109,6 +109,54 @@ data "aws_iam_policy_document" "dbt_task" {
     ]
 
     resources = [aws_s3_bucket.dbt_artifacts[0].arn]
+  }
+
+  # Athena results bucket — dbt writes query results here via the Athena adapter.
+  statement {
+    sid    = "AthenaBucketObjects"
+    effect = "Allow"
+
+    actions = [
+      "s3:GetObject",
+      "s3:PutObject",
+      "s3:DeleteObject",
+    ]
+
+    resources = ["${data.aws_s3_bucket.athena_results[0].arn}/*"]
+  }
+
+  statement {
+    sid    = "AthenaBucket"
+    effect = "Allow"
+
+    actions = [
+      "s3:ListBucket",
+      "s3:GetBucketLocation",
+    ]
+
+    resources = [data.aws_s3_bucket.athena_results[0].arn]
+  }
+
+  # Silver bucket — read-only source data dbt transforms via the Athena adapter.
+  statement {
+    sid    = "SilverBucketObjects"
+    effect = "Allow"
+
+    actions = ["s3:GetObject"]
+
+    resources = ["${data.aws_s3_bucket.silver[0].arn}/*"]
+  }
+
+  statement {
+    sid    = "SilverBucket"
+    effect = "Allow"
+
+    actions = [
+      "s3:ListBucket",
+      "s3:GetBucketLocation",
+    ]
+
+    resources = [data.aws_s3_bucket.silver[0].arn]
   }
 
   statement {
