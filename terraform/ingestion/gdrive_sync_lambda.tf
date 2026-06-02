@@ -109,6 +109,4 @@ resource "aws_scheduler_schedule" "gdrive_sync" {
       maximum_event_age_in_seconds = 3600
     }
   }
-
-  tags = merge(var.tags, { Name = "${local.name}-gdrive-sync" })
 }
