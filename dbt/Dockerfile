@@ -14,6 +14,8 @@ LABEL org.opencontainers.image.created="${BUILD_DATE}" \
 
 COPY --from=ghcr.io/astral-sh/uv:0.9.27 /uv /bin/uv
 
+RUN apk add --no-cache git
+
 ENV DBT_PROFILES_DIR=/home/dbt/.dbt \
     DBT_SEND_ANONYMOUS_USAGE_STATS=false
 
