@@ -1,0 +1,14 @@
+.git/
+terraform/
+tasks/
+docs/
+**/*.md
+*.tfvars
+**/.terraform/
+**/__pycache__/
+**/*.pyc
+.env
+.env.*
+logs/
+**/*.swp
+**/*.swo

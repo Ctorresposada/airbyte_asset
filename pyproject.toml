@@ -13,6 +13,10 @@ dependencies = [
 dev = [
     "ruff>=0.15.2",
 ]
+dbt = [
+    "dbt-athena==1.10.1",
+    "dbt-redshift==1.10.1",
+]
 
 [tool.ruff]
 exclude = [
