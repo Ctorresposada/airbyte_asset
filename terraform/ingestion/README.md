@@ -8,14 +8,12 @@ This stack provisions the AWS infrastructure for the Region 20 Data Lake ingesti
 | Name | Version |
 | ---- | ------- |
 | <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.11.0 |
-| <a name="requirement_archive"></a> [archive](#requirement\_archive) | ~> 2.0 |
 | <a name="requirement_aws"></a> [aws](#requirement\_aws) | ~> 6.0 |
 
 ## Providers
 
 | Name | Version |
 | ---- | ------- |
-| <a name="provider_archive"></a> [archive](#provider\_archive) | ~> 2.0 |
 | <a name="provider_aws"></a> [aws](#provider\_aws) | 6.46.0 |
 
 ## Modules
@@ -89,7 +87,6 @@ This stack provisions the AWS infrastructure for the Region 20 Data Lake ingesti
 | [aws_ssm_parameter.gdrive_sync_cursor](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/ssm_parameter) | resource |
 | [aws_vpc_security_group_egress_rule.airbyte_instance_to_oci](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/vpc_security_group_egress_rule) | resource |
 | [aws_vpc_security_group_ingress_rule.airbyte_instance_from_vpn_ui](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/vpc_security_group_ingress_rule) | resource |
-| [archive_file.gdrive_sync_code](https://registry.terraform.io/providers/hashicorp/archive/latest/docs/data-sources/file) | data source |
 | [aws_caller_identity.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/caller_identity) | data source |
 | [aws_iam_policy_document.airbyte_kms](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
 | [aws_iam_policy_document.glue_connect20_crawler_kms](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |

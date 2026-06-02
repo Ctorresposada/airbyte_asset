@@ -23,18 +23,10 @@ resource "aws_lambda_layer_version" "gdrive_deps" {
 # ---------------------------------------------------------------------------
 # Lambda Function: gdrive_to_s3.py
 #
-# The function code lives at terraform/ingestion/lambda/gdrive_to_s3.py
-# (copy of the root-level script).  A separate zip is used so Terraform can
-# detect code changes via source_code_hash.
+# The function code is pre-zipped and committed at lambda/gdrive_sync_code.zip.
+# Rebuild when gdrive_to_s3.py changes:
+#   cd terraform/ingestion/lambda && zip gdrive_sync_code.zip gdrive_to_s3.py
 # ---------------------------------------------------------------------------
-data "archive_file" "gdrive_sync_code" {
-  count = var.create ? 1 : 0
-
-  type        = "zip"
-  source_file = "${path.module}/lambda/gdrive_to_s3.py"
-  output_path = "${path.module}/lambda/gdrive_sync_code.zip"
-}
-
 resource "aws_lambda_function" "gdrive_sync" {
   #checkov:skip=CKV_AWS_117: VPC not required — Lambda calls Google APIs and S3 via public endpoints
   #checkov:skip=CKV_AWS_50: X-Ray tracing optional for a scheduled batch job
@@ -46,8 +38,8 @@ resource "aws_lambda_function" "gdrive_sync" {
 
   function_name    = "${local.name}-gdrive-sync"
   description      = "Syncs TEA Google Drive folder to S3 raw landing zone (incremental)"
-  filename         = data.archive_file.gdrive_sync_code[0].output_path
-  source_code_hash = data.archive_file.gdrive_sync_code[0].output_base64sha256
+  filename         = "${path.module}/lambda/gdrive_sync_code.zip"
+  source_code_hash = filebase64sha256("${path.module}/lambda/gdrive_sync_code.zip")
   handler          = "gdrive_to_s3.lambda_handler"
   runtime          = "python3.12"
   timeout          = var.gdrive_sync_timeout
