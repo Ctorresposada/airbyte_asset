@@ -1,4 +1,5 @@
 locals {
+  # Last updated: gdrive sync lambda permissions added
   data_engineer_prod_inline_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
