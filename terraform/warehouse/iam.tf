@@ -56,7 +56,7 @@ resource "aws_iam_role" "redshift_serverless" {
     Version = "2012-10-17"
     Statement = [{
       Effect    = "Allow"
-      Principal = { Service = "redshift-serverless.amazonaws.com" }
+      Principal = { Service = ["redshift.amazonaws.com", "redshift-serverless.amazonaws.com"] }
       Action    = "sts:AssumeRole"
     }]
   })
