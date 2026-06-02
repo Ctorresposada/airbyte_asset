@@ -6,6 +6,9 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 6.0"
     }
+    # archive provider retained for state compatibility — was used in a previous
+    # partial apply and cannot be removed until the state is migrated or refreshed.
+    # tflint-ignore: terraform_unused_required_providers
     archive = {
       source  = "hashicorp/archive"
       version = "~> 2.0"
