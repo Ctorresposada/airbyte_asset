@@ -41,3 +41,14 @@ data "aws_ecs_task_definition" "dbt_core_current" {
   count           = var.create && var.enable_dbt_task ? 1 : 0
   task_definition = "${local.name}-dbt-core"
 }
+
+# Redshift Serverless SG owned by the warehouse stack — looked up here so the dbt
+# Core ECS ingress rule can target it without a cross-stack circular dependency.
+data "aws_security_group" "redshift" {
+  count = var.create ? 1 : 0
+
+  tags = {
+    Name = "${local.name}-redshift"
+  }
+}
+

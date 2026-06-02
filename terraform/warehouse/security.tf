@@ -114,5 +114,3 @@ resource "aws_vpc_security_group_egress_rule" "bastion_https_internet" {
   to_port           = 443
   cidr_ipv4         = "0.0.0.0/0"
 }
-
-

@@ -159,6 +159,90 @@ data "aws_iam_policy_document" "dbt_task" {
     resources = [data.aws_s3_bucket.silver[0].arn]
   }
 
+  # Athena adapter — required for dbt to execute and poll queries.
+  statement {
+    sid    = "AthenaWorkgroup"
+    effect = "Allow"
+
+    actions = [
+      "athena:StartQueryExecution",
+      "athena:GetQueryExecution",
+      "athena:GetQueryResults",
+      "athena:GetQueryResultsStream",
+      "athena:StopQueryExecution",
+      "athena:ListQueryExecutions",
+      "athena:GetWorkGroup",
+    ]
+
+    resources = [
+      "arn:aws:athena:${var.aws_region}:${var.account_id}:workgroup/primary",
+    ]
+  }
+
+  # Athena reads the Glue Data Catalog to resolve databases and table schemas.
+  statement {
+    sid    = "GlueCatalogRead"
+    effect = "Allow"
+
+    actions = [
+      "glue:GetDatabase",
+      "glue:GetDatabases",
+      "glue:GetTable",
+      "glue:GetTables",
+      "glue:GetPartition",
+      "glue:GetPartitions",
+      "glue:BatchGetPartition",
+    ]
+
+    resources = [
+      "arn:aws:glue:${var.aws_region}:${var.account_id}:catalog",
+      "arn:aws:glue:${var.aws_region}:${var.account_id}:database/*",
+      "arn:aws:glue:${var.aws_region}:${var.account_id}:table/*/*",
+    ]
+  }
+
+  # dbt creates and manages schemas (Glue databases) and models (Glue tables).
+  statement {
+    sid    = "GlueCatalogWrite"
+    effect = "Allow"
+
+    actions = [
+      "glue:CreateDatabase",
+      "glue:CreateTable",
+      "glue:UpdateTable",
+      "glue:DeleteTable",
+      "glue:BatchCreatePartition",
+      "glue:BatchDeletePartition",
+    ]
+
+    resources = [
+      "arn:aws:glue:${var.aws_region}:${var.account_id}:catalog",
+      "arn:aws:glue:${var.aws_region}:${var.account_id}:database/*",
+      "arn:aws:glue:${var.aws_region}:${var.account_id}:table/*/*",
+    ]
+  }
+
+  # Redshift Serverless — Data API and credential access for future direct dbt-redshift runs.
+  statement {
+    sid    = "RedshiftDataApi"
+    effect = "Allow"
+
+    actions = [
+      "redshift-data:ExecuteStatement",
+      "redshift-data:BatchExecuteStatement",
+      "redshift-data:GetStatementResult",
+      "redshift-data:DescribeStatement",
+      "redshift-data:ListDatabases",
+      "redshift-data:ListSchemas",
+      "redshift-data:ListTables",
+      "redshift-serverless:GetCredentials",
+    ]
+
+    resources = [
+      "arn:aws:redshift-serverless:${var.aws_region}:${var.account_id}:workgroup/*",
+    ]
+  }
+
   statement {
     sid    = "CloudWatchLogsWrite"
     effect = "Allow"
