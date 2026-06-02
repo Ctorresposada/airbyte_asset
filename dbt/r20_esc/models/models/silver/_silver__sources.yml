@@ -1,0 +1,16 @@
+version: 2
+
+sources:
+  - name: bronze
+    database: awsdatacatalog
+    schema: glue_reg20_bronze
+    description: "Bronze layer — raw Iceberg files from Airbyte Cloud, cataloged in Glue"
+    tables:
+      - name: clob_master_pk
+        description: "Oracle APEX clob_master_pk table synced by Airbyte"
+      - name: blob_assets_pk
+        description: "Oracle APEX blob_assets_pk table synced by Airbyte"
+      - name: no_pk_log_data
+        description: "Oracle APEX no_pk_log_data table synced by Airbyte (no business key)"
+      - name: api_test_rates
+        description: "External API currency exchange rates synced by Airbyte"

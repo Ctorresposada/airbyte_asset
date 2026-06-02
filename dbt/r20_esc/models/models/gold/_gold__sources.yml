@@ -1,0 +1,16 @@
+version: 2
+
+sources:
+  - name: silver
+    database: awsdatacatalog
+    schema: glue_reg20_silver
+    description: "Silver layer — Iceberg tables built by dbt-athena"
+    tables:
+      - name: silver_clob_master_pk
+        description: "Silver Iceberg table"
+      - name: silver_blob_assets_pk
+        description: "Silver Iceberg table"
+      - name: silver_no_pk_log_data
+        description: "Silver Iceberg table"
+      - name: silver_api_test_rates
+        description: "Silver Iceberg table"

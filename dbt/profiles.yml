@@ -1,0 +1,23 @@
+r20_esc:
+  outputs:
+    silver:
+      type: athena
+      database: awsdatacatalog
+      schema: glue_reg20_silver
+      s3_staging_dir: "{{ env_var('ATHENA_RESULTS_BUCKET') }}"
+      s3_data_dir: "{{ env_var('SILVER_BUCKET') }}"
+      region_name: us-east-1
+      threads: 1
+      num_retries: 5
+
+    gold:
+      type: athena
+      database: awsdatacatalog
+      schema: glue_reg20_gold
+      s3_staging_dir: "{{ env_var('ATHENA_RESULTS_BUCKET') }}"
+      s3_data_dir: "{{ env_var('GOLD_BUCKET') }}"
+      region_name: us-east-1
+      threads: 1
+      num_retries: 5
+
+  target: silver
