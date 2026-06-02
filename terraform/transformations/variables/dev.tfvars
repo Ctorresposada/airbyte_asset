@@ -9,8 +9,8 @@ account_id   = "784590287037"
 # the service-account stack's ecr_repository_url / ecr_repository_arn outputs
 # after its first apply. Until then the transformations plan/apply will fail the
 # non-empty validation, which is intentional - apply service-account first.
-ecr_repository_url = "PLACEHOLDER_REPLACE_AFTER_SERVICE_ACCOUNT_APPLY"
-ecr_repository_arn = "PLACEHOLDER_REPLACE_AFTER_SERVICE_ACCOUNT_APPLY"
+ecr_repository_url = "471624149663.dkr.ecr.us-east-1.amazonaws.com/region-20-shared-dbt-core"
+ecr_repository_arn = "arn:aws:ecr:us-east-1:471624149663:repository/region-20-shared-dbt-core"
 
 dbt_task_cpu           = 1024
 dbt_task_memory        = 2048
