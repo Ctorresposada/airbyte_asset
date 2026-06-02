@@ -81,6 +81,10 @@ resource "aws_security_group" "client_vpn" {
     protocol    = "-1"
     cidr_blocks = [var.vpc_cidr]
   }
+
+  tags = {
+    Name = "${local.name}-client-vpn"
+  }
 }
 
 # ---------------------------------------------------------------------------
