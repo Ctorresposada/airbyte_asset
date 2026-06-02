@@ -92,6 +92,12 @@ variable "data_lake_bucket_arns" {
   default     = []
 }
 
+variable "vpn_enabled" {
+  description = "Whether the Client VPN endpoint is deployed in this environment. When true, a data source looks up the client-vpn security group and an ingress rule is added to the Redshift SG on port 5439. Set to false when the VPN endpoint is not present (e.g. prod until the VPN is activated)."
+  type        = bool
+  default     = false
+}
+
 variable "tags" {
   description = "Common tags to apply to all resources"
   type        = map(string)

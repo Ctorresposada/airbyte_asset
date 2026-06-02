@@ -94,6 +94,24 @@ variable "kms_key_users" {
   default     = []
 }
 
+variable "redshift_db" {
+  description = "Redshift Serverless database dbt connects to. Must match the database provisioned in the warehouse stack."
+  type        = string
+  default     = "gold"
+}
+
+variable "redshift_schema" {
+  description = "dbt target schema inside the Redshift database. The dbt_service user has USAGE+CREATE+ALL on the gold schema — that is the correct target for dbt output models."
+  type        = string
+  default     = "gold"
+}
+
+variable "redshift_user" {
+  description = "Redshift database user dbt authenticates as via IAM-brokered credentials. Must match the user created in the warehouse stack (dbt_redshift_user variable)."
+  type        = string
+  default     = "dbt_service"
+}
+
 variable "tags" {
   description = "Common tags to apply to all resources"
   type        = map(string)

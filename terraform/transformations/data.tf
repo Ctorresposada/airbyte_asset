@@ -52,3 +52,12 @@ data "aws_security_group" "redshift" {
   }
 }
 
+# Redshift Serverless workgroup owned by the warehouse stack — looked up here to
+# source the endpoint address injected into the dbt task as REDSHIFT_HOST. Avoids
+# a cross-stack terraform_remote_state dependency.
+data "aws_redshiftserverless_workgroup" "this" {
+  count = var.create ? 1 : 0
+
+  workgroup_name = "${local.name}-warehouse-wg"
+}
+

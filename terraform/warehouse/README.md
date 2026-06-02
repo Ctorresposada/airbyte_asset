@@ -59,10 +59,12 @@ Redshift data warehouse (used with Spectrum over S3) and its supporting KMS CMKs
 | [aws_vpc_security_group_egress_rule.redshift_sql_vpc](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/vpc_security_group_egress_rule) | resource |
 | [aws_vpc_security_group_ingress_rule.bastion_ssh_dbt](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/vpc_security_group_ingress_rule) | resource |
 | [aws_vpc_security_group_ingress_rule.redshift_from_bastion](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/vpc_security_group_ingress_rule) | resource |
+| [aws_vpc_security_group_ingress_rule.redshift_from_client_vpn](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/vpc_security_group_ingress_rule) | resource |
 | [null_resource.redshift_dbt_service_user](https://registry.terraform.io/providers/hashicorp/null/latest/docs/resources/resource) | resource |
 | [null_resource.redshift_schemas](https://registry.terraform.io/providers/hashicorp/null/latest/docs/resources/resource) | resource |
 | [aws_ami.al2023](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/ami) | data source |
 | [aws_iam_policy_document.redshift_serverless](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
+| [aws_security_group.client_vpn](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/security_group) | data source |
 | [aws_subnets.private](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/subnets) | data source |
 | [aws_subnets.public](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/subnets) | data source |
 | [aws_vpc.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/vpc) | data source |
@@ -92,6 +94,7 @@ Redshift data warehouse (used with Spectrum over S3) and its supporting KMS CMKs
 | <a name="input_redshift_max_capacity"></a> [redshift\_max\_capacity](#input\_redshift\_max\_capacity) | Maximum RPU capacity the workgroup can scale to. Acts as a cost ceiling; set lower in dev environments. | `number` | `128` | no |
 | <a name="input_tags"></a> [tags](#input\_tags) | Common tags to apply to all resources | `map(string)` | `{}` | no |
 | <a name="input_team"></a> [team](#input\_team) | Team that manages this project | `string` | n/a | yes |
+| <a name="input_vpn_enabled"></a> [vpn\_enabled](#input\_vpn\_enabled) | Whether the Client VPN endpoint is deployed in this environment. When true, a data source looks up the client-vpn security group and an ingress rule is added to the Redshift SG on port 5439. Set to false when the VPN endpoint is not present (e.g. prod until the VPN is activated). | `bool` | `false` | no |
 
 ## Outputs
 

@@ -22,3 +22,7 @@ kms_key_users = [
   "arn:aws:iam::784590287037:role/aws-reserved/sso.amazonaws.com/AWSReservedSSO_DataEngineer_Dev_cd1bbeb9335fcaa8",
   "arn:aws:iam::784590287037:role/aws-reserved/sso.amazonaws.com/AWSReservedSSO_AWSAdministratorAccess_9a7f3e7b3aa4c5bb",
 ]
+
+redshift_db     = "gold"
+redshift_schema = "gold"
+redshift_user   = "dbt_service"

@@ -19,6 +19,16 @@ data "aws_subnets" "private" {
   }
 }
 
+data "aws_security_group" "client_vpn" {
+  count = var.create && var.vpn_enabled ? 1 : 0
+
+  vpc_id = data.aws_vpc.this[0].id
+
+  tags = {
+    Name = "${local.name}-client-vpn"
+  }
+}
+
 data "aws_vpc_endpoint" "s3" {
   count = var.create ? 1 : 0
 

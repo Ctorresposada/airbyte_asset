@@ -34,6 +34,17 @@ resource "aws_vpc_security_group_ingress_rule" "redshift_from_bastion" {
   referenced_security_group_id = aws_security_group.bastion[0].id
 }
 
+resource "aws_vpc_security_group_ingress_rule" "redshift_from_client_vpn" {
+  count = var.create && var.vpn_enabled ? 1 : 0
+
+  security_group_id            = aws_security_group.redshift[0].id
+  description                  = "Redshift SQL from Client VPN clients"
+  ip_protocol                  = "tcp"
+  from_port                    = 5439
+  to_port                      = 5439
+  referenced_security_group_id = data.aws_security_group.client_vpn[0].id
+}
+
 resource "aws_vpc_security_group_egress_rule" "redshift_https_vpc" {
   count = var.create ? 1 : 0
 
