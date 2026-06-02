@@ -6,14 +6,6 @@ resource "aws_security_group" "redshift" {
   description = "Controls SQL access to the Redshift Serverless workgroup"
   vpc_id      = data.aws_vpc.this[0].id
 
-  ingress {
-    description = "Redshift SQL from VPC CIDR"
-    from_port   = 5439
-    to_port     = 5439
-    protocol    = "tcp"
-    cidr_blocks = [data.aws_vpc.this[0].cidr_block]
-  }
-
   tags = merge(var.tags, {
     Name = "${local.name}-redshift"
   })
@@ -21,6 +13,17 @@ resource "aws_security_group" "redshift" {
   lifecycle {
     create_before_destroy = true
   }
+}
+
+resource "aws_vpc_security_group_ingress_rule" "redshift_from_vpc" {
+  count = var.create ? 1 : 0
+
+  security_group_id = aws_security_group.redshift[0].id
+  description       = "Redshift SQL from VPC CIDR"
+  ip_protocol       = "tcp"
+  from_port         = 5439
+  to_port           = 5439
+  cidr_ipv4         = data.aws_vpc.this[0].cidr_block
 }
 
 resource "aws_vpc_security_group_ingress_rule" "redshift_from_bastion" {

@@ -38,4 +38,4 @@ USER dbt
 
 WORKDIR /home/dbt/project
 
-CMD ["sh", "-c", "dbt debug --target silver && dbt debug --target gold && dbt debug --target redshift_gold"]
+CMD ["sh", "-c", "dbt debug --target silver && dbt debug --target redshift_gold"]

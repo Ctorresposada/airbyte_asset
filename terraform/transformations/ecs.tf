@@ -81,7 +81,7 @@ resource "aws_ecs_task_definition" "dbt_core" {
         { name = "REDSHIFT_DB", value = var.redshift_db },
         { name = "REDSHIFT_SCHEMA", value = var.redshift_schema },
         { name = "REDSHIFT_USER", value = var.redshift_user },
-        { name = "REDSHIFT_WORKGROUP_NAME", value = "${local.name}-warehouse-wg" },
+        { name = "REDSHIFT_WORKGROUP_NAME", value = local.warehouse_wg_name },
       ]
 
       logConfiguration = {

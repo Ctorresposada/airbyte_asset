@@ -58,6 +58,6 @@ data "aws_security_group" "redshift" {
 data "aws_redshiftserverless_workgroup" "this" {
   count = var.create ? 1 : 0
 
-  workgroup_name = "${local.name}-warehouse-wg"
+  workgroup_name = local.warehouse_wg_name
 }
 
