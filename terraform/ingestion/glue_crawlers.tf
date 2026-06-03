@@ -20,7 +20,7 @@ resource "aws_glue_classifier" "csv_quoted" {
     contains_header        = "PRESENT"                # treats 1st row as headers
     disable_value_trimming = false                    # trims whitespace 
     allow_single_column    = false                    # rejects files with only one column (safety check)
-    serde                  = "OpenCsvSerDe"           # correct SerDe for standard CSV files
+    serde                  = "OpenCSVSerDe"           # correct SerDe for standard CSV files
   }
 }
 
