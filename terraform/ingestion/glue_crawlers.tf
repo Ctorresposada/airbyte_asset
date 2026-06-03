@@ -20,6 +20,7 @@ resource "aws_glue_classifier" "csv_quoted" {
     contains_header        = "PRESENT"
     disable_value_trimming = false
     allow_single_column    = false
+    serde                  = "OpenCsvSerDe"
   }
 }
 
