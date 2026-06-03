@@ -15,12 +15,12 @@ resource "aws_glue_classifier" "csv_quoted" {
   name = "${local.name}-${each.key}-csv-quoted"
 
   csv_classifier {
-    delimiter              = each.value.csv_delimiter
-    quote_symbol           = "\""
-    contains_header        = "PRESENT"
-    disable_value_trimming = false
-    allow_single_column    = false
-    serde                  = "OpenCsvSerDe"
+    delimiter              = each.value.csv_delimiter # comma, pipe, tab, etc
+    quote_symbol           = "\""                     # trims whitespace from value
+    contains_header        = "PRESENT"                # treats 1st row as headers
+    disable_value_trimming = false                    # trims whitespace 
+    allow_single_column    = false                    # rejects files with only one column (safety check)
+    serde                  = "OpenCsvSerDe"           # correct SerDe for standard CSV files
   }
 }
 
