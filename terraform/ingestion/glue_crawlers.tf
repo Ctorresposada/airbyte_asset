@@ -7,7 +7,7 @@
 # ---------------------------------------------------------------------------
 # Custom CSV classifier — created only for crawlers with csv_classifier=true.
 # Uses OpenCSVSerDe which correctly handles quoted fields containing commas,
-# unlike the default LazySimpleSerDe used by the built-in CSV classifier.
+# unlike the default LazySimpleSerDe used by the built-in CSV classifier (For Ascender)
 # ---------------------------------------------------------------------------
 resource "aws_glue_classifier" "csv_quoted" {
   for_each = var.create ? { for k, v in var.glue_crawlers : k => v if v.csv_classifier } : {}
