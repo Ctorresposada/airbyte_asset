@@ -81,6 +81,23 @@ lakeformation_de_role_arns = [
 lakeformation_de_database_permissions = ["DESCRIBE", "DROP"]
 lakeformation_de_table_permissions    = ["SELECT", "DESCRIBE", "DROP"]
 
+glue_crawlers = {
+  connect20 = {
+    s3_bucket_key = "raw"
+    s3_prefix     = "connect20/"
+    database_key  = "raw"
+    table_prefix  = "connect20_"
+    schedule      = "cron(0 3 * * ? *)" # 9 PM CST / 3 AM UTC
+  }
+  ascender = {
+    s3_bucket_key = "raw"
+    s3_prefix     = "ascender/"
+    database_key  = "raw"
+    table_prefix  = "ascender_"
+    schedule      = "cron(0 3 * * ? *)" # 9 PM CST / 4 AM UTC
+  }
+}
+
 # ---------------------------------------------------------------------------
 # Google Drive → S3 raw sync (Lambda)
 # ---------------------------------------------------------------------------

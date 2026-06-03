@@ -114,30 +114,34 @@ resource "aws_lakeformation_permissions" "airbyte_bronze_database" {
 }
 
 # ---------------------------------------------------------------------------
-# Connect20 crawler LF grant: allows the crawler role to create and update
-# tables in the raw Glue database.
+# Gle Crawler LF grants: allows each crawler role to register S3 locations and
+# create/update tables in its target Glue database (raw_db)
 # ---------------------------------------------------------------------------
-resource "aws_lakeformation_permissions" "glue_connect20_crawler_raw_location" {
-  count = var.create ? 1 : 0
+resource "aws_lakeformation_permissions" "glue_crawlers_location" {
+  for_each = var.create ? var.glue_crawlers : {}
 
-  principal = aws_iam_role.glue_connect20_crawler[0].arn
+  principal = aws_iam_role.glue_crawlers[each.key].arn
 
   data_location {
-    arn = aws_s3_bucket.buckets["raw"].arn
+    arn = aws_s3_bucket.buckets[each.value.s3_bucket_key].arn
   }
 
   permissions = ["DATA_LOCATION_ACCESS"]
 
-  depends_on = [aws_lakeformation_resource.raw]
+  depends_on = [
+    aws_lakeformation_resource.raw,
+    aws_lakeformation_resource.bronze,
+    aws_lakeformation_resource.silver,
+  ]
 }
 
-resource "aws_lakeformation_permissions" "glue_connect20_crawler_raw_db" {
-  count = var.create ? 1 : 0
+resource "aws_lakeformation_permissions" "glue_crawlers_database" {
+  for_each = var.create ? var.glue_crawlers : {}
 
-  principal = aws_iam_role.glue_connect20_crawler[0].arn
+  principal = aws_iam_role.glue_crawlers[each.key].arn
 
   database {
-    name = aws_glue_catalog_database.databases["raw"].name
+    name = aws_glue_catalog_database.databases[each.value.database_key].name
   }
 
   permissions                   = ["CREATE_TABLE", "ALTER", "DESCRIBE"]
