@@ -130,6 +130,12 @@ variable "athena_results" {
   }
 }
 
+variable "enable_bastion" {
+  description = "Whether to enable the bastion for Redshift to be reached from outside the VPC"
+  type        = bool
+  default     = false
+}
+
 variable "bastion_instance_type" {
   description = "EC2 instance type for the SSH bastion host. t3.micro is sufficient for SSH tunneling workloads."
   type        = string

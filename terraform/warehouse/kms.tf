@@ -49,7 +49,7 @@ module "redshift_kms" {
 # Bastion secrets + CloudWatch Logs CMK — R2EP2IC-111
 # Encrypts: bastion private key in Secrets Manager, bastion EBS root volume, bastion CW log groups.
 module "bastion_kms" {
-  count = var.create ? 1 : 0
+  count = var.create && var.enable_bastion ? 1 : 0
 
   source  = "terraform-aws-modules/kms/aws"
   version = "~> 3.0"

@@ -10,7 +10,7 @@
 # ----------------------------------------------------------------------------
 
 resource "aws_iam_role" "bastion" {
-  count = var.create ? 1 : 0
+  count = var.create && var.enable_bastion ? 1 : 0
 
   name = "${local.name}-bastion"
 
@@ -25,21 +25,21 @@ resource "aws_iam_role" "bastion" {
 }
 
 resource "aws_iam_role_policy_attachment" "bastion_ssm" {
-  count = var.create ? 1 : 0
+  count = var.create && var.enable_bastion ? 1 : 0
 
   role       = aws_iam_role.bastion[0].name
   policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
 }
 
 resource "aws_iam_role_policy_attachment" "bastion_cloudwatch" {
-  count = var.create ? 1 : 0
+  count = var.create && var.enable_bastion ? 1 : 0
 
   role       = aws_iam_role.bastion[0].name
   policy_arn = "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
 }
 
 resource "aws_iam_role_policy" "bastion_secrets" {
-  count = var.create ? 1 : 0
+  count = var.create && var.enable_bastion ? 1 : 0
 
   name = "${local.name}-bastion-secrets"
   role = aws_iam_role.bastion[0].id
@@ -61,7 +61,7 @@ resource "aws_iam_role_policy" "bastion_secrets" {
 }
 
 resource "aws_iam_instance_profile" "bastion" {
-  count = var.create ? 1 : 0
+  count = var.create && var.enable_bastion ? 1 : 0
 
   name = "${local.name}-bastion"
   role = aws_iam_role.bastion[0].name
@@ -74,7 +74,7 @@ resource "aws_iam_instance_profile" "bastion" {
 resource "aws_instance" "bastion" {
   #checkov:skip=CKV_AWS_126: Detailed monitoring not required for a low-traffic bastion; basic 5-minute monitoring is sufficient.
   #checkov:skip=CKV_AWS_8: User data does not contain secrets; SSH hardening script is safe to store in state.
-  count = var.create ? 1 : 0
+  count = var.create && var.enable_bastion ? 1 : 0
 
   ami                         = data.aws_ami.al2023[0].id
   instance_type               = var.bastion_instance_type
@@ -119,7 +119,7 @@ resource "aws_instance" "bastion" {
 
 resource "aws_eip" "bastion" {
   #checkov:skip=CKV2_AWS_19: EIP is immediately associated with the bastion instance via aws_eip_association below.
-  count = var.create ? 1 : 0
+  count = var.create && var.enable_bastion ? 1 : 0
 
   domain = "vpc"
 
@@ -129,7 +129,7 @@ resource "aws_eip" "bastion" {
 }
 
 resource "aws_eip_association" "bastion" {
-  count = var.create ? 1 : 0
+  count = var.create && var.enable_bastion ? 1 : 0
 
   instance_id   = aws_instance.bastion[0].id
   allocation_id = aws_eip.bastion[0].id

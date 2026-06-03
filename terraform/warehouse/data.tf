@@ -37,7 +37,7 @@ data "aws_vpc_endpoint" "s3" {
 }
 
 data "aws_subnets" "public" {
-  count = var.create ? 1 : 0
+  count = var.create && var.enable_bastion ? 1 : 0
 
   filter {
     name   = "vpc-id"
@@ -50,7 +50,7 @@ data "aws_subnets" "public" {
 }
 
 data "aws_ami" "al2023" {
-  count = var.create ? 1 : 0
+  count = var.create && var.enable_bastion ? 1 : 0
 
   most_recent = true
   owners      = ["amazon"]
