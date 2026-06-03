@@ -143,10 +143,16 @@ variable "oci_bastion_host" {
   description = "OCI bastion host to forward traffic to the Oracle DB"
 }
 
-variable "glue_connect20_crawler_schedule" {
-  description = "AWS cron expression for the Connect20 Glue crawler nightly run (cron(0 3 * * ? *) -  9 PM CST) - 3 AM UTC). Set to null to disable scheduled runs."
-  type        = string
-  default     = "cron(0 3 * * ? *)"
+variable "glue_crawlers" {
+  description = "Map of Glue crawlers to provision. Each entry creates a crawler with its own IAM role, KMS key, and security configuration."
+  type = map(object({
+    s3_bucket_key = string
+    s3_prefix     = string
+    database_key  = string
+    table_prefix  = string
+    schedule      = string
+  }))
+  default = {}
 }
 
 # ---------------------------------------------------------------------------

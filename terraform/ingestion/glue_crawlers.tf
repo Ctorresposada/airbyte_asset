@@ -1,20 +1,21 @@
 # ---------------------------------------------------------------------------
-# Connect20 Glue Crawler resources
-# Crawls raw/connect20/ on a nightly schedule, detects Parquet schema, and
-# registers tables into the raw Glue database
+# Glue Crawlers — one per entry in var.glue_crawlers
+# Crawls source S3 prefixes on a schedule, auto-detects schema (CSV/Parquet/etc),
+# and registers tables into the target Glue database.
+# It will create one crawler per File Source (Ascender, Connect20, TEA)
 # ---------------------------------------------------------------------------
-resource "aws_glue_crawler" "connect20" {
-  count = var.create ? 1 : 0
+resource "aws_glue_crawler" "crawlers" {
+  for_each = var.create ? var.glue_crawlers : {}
 
-  name                   = "${local.name}-connect20-crawler"
-  role                   = aws_iam_role.glue_connect20_crawler[0].arn
-  database_name          = aws_glue_catalog_database.databases["raw"].name
-  schedule               = var.glue_connect20_crawler_schedule
-  security_configuration = aws_glue_security_configuration.connect20_crawler[0].name
-  table_prefix           = "connect20_"
+  name                   = "${local.name}-${each.key}-crawler"
+  role                   = aws_iam_role.glue_crawlers[each.key].arn
+  database_name          = aws_glue_catalog_database.databases[each.value.database_key].name
+  schedule               = each.value.schedule
+  security_configuration = aws_glue_security_configuration.crawlers[each.key].name
+  table_prefix           = each.value.table_prefix
 
   s3_target {
-    path = "s3://${aws_s3_bucket.buckets["raw"].id}/connect20/"
+    path = "s3://${aws_s3_bucket.buckets[each.value.s3_bucket_key].id}/${each.value.s3_prefix}"
   }
 
   # MergeNewColumns: adds columns that appear in new files without breaking
@@ -37,23 +38,20 @@ resource "aws_glue_crawler" "connect20" {
   }
 
   tags = merge(var.tags, {
-    Name        = "${local.name}-connect20"
+    Name        = "${local.name}-${each.key}"
     Environment = var.environment
-    Source      = "connect20"
-    Layer       = "raw"
+    Source      = each.key
+    Layer       = each.value.database_key
   })
 
   depends_on = [
-    aws_iam_role_policy_attachment.glue_connect20_crawler_service,
-    aws_iam_role_policy.glue_connect20_crawler_s3,
-    aws_lakeformation_permissions.glue_connect20_crawler_raw_db,
-    aws_glue_security_configuration.connect20_crawler,
+    aws_iam_role_policy_attachment.glue_crawlers_service,
+    aws_iam_role_policy.glue_crawlers_s3,
+    aws_glue_security_configuration.crawlers,
   ]
 }
 
-# ---------------------------------------------------------------------------
-# IAM role assumed by the Connect20 Glue crawler
-# ---------------------------------------------------------------------------
+# Shared assume-role policy for all crawler IAM roles
 data "aws_iam_policy_document" "glue_crawler_assume_role" {
   statement {
     actions = ["sts:AssumeRole"]
@@ -64,14 +62,14 @@ data "aws_iam_policy_document" "glue_crawler_assume_role" {
   }
 }
 
-resource "aws_iam_role" "glue_connect20_crawler" {
-  count = var.create ? 1 : 0
+resource "aws_iam_role" "glue_crawlers" {
+  for_each = var.create ? var.glue_crawlers : {}
 
-  name               = "${local.name}-glue-connect20-crawler"
+  name               = "${local.name}-glue-${each.key}-crawler"
   assume_role_policy = data.aws_iam_policy_document.glue_crawler_assume_role.json
 
   tags = merge(var.tags, {
-    Name        = "${local.name}-glue-connect20-crawler"
+    Name        = "${local.name}-glue-${each.key}-crawler"
     Environment = var.environment
   })
 }
@@ -79,36 +77,41 @@ resource "aws_iam_role" "glue_connect20_crawler" {
 # AWSGlueServiceRole grants Glue service access to CloudWatch Logs, Glue catalog,
 # and the baseline S3 permissions required by the crawler runtime.
 #checkov:skip=CKV_AWS_274: AWSGlueServiceRole is the standard AWS-managed policy for Glue service roles
-resource "aws_iam_role_policy_attachment" "glue_connect20_crawler_service" {
-  count = var.create ? 1 : 0
+resource "aws_iam_role_policy_attachment" "glue_crawlers_service" {
+  for_each = var.create ? var.glue_crawlers : {}
 
-  role       = aws_iam_role.glue_connect20_crawler[0].name
+  role       = aws_iam_role.glue_crawlers[each.key].name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSGlueServiceRole"
 }
 
-data "aws_iam_policy_document" "glue_connect20_crawler_s3" {
+# Per-crawler S3 read policy scoped to the configured source prefix
+data "aws_iam_policy_document" "glue_crawlers_s3" {
+  for_each = var.create ? var.glue_crawlers : {}
+
   statement {
-    sid       = "ListRawBucket"
+    sid       = "ListBucket"
     actions   = ["s3:ListBucket"]
-    resources = [aws_s3_bucket.buckets["raw"].arn]
+    resources = [aws_s3_bucket.buckets[each.value.s3_bucket_key].arn]
   }
 
   statement {
-    sid       = "GetConnect20Objects"
+    sid       = "GetObjects"
     actions   = ["s3:GetObject"]
-    resources = ["${aws_s3_bucket.buckets["raw"].arn}/connect20/*"]
+    resources = ["${aws_s3_bucket.buckets[each.value.s3_bucket_key].arn}/${each.value.s3_prefix}*"]
   }
 }
 
-resource "aws_iam_role_policy" "glue_connect20_crawler_s3" {
-  count = var.create ? 1 : 0
+resource "aws_iam_role_policy" "glue_crawlers_s3" {
+  for_each = var.create ? var.glue_crawlers : {}
 
-  name   = "connect20-s3-read"
-  role   = aws_iam_role.glue_connect20_crawler[0].id
-  policy = data.aws_iam_policy_document.glue_connect20_crawler_s3.json
+  name   = "${each.key}-s3-read"
+  role   = aws_iam_role.glue_crawlers[each.key].id
+  policy = data.aws_iam_policy_document.glue_crawlers_s3[each.key].json
 }
 
-data "aws_iam_policy_document" "glue_connect20_crawler_logs" {
+# AWSGlueServiceRole does not include logs:AssociateKmsKey, which is required
+# when a security configuration encrypts CloudWatch log groups with a KMS key.
+data "aws_iam_policy_document" "glue_crawlers_logs" {
   statement {
     sid       = "AssociateKmsKeyToLogGroup"
     actions   = ["logs:AssociateKmsKey"]
@@ -116,22 +119,23 @@ data "aws_iam_policy_document" "glue_connect20_crawler_logs" {
   }
 }
 
-resource "aws_iam_role_policy" "glue_connect20_crawler_logs" {
-  count = var.create ? 1 : 0
+resource "aws_iam_role_policy" "glue_crawlers_logs" {
+  for_each = var.create ? var.glue_crawlers : {}
 
-  name   = "connect20-cloudwatch-kms"
-  role   = aws_iam_role.glue_connect20_crawler[0].id
-  policy = data.aws_iam_policy_document.glue_connect20_crawler_logs.json
+  name   = "${each.key}-cloudwatch-kms"
+  role   = aws_iam_role.glue_crawlers[each.key].id
+  policy = data.aws_iam_policy_document.glue_crawlers_logs.json
 }
 
 # ---------------------------------------------------------------------------
-# Glue security configuration — satisfies CKV_AWS_195
+# KMS keys and security configurations — one per crawler (CKV_AWS_195)
 # CloudWatch logs encrypted with a dedicated KMS key; S3 uses SSE-S3
 # (consistent with the rest of the stack).
 # ---------------------------------------------------------------------------
-#checkov:skip=CKV_AWS_109: Resource:* in a KMS key policy refers to the key itself — this is the AWS-recommended root-access pattern for key management
-#checkov:skip=CKV_AWS_111: Same as above — kms:* on Resource:* is standard for KMS key policies and does not grant unconstrained write access to other resources
-data "aws_iam_policy_document" "glue_connect20_crawler_kms" {
+
+#checkov:skip=CKV_AWS_109: Resource:* in KMS key policies refers to the key itself — AWS-recommended root-access pattern for key management
+#checkov:skip=CKV_AWS_111: kms:* on Resource:* is standard for KMS key policies and does not grant unconstrained write access to other resources
+data "aws_iam_policy_document" "glue_crawlers_kms" {
   statement {
     sid       = "EnableRootAccess"
     actions   = ["kms:*"]
@@ -165,36 +169,36 @@ data "aws_iam_policy_document" "glue_connect20_crawler_kms" {
   }
 }
 
-resource "aws_kms_key" "glue_connect20_crawler" {
-  count = var.create ? 1 : 0
+resource "aws_kms_key" "glue_crawlers" {
+  for_each = var.create ? var.glue_crawlers : {}
 
-  description             = "KMS key for Connect20 Glue crawler CloudWatch log encryption"
+  description             = "KMS key for ${each.key} Glue crawler CloudWatch log encryption"
   deletion_window_in_days = 7
   enable_key_rotation     = true
-  policy                  = data.aws_iam_policy_document.glue_connect20_crawler_kms.json
+  policy                  = data.aws_iam_policy_document.glue_crawlers_kms.json
 
   tags = merge(var.tags, {
-    Name        = "${local.name}-glue-connect20-crawler"
+    Name        = "${local.name}-glue-${each.key}-crawler"
     Environment = var.environment
   })
 }
 
-resource "aws_kms_alias" "glue_connect20_crawler" {
-  count = var.create ? 1 : 0
+resource "aws_kms_alias" "glue_crawlers" {
+  for_each = var.create ? var.glue_crawlers : {}
 
-  name          = "alias/${local.name}-glue-connect20-crawler"
-  target_key_id = aws_kms_key.glue_connect20_crawler[0].key_id
+  name          = "alias/${local.name}-glue-${each.key}-crawler"
+  target_key_id = aws_kms_key.glue_crawlers[each.key].key_id
 }
 
-resource "aws_glue_security_configuration" "connect20_crawler" {
-  count = var.create ? 1 : 0
+resource "aws_glue_security_configuration" "crawlers" {
+  for_each = var.create ? var.glue_crawlers : {}
 
-  name = "${local.name}-connect20-crawler"
+  name = "${local.name}-${each.key}-crawler"
 
   encryption_configuration {
     cloudwatch_encryption {
       cloudwatch_encryption_mode = "SSE-KMS"
-      kms_key_arn                = aws_kms_key.glue_connect20_crawler[0].arn
+      kms_key_arn                = aws_kms_key.glue_crawlers[each.key].arn
     }
 
     job_bookmarks_encryption {
@@ -206,3 +210,4 @@ resource "aws_glue_security_configuration" "connect20_crawler" {
     }
   }
 }
+
