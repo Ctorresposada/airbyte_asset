@@ -60,9 +60,9 @@ resource "aws_iam_role_policy" "dbt_execution" {
 # ---------------------------------------------------------------------------
 # ECS task role — the identity the dbt container itself assumes at runtime.
 # Grants S3 access to the artifacts, Athena results, and silver buckets,
-# CloudWatch Logs writes, and KMS use for SSE-KMS on the artifacts bucket. dbt
-# uses the Athena adapter to transform S3 data and never connects to Redshift
-# directly, so no Redshift IAM is required.
+# CloudWatch Logs writes, and KMS use for SSE-KMS on the artifacts bucket.
+# Grants S3, Athena, Glue, Redshift Data API, CloudWatch Logs, KMS, and ECS Exec
+# (ssmmessages) access.
 # ---------------------------------------------------------------------------
 resource "aws_iam_role" "dbt_task" {
   count = var.create ? 1 : 0
@@ -256,6 +256,23 @@ data "aws_iam_policy_document" "dbt_task" {
       "${aws_cloudwatch_log_group.dbt_core[0].arn}:*",
       "${aws_cloudwatch_log_group.cluster[0].arn}:*",
     ]
+  }
+
+  # ECS Exec — allows the SSM agent inside the container to open a session so
+  # operators can exec in for live debugging. ssmmessages does not support
+  # resource-level conditions.
+  statement {
+    sid    = "EcsExec"
+    effect = "Allow"
+
+    actions = [
+      "ssmmessages:CreateControlChannel",
+      "ssmmessages:CreateDataChannel",
+      "ssmmessages:OpenControlChannel",
+      "ssmmessages:OpenDataChannel",
+    ]
+
+    resources = ["*"]
   }
 
   # SSE-KMS on the artifacts bucket: encrypt on PutObject, decrypt on GetObject.

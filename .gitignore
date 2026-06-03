@@ -48,3 +48,4 @@ __pycache__/
 terraform/ingestion/lambda/python/
 
 logs/
+**/.user.yml
