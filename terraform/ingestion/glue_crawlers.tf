@@ -10,7 +10,7 @@ resource "aws_glue_crawler" "crawlers" {
   name                   = "${local.name}-${each.key}-crawler"
   role                   = aws_iam_role.glue_crawlers[each.key].arn
   database_name          = aws_glue_catalog_database.databases[each.value.database_key].name
-  schedule               = each.value.schedule
+  schedule               = each.value.enabled ? each.value.schedule : null
   security_configuration = aws_glue_security_configuration.crawlers[each.key].name
   table_prefix           = each.value.table_prefix
 
