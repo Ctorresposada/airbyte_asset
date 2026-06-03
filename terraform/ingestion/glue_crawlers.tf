@@ -15,7 +15,7 @@ resource "aws_glue_classifier" "csv_quoted" {
   name = "${local.name}-${each.key}-csv-quoted"
 
   csv_classifier {
-    delimiter              = ","
+    delimiter              = each.value.csv_delimiter
     quote_symbol           = "\""
     contains_header        = "PRESENT"
     disable_value_trimming = false
