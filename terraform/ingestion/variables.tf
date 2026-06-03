@@ -153,6 +153,7 @@ variable "glue_crawlers" {
     schedule       = string
     enabled        = bool
     csv_classifier = optional(bool, false)
+    csv_delimiter  = optional(string, ",")
   }))
   default = {}
 }
