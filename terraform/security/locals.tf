@@ -93,6 +93,7 @@ locals {
           "lakeformation:Get*",
           "lakeformation:List*",
           "lakeformation:Describe*",
+          "lakeformation:RevokePermissions",
           "glue:GetDatabase",
           "glue:GetDatabases",
           "glue:GetTable",
