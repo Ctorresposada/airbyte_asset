@@ -4,6 +4,25 @@
 # and registers tables into the target Glue database.
 # It will create one crawler per File Source (Ascender, Connect20, TEA)
 # ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Custom CSV classifier — created only for crawlers with csv_classifier=true.
+# Uses OpenCSVSerDe which correctly handles quoted fields containing commas,
+# unlike the default LazySimpleSerDe used by the built-in CSV classifier.
+# ---------------------------------------------------------------------------
+resource "aws_glue_classifier" "csv_quoted" {
+  for_each = var.create ? { for k, v in var.glue_crawlers : k => v if v.csv_classifier } : {}
+
+  name = "${local.name}-${each.key}-csv-quoted"
+
+  csv_classifier {
+    delimiter              = ","
+    quote_symbol           = "\""
+    contains_header        = "PRESENT"
+    disable_value_trimming = false
+    allow_single_column    = false
+  }
+}
+
 resource "aws_glue_crawler" "crawlers" {
   for_each = var.create ? var.glue_crawlers : {}
 
@@ -13,6 +32,7 @@ resource "aws_glue_crawler" "crawlers" {
   schedule               = each.value.enabled ? each.value.schedule : null
   security_configuration = aws_glue_security_configuration.crawlers[each.key].name
   table_prefix           = each.value.table_prefix
+  classifiers            = each.value.csv_classifier ? [aws_glue_classifier.csv_quoted[each.key].name] : null
 
   s3_target {
     path = "s3://${aws_s3_bucket.buckets[each.value.s3_bucket_key].id}/${each.value.s3_prefix}"

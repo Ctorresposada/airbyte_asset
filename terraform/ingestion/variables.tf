@@ -144,14 +144,15 @@ variable "oci_bastion_host" {
 }
 
 variable "glue_crawlers" {
-  description = "Map of Glue crawlers to provision. Each entry creates a crawler with its own IAM role, KMS key, and security configuration. Set enabled=false to suspend the schedule without destroying the crawler."
+  description = "Map of Glue crawlers to provision. Each entry creates a crawler with its own IAM role, KMS key, and security configuration. Set enabled=false to suspend the schedule without destroying the crawler. Set csv_classifier=true for CSV sources that use quoted fields containing commas."
   type = map(object({
-    s3_bucket_key = string
-    s3_prefix     = string
-    database_key  = string
-    table_prefix  = string
-    schedule      = string
-    enabled       = bool
+    s3_bucket_key  = string
+    s3_prefix      = string
+    database_key   = string
+    table_prefix   = string
+    schedule       = string
+    enabled        = bool
+    csv_classifier = optional(bool, false)
   }))
   default = {}
 }
