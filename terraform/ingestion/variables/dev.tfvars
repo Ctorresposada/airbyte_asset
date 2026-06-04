@@ -46,7 +46,7 @@ glue_databases = {
 }
 
 # Airbyte compute -- dev cost optimization
-airbyte_instance_type           = "m6a.xlarge"
+airbyte_instance_type           = "r6g.large"
 airbyte_rds_instance_class      = "db.t3.micro"
 airbyte_log_retention_days      = 30
 airbyte_rds_multi_az            = false

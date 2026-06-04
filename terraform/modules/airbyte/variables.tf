@@ -10,6 +10,11 @@ variable "name" {
   type        = string
 }
 
+variable "compute_name" {
+  description = "Name to be added to compute resources only."
+  type        = string
+}
+
 variable "vpc_id" {
   description = "ID of the VPC into which Airbyte resources are deployed."
   type        = string

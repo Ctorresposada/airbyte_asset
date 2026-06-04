@@ -145,6 +145,7 @@ module "airbyte" {
   source = "../modules/airbyte"
 
   name               = "${local.name}-airbyte"
+  compute_name       = local.compute_name
   vpc_id             = data.aws_vpc.this[0].id
   private_subnet_ids = data.aws_subnets.private[0].ids
   ami_id             = data.aws_ssm_parameter.al2023_ami[0].value
