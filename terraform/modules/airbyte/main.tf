@@ -37,6 +37,7 @@ locals {
     s3_bucket_name = try(aws_s3_bucket.this[0].id, "")
     s3_region      = data.aws_region.current.region
     aws_region     = data.aws_region.current.region
+    airbyte_url    = var.airbyte_url
   })
 
   # Rendered user-data bootstrap script.
@@ -366,9 +367,9 @@ resource "aws_vpc_security_group_egress_rule" "alb_to_instance" {
   count = var.create ? (var.create_alb ? 1 : 0) : 0
 
   security_group_id            = aws_security_group.alb[0].id
-  description                  = "HTTP egress to Airbyte instance on port 80"
-  from_port                    = 80
-  to_port                      = 80
+  description                  = "HTTP egress to Airbyte nginx on port 8000"
+  from_port                    = 8000
+  to_port                      = 8000
   ip_protocol                  = "tcp"
   referenced_security_group_id = aws_security_group.instance[0].id
 
@@ -395,9 +396,9 @@ resource "aws_vpc_security_group_ingress_rule" "instance_from_alb" {
 
   #checkov:skip=CKV_AWS_260: False positive -- ingress is restricted to the ALB security group via referenced_security_group_id, not from 0.0.0.0/0
   security_group_id            = aws_security_group.instance[0].id
-  description                  = "HTTP ingress from ALB only"
-  from_port                    = 80
-  to_port                      = 80
+  description                  = "HTTP ingress from ALB on port 8000"
+  from_port                    = 8000
+  to_port                      = 8000
   ip_protocol                  = "tcp"
   referenced_security_group_id = aws_security_group.alb[0].id
 
@@ -691,10 +692,10 @@ resource "aws_lb" "this" {
   count = var.create ? (var.create_alb ? 1 : 0) : 0
 
   #checkov:skip=CKV_AWS_150: Deletion protection is intentionally omitted; module is used for dev/staging as well as prod. Enable at the stack level for prod if required.
-  #checkov:skip=CKV2_AWS_28: WAF association is managed outside this module; internal ALB is not public-facing
+  #checkov:skip=CKV2_AWS_28: WAF association is managed outside this module
   #checkov:skip=CKV_AWS_91: ALB access logging requires a dedicated S3 bucket; intentionally deferred to the calling stack
   name                       = local.name_prefix
-  internal                   = true
+  internal                   = var.alb_internal
   load_balancer_type         = "application"
   security_groups            = [aws_security_group.alb[0].id]
   subnets                    = var.alb_subnet_ids
@@ -709,7 +710,7 @@ resource "aws_lb_target_group" "this" {
   count = var.create ? (var.create_alb ? 1 : 0) : 0
 
   name        = local.name_prefix
-  port        = 80
+  port        = 8000
   protocol    = "HTTP"
   vpc_id      = var.vpc_id
   target_type = "instance"

@@ -12,28 +12,22 @@
 #   - secretsManager.type = VAULT is NOT used; Airbyte stores connector
 #     credentials in AWS Secrets Manager directly via the IAM role on the
 #     instance profile.
-#   - Auth is enabled. For an HTTP (non-TLS) deployment accessed via bare IP,
-#     we MUST: disable cookieSecureSetting so the browser keeps the
-#     refresh-token cookie on HTTP, and relax cookieSameSiteSetting from
-#     Strict to Lax so the cookie is sent on the post-login redirect that
-#     bootstraps the session. Without these, the webapp posts an empty body to
-#     /api/oauth/access_token and React loops with "Maximum update depth
-#     exceeded".
+#   - Auth is enabled. HTTPS is terminated at the ALB; cookieSameSiteSetting is
+#     set to Lax (see comment below) to fix the OAuth redirect flow.
 
 global:
+  airbyteUrl: "${airbyte_url}"
+
   auth:
     enabled: true
 
-    # Security settings for the auth subsystem.
-    # cookieSecureSetting=false is REQUIRED for HTTP deployments; otherwise
-    # the browser drops the access/refresh cookies because they carry the
-    # Secure flag, and /api/oauth/access_token receives an empty body.
-    # cookieSameSiteSetting=Lax is required because the chart default Strict
-    # blocks the cookie on the cross-context redirect that completes login.
-    # Lax is the standard relaxation; do NOT set None without HTTPS, browsers
-    # will reject SameSite=None;Secure=false combinations outright.
+    # SameSite=Lax is required by the OAuth redirect flow: after login, the
+    # browser performs a top-level navigation back to the app. SameSite=Strict
+    # drops the refresh-token cookie on that redirect regardless of HTTP/HTTPS,
+    # causing /api/oauth/access_token to receive no token and return
+    # "refresh_token and grant_type are required". Lax permits cookies on
+    # top-level navigations while still blocking cross-site subrequests.
     security:
-      cookieSecureSetting: "false"
       cookieSameSiteSetting: "Lax"
 
   database:

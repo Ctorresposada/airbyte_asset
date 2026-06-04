@@ -27,6 +27,17 @@ data "aws_subnets" "private" {
   tags = { Tier = "private-app" }
 }
 
+data "aws_subnets" "public" {
+  count = var.create ? 1 : 0
+
+  filter {
+    name   = "vpc-id"
+    values = [data.aws_vpc.this[0].id]
+  }
+
+  tags = { Tier = "public" }
+}
+
 # ---------------------------------------------------------------------------
 # KMS key policy document
 # ---------------------------------------------------------------------------
@@ -160,10 +171,14 @@ module "airbyte" {
   rds_deletion_protection = var.airbyte_rds_deletion_protection
   s3_force_destroy        = var.airbyte_s3_force_destroy
 
-  # ALB disabled until DNS and certificate are provisioned
-  create_alb = false
+  create_alb          = true
+  alb_internal        = false
+  alb_subnet_ids      = data.aws_subnets.public[0].ids
+  alb_certificate_arn = aws_acm_certificate_validation.airbyte[0].certificate_arn
 
   allowed_cidr_blocks = var.airbyte_alb_allowed_cidr_blocks
+
+  airbyte_url = "https://${var.environment == "prod" ? "airbyte" : "airbyte-${var.environment}"}.esc20.net"
 
   tags = var.tags
 }
@@ -213,4 +228,68 @@ resource "aws_vpc_security_group_egress_rule" "airbyte_instance_to_oci" {
   cidr_ipv4         = var.oci_bastion_host
 
   tags = var.tags
+}
+
+# ---------------------------------------------------------------------------
+# Route53: hosted zone data source (lives in account 332872251707)
+# ---------------------------------------------------------------------------
+data "aws_route53_zone" "esc_net" {
+  count = var.create ? 1 : 0
+
+  provider = aws.route53
+  name     = "esc20.net"
+}
+
+# ---------------------------------------------------------------------------
+# ACM: public certificate with DNS validation
+# ---------------------------------------------------------------------------
+resource "aws_acm_certificate" "airbyte" {
+  #checkov:skip=CKV2_AWS_71: Ensure AWS ACM Certificate domain name does not include wildcards
+
+  count = var.create ? 1 : 0
+
+  domain_name       = "*.esc20.net"
+  validation_method = "DNS"
+
+  tags = merge(var.tags, { Name = "${local.name}-airbyte" })
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+resource "aws_route53_record" "airbyte_cert_validation" {
+  count = var.create ? 1 : 0
+
+  provider = aws.route53
+  zone_id  = data.aws_route53_zone.esc_net[0].zone_id
+  name     = one(aws_acm_certificate.airbyte[0].domain_validation_options).resource_record_name
+  type     = one(aws_acm_certificate.airbyte[0].domain_validation_options).resource_record_type
+  records  = [one(aws_acm_certificate.airbyte[0].domain_validation_options).resource_record_value]
+  ttl      = 60
+}
+
+resource "aws_acm_certificate_validation" "airbyte" {
+  count = var.create ? 1 : 0
+
+  certificate_arn         = aws_acm_certificate.airbyte[0].arn
+  validation_record_fqdns = [aws_route53_record.airbyte_cert_validation[0].fqdn]
+}
+
+# ---------------------------------------------------------------------------
+# Route53: A alias record pointing to the public ALB
+# ---------------------------------------------------------------------------
+resource "aws_route53_record" "airbyte" {
+  count = var.create ? 1 : 0
+
+  provider = aws.route53
+  zone_id  = data.aws_route53_zone.esc_net[0].zone_id
+  name     = var.environment == "prod" ? "airbyte" : "airbyte-${var.environment}"
+  type     = "A"
+
+  alias {
+    name                   = module.airbyte[0].alb_dns_name
+    zone_id                = module.airbyte[0].alb_zone_id
+    evaluate_target_health = true
+  }
 }
