@@ -95,6 +95,26 @@ resource "aws_lakeformation_permissions" "airbyte_bronze_location" {
 }
 
 # ---------------------------------------------------------------------------
+# Grant DE SSO role DATA_LOCATION_ACCESS on the silver S3 location.
+# Required for Athena to read Iceberg tables governed by Lake Formation:
+# LF vends S3 credentials via the SLR only when the principal also has
+# DATA_LOCATION_ACCESS — SELECT alone is insufficient for Iceberg reads.
+# ---------------------------------------------------------------------------
+resource "aws_lakeformation_permissions" "de_silver_location" {
+  for_each = var.create ? toset(var.lakeformation_de_role_arns) : toset([])
+
+  principal = each.value
+
+  data_location {
+    arn = aws_s3_bucket.buckets["silver"].arn
+  }
+
+  permissions = ["DATA_LOCATION_ACCESS"]
+
+  depends_on = [aws_lakeformation_resource.silver]
+}
+
+# ---------------------------------------------------------------------------
 # Grant Airbyte IAM user CREATE_TABLE and DESCRIBE on the bronze Glue database.
 # Allows Airbyte to register new Iceberg tables in the Glue Catalog.
 # ---------------------------------------------------------------------------

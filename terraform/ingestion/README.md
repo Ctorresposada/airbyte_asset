@@ -58,6 +58,7 @@ This stack provisions the AWS infrastructure for the Region 20 Data Lake ingesti
 | [aws_lakeformation_permissions.de_raw_database](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/lakeformation_permissions) | resource |
 | [aws_lakeformation_permissions.de_raw_tables](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/lakeformation_permissions) | resource |
 | [aws_lakeformation_permissions.de_silver_database](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/lakeformation_permissions) | resource |
+| [aws_lakeformation_permissions.de_silver_location](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/lakeformation_permissions) | resource |
 | [aws_lakeformation_permissions.de_silver_tables](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/lakeformation_permissions) | resource |
 | [aws_lakeformation_permissions.glue_connect20_crawler_raw_db](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/lakeformation_permissions) | resource |
 | [aws_lakeformation_permissions.glue_connect20_crawler_raw_location](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/lakeformation_permissions) | resource |
