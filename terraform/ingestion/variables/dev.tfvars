@@ -96,8 +96,8 @@ glue_crawlers = {
     database_key   = "raw"
     table_prefix   = "ascender_"
     schedule       = "cron(0 5 * * ? *)" # 11 PM CST / 5 AM UTC
-    enabled        = false
-    csv_classifier = true # CSV files contain quoted fields with commas — uses OpenCSVSerDe
+    enabled        = false               # if set to false, it pauses schedule, crawler still exists but won't run automatically
+    csv_classifier = true                # CSV files contain quoted fields with commas — uses OpenCSVSerDe
     csv_delimiter  = ","
   }
 }
