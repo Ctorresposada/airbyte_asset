@@ -20,16 +20,7 @@ global:
 
   auth:
     enabled: true
-
-    # SameSite=Lax is required by the OAuth redirect flow: after login, the
-    # browser performs a top-level navigation back to the app. SameSite=Strict
-    # drops the refresh-token cookie on that redirect regardless of HTTP/HTTPS,
-    # causing /api/oauth/access_token to receive no token and return
-    # "refresh_token and grant_type are required". Lax permits cookies on
-    # top-level navigations while still blocking cross-site subrequests.
-    security:
-      cookieSameSiteSetting: "Lax"
-
+ 
   database:
     # External RDS PostgreSQL for Airbyte configuration storage.
     type: "external"
