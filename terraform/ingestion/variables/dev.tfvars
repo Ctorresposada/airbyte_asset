@@ -83,7 +83,7 @@ lakeformation_de_database_permissions = ["DESCRIBE", "DROP"]
 lakeformation_de_table_permissions    = ["SELECT", "DESCRIBE", "DROP"]
 
 glue_crawlers = {
-  connect_20 = {
+  connect_20 = { #parquet file
     s3_bucket_key = "raw"
     s3_prefix     = "connect20/"
     database_key  = "raw"
@@ -91,7 +91,7 @@ glue_crawlers = {
     schedule      = "cron(0 3 * * ? *)" # 9 PM CST / 3 AM UTC
     enabled       = false               # if set to false, it pauses schedule, crawler still exists but won't run automatically
   }
-  ascender = {
+  ascender = { #CSV file
     s3_bucket_key  = "raw"
     s3_prefix      = "ascender/"
     database_key   = "raw"
