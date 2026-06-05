@@ -55,7 +55,11 @@ resource "aws_glue_crawler" "crawlers" {
 
   schema_change_policy {
     delete_behavior = "LOG"
-    update_behavior = "UPDATE_IN_DATABASE"
+    # Configurable per crawler — set to LOG for sources with manually managed
+    # aws_glue_catalog_table resources (e.g. ascender) to prevent the crawler
+    # from overwriting fixed schemas. Use UPDATE_IN_DATABASE (default) for
+    # crawler-managed tables like connect20 Parquet.
+    update_behavior = each.value.update_behavior
   }
 
   tags = merge(var.tags, {
@@ -314,5 +318,8 @@ resource "aws_glue_catalog_table" "ascender_invoice" {
   parameters = {
     "skip.header.line.count" = "1"
     "classification"         = "csv"
+    # Treats empty quoted fields ("") as NULL instead of throwing NumberFormatException.
+    # Required because OpenCSVSerde cannot parse empty strings on some column types.
+    "use.null.for.invalid.data" = "true"
   }
 }

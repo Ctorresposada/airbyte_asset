@@ -91,14 +91,15 @@ glue_crawlers = {
     enabled       = false               # if set to false, it pauses schedule, crawler still exists but won't run automatically
   }
   ascender = { #CSV file
-    s3_bucket_key  = "raw"
-    s3_prefix      = "ascender/"
-    database_key   = "raw"
-    table_prefix   = "ascender_"
-    schedule       = "cron(0 5 * * ? *)" # 11 PM CST / 5 AM UTC
-    enabled        = false               # if set to false, it pauses schedule, crawler still exists but won't run automatically
-    csv_classifier = true                # CSV files contain quoted fields with commas — uses OpenCSVSerDe
-    csv_delimiter  = ","
+    s3_bucket_key   = "raw"
+    s3_prefix       = "ascender/"
+    database_key    = "raw"
+    table_prefix    = "ascender_"
+    schedule        = "cron(0 5 * * ? *)" # 11 PM CST / 5 AM UTC
+    enabled         = false               # if set to false, it pauses schedule, crawler still exists but won't run automatically
+    csv_classifier  = true                # CSV files contain quoted fields with commas — uses OpenCSVSerDe
+    csv_delimiter   = ","
+    update_behavior = "LOG" # prevents crawler from overwriting the Terraform-managed ascender_invoice table
   }
 }
 
