@@ -84,24 +84,8 @@ resource "aws_cloudwatch_event_target" "dbt_task_failure_sns" {
   arn  = aws_sns_topic.critical[0].arn
 }
 
-# Allow EventBridge to publish to the encrypted critical SNS topic
-resource "aws_sns_topic_policy" "critical_eventbridge" {
-  count = var.create && var.enable_dbt_ecs_monitoring ? 1 : 0
-
-  arn = aws_sns_topic.critical[0].arn
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Sid    = "AllowEventBridgePublish"
-        Effect = "Allow"
-        Principal = {
-          Service = "events.amazonaws.com"
-        }
-        Action   = "SNS:Publish"
-        Resource = aws_sns_topic.critical[0].arn
-      }
-    ]
-  })
-}
+# The SNS topic policy that allows EventBridge to publish to the critical topic
+# lives in sns.tf (aws_sns_topic_policy.critical_eventbridge). It is shared by
+# every EventBridge rule that targets the critical topic — the dbt task-failure
+# rule here and the Glue crawler-failure rules in alarms_glue.tf — because a
+# single SNS topic can have only one topic policy.

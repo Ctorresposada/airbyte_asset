@@ -15,7 +15,7 @@ Some monitoring components in this document are marked as optional. The platform
    - 2.1 [Redshift Serverless — Data Warehouse](#21-redshift-serverless--data-warehouse)
    - 2.2 [Athena — Query Engine for Raw and Bronze Data](#22-athena--query-engine-for-raw-and-bronze-data)
    - 2.3 [Lambda Function — Google Drive Sync (TEA Data)](#23-lambda-function--google-drive-sync-tea-data)
-   - 2.4 [Glue Crawler — Connect20 Data Cataloging](#24-glue-crawler--connect20-data-cataloging)
+   - 2.4 [Glue Crawlers — Connect20 and Ascender Data Cataloging](#24-glue-crawlers--connect20-and-ascender-data-cataloging)
    - 2.5 [S3 Data Lake — Storage Buckets](#25-s3-data-lake--storage-buckets)
 3. [Optional Monitoring — Airbyte (Self-Hosted)](#3-optional-monitoring--airbyte-self-hosted)
    - 3.1 [Airbyte Server — EC2 Instance Health](#31-airbyte-server--ec2-instance-health)
@@ -42,7 +42,7 @@ When an alarm condition clears, for example a query failures drop back below the
 
 ## 2. Core Monitoring (Always Active)
 
-The following monitoring is deployed regardless of which optional components are in use. It covers the data lake storage layer, the two query engines (Redshift and Athena), the TEA data ingestion function, and the Connect20 cataloging job.
+The following monitoring is deployed regardless of which optional components are in use. It covers the data lake storage layer, the two query engines (Redshift and Athena), the TEA data ingestion function, and the Connect20 and Ascender cataloging jobs.
 
 ### 2.1 Redshift Serverless — Data Warehouse
 
@@ -65,9 +65,9 @@ Athena is a query engine that lets the team query raw data files stored in the d
 |---|---|---|---|---|
 | Slow Queries | Execution time of the slowest 1% of queries (p99) | Slow queries indicate data growth, missing partitions, or inefficient query patterns | p99 > 5 minutes | Warning |
 | Cost Control | Total data scanned per day (`ProcessedBytes`, daily sum) | Athena charges per byte scanned, unusually high scan volumes mean unexpectedly high bills | > 100 GB scanned in one day | Warning |
-| Failed Queries | Count of failed queries (custom metric from log filter) | Query failures indicate a schema change, a missing data file, or a permissions issue | >= 5 failures in 10 min | Critical |
+| Failed Queries | Count of failed queries, taken directly from Athena's native CloudWatch metric — the `primary` workgroup publishes its own metrics, and this alarm counts the samples where the query state is `FAILED` (CloudWatch dimensions `WorkGroup = primary` and `QueryState = FAILED`) | Query failures indicate a schema change, a missing data file, or a permissions issue | >= 5 failures in 10 min | Critical |
 
-The Slow Queries alarm is most likely to fire when the data lake grows significantly without a corresponding update to partitioning strategy — Athena reads less data (and runs faster) when files are organized into date-partitioned folders. The Cost Control alarm is a financial guardrail: a single poorly written query against an unpartitioned table can scan hundreds of gigabytes and generate a surprising bill. The Failed Queries alarm often surfaces when a schema change in an upstream data source (a new column, a renamed field) breaks a downstream query that was written against the old structure.
+The Slow Queries alarm is most likely to fire when the data lake grows significantly without a corresponding update to partitioning strategy — Athena reads less data (and runs faster) when files are organized into date-partitioned folders. The Cost Control alarm is a financial guardrail: a single poorly written query against an unpartitioned table can scan hundreds of gigabytes and generate a surprising bill. The Failed Queries alarm draws on Athena's own built-in CloudWatch metrics rather than parsing logs — Athena does not write per-query logs to CloudWatch Logs, but the `primary` workgroup is configured to publish its query metrics directly, including a count of queries that ended in a failed state. This alarm often surfaces when a schema change in an upstream data source (a new column, a renamed field) breaks a downstream query that was written against the old structure.
 
 ### 2.3 Lambda Function — Google Drive Sync (TEA Data)
 
@@ -82,16 +82,19 @@ A Lambda function is a small, self-contained piece of code that runs on demand w
 
 The Sync Errors alarm is the primary alert for TEA data freshness. If it fires on a weekday morning, the team should check whether today's TEA files appeared in the data lake. The Sync Duration alarm is a leading indicator — if the function is regularly taking 13+ minutes, it will eventually be cut off as the data volume grows, and the function's logic should be reviewed. Throttling is unusual in practice (it requires many parallel invocations of the same function), but if it persists, the platform team can request a concurrency limit increase from AWS.
 
-### 2.4 Glue Crawler — Connect20 Data Cataloging
+### 2.4 Glue Crawlers — Connect20 and Ascender Data Cataloging
 
-A Glue Crawler is an automated process that scans data files in the lake on a schedule, figures out their structure (what columns exist, what data types they contain), and updates the data catalog so analysts can query those files through Athena. Think of it as an automated librarian that visits the filing cabinet every night, reads the labels on new folders, and updates the index. The Connect20 crawler runs nightly against the Connect20 data files in the Bronze layer.
+A Glue Crawler is an automated process that scans data files in the lake on a schedule, figures out their structure (what columns exist, what data types they contain), and updates the data catalog so analysts can query those files through Athena. Think of it as an automated librarian that visits the filing cabinet every night, reads the labels on new folders, and updates the index. The platform runs two crawlers: the Connect20 crawler and the Ascender crawler, both cataloging their respective data files in the Bronze layer.
+
+Both crawlers are monitored for failure through AWS EventBridge (AWS's event bus — a central channel that AWS services use to announce things that happen, which other systems can listen for). Glue automatically emits an event every time a crawler changes state, and the platform sets up an EventBridge rule that listens specifically for any crawler reporting a `Failed` state. The moment either crawler fails, the rule fires and sends a notification to the Critical topic. Because this approach watches for events rather than reading a log, it needs no log group to exist first and works even before a crawler has ever run.
 
 | Alarm Name | What It Measures | Why It Matters | Threshold | Severity |
 |---|---|---|---|---|
-| Crawler Failure | Whether the crawler completed successfully (custom metric from log filter) | A failed crawl means new Connect20 data is not visible to analysts, it exists in storage but cannot be queried | >= 1 failure detected | Critical |
-| Crawler Duration | How long the crawl took to complete (custom metric from log filter) | An unusually long crawl can indicate a large volume of new files or a structural change in the data that the crawler is struggling to classify | > 60 minutes | Warning |
+| Crawler Failure | Whether either crawler (Connect20 or Ascender) reported a `Failed` state, detected via an EventBridge rule on Glue's "Glue Crawler State Change" event | A failed crawl means newly delivered data is not visible to analysts, it exists in storage but cannot be queried | Any `Failed` event | Critical |
 
-The Crawler Failure alarm is a binary signal: the crawl either succeeded or it did not. When it fails, Connect20 data delivered since the last successful crawl will not appear in Athena query results. The Crawler Duration alarm provides advance warning before this failure point. A crawl that is taking twice as long as usual is a sign that something has changed and warrants investigation before it becomes a failure.
+The Crawler Failure alert is a binary signal: a crawl either succeeded or it did not. When one fails, the data that crawler delivered since its last successful run will not appear in Athena query results, and the team is notified immediately.
+
+Crawler run duration is intentionally not monitored. AWS Glue does not publish a crawler run-duration metric, and the state-change event that signals success or failure carries no elapsed-time field. The only way to alarm on how long a crawl takes would be to build a custom Lambda function to compute the duration ourselves, which was judged not worth the operational overhead for the value it would add. Duration is therefore left unmonitored.
 
 ### 2.5 S3 Data Lake — Storage Buckets
 
@@ -173,15 +176,16 @@ Any time dbt fails to complete its transformation run, the team receives an imme
 
 A composite alarm is a summary signal that fires when any one of several individual critical conditions is true at the same time. Think of it as a single "is the pipeline healthy?" indicator, rather than receiving three separate critical notifications for three separate components of the same underlying problem. When the composite alarm fires, it means at least one critical component of the data pipeline has an active issue.
 
-The Pipeline Health composite alarm fires when any of the following individual alarms is in an ALARM state:
+A composite alarm can only combine other metric alarms — components that have a measurable ALARM state. The Pipeline Health composite alarm fires when any of the following individual alarms is in an ALARM state:
 
 - Lambda gdrive-sync errors (TEA data sync failing)
-- Glue Connect20 crawler failure (Connect20 cataloging job failing)
 - Redshift query failures (data warehouse returning errors)
 
 When `enable_airbyte_monitoring = true`, the Airbyte RDS low-storage alarm is also included in the composite. This ensures that a storage condition threatening the Airbyte database — which would halt all Airbyte-managed syncs — is surfaced at the pipeline level, not just as an isolated infrastructure alarm.
 
-When this alarm fires, the team receives a single critical notification rather than potentially several simultaneous ones for related issues. The notification identifies the composite alarm by name; the team should then check the individual component alarms (see [Section 8 — Alarm Quick Reference](#8-alarm-quick-reference)) to determine which specific component triggered it.
+Glue crawler failures are deliberately not part of this composite. As described in [Section 2.4](#24-glue-crawlers--connect20-and-ascender-data-cataloging), crawler failures are detected through an EventBridge rule rather than a metric alarm, and an EventBridge rule has no ALARM state for a composite alarm to read. Crawler failures are not unmonitored, though — they still page the team immediately through their own EventBridge to Critical-topic path; they are simply not folded into this single composite signal.
+
+When this alarm fires, the team receives a single critical notification rather than potentially several simultaneous ones for related issues. The notification identifies the composite alarm by name; the team should then check the individual component alarms (see [Section 7 — Alarm Quick Reference](#7-alarm-quick-reference)) to determine which specific component triggered it.
 
 ## 6. Dashboards
 
@@ -194,8 +198,8 @@ The platform provisions two dashboards.
 This dashboard is always active. It is designed for daily health checks and post-incident review. It is organized into four sections:
 
 - **Redshift Serverless** — Active concurrent queries over time, query failure count, active database connections, and hourly compute usage. This section provides a clear picture of whether the data warehouse is healthy and whether its load is within normal bounds.
-- **Athena** — Query execution time distribution (showing the spread between fast and slow queries), total data scanned per day (a cost proxy), and failed query count. This section is useful for identifying query efficiency trends and catching unexpected cost spikes before they appear on the bill.
-- **Ingestion Pipeline** — Lambda invocation count, error count, and execution duration for the Google Drive sync function; Glue crawler run status and duration for the Connect20 cataloging job. This section shows whether data is arriving on schedule.
+- **Athena** — Query execution time distribution (showing the spread between fast and slow queries), total data scanned per day (a cost proxy), and failed query count drawn from Athena's native CloudWatch metric for the `primary` workgroup. This section is useful for identifying query efficiency trends and catching unexpected cost spikes before they appear on the bill.
+- **Ingestion Pipeline** — Lambda invocation count, error count, and execution duration for the Google Drive sync function. Because Glue publishes no crawler metrics, the dashboard cannot graph crawler run status or duration; in its place this section carries a short text note pointing readers to the EventBridge-based failure alerts (see [Section 2.4](#24-glue-crawlers--connect20-and-ascender-data-cataloging)) — Glue crawler failures are surfaced as an alert rather than a metric graph. This section shows whether data is arriving on schedule.
 - **S3 Data Lake** — Object count per bucket (Raw, Bronze, Silver). Because S3 metrics are reported daily, this section reflects the previous day's state rather than real-time counts.
 
 ### 6.2 Compute and Jobs
@@ -223,8 +227,7 @@ The table below summarizes every alarm in the platform. Rows marked with a singl
 | Sync Throttling | Lambda (TEA) | Warning | >= 5 throttles in 10 min | Warning topic |
 | Sync Duration | Lambda (TEA) | Warning | Max > 13.5 min | Warning topic |
 | Sync Error Rate | Lambda (TEA) | Critical | > 5% error rate | Critical topic |
-| Crawler Failure | Glue (Connect20) | Critical | >= 1 failure | Critical topic |
-| Crawler Duration | Glue (Connect20) | Warning | > 60 min | Warning topic |
+| Crawler Failure | Glue (Connect20 + Ascender) | Critical | Any Failed event (EventBridge) | Critical topic |
 | Raw Bucket Empty | S3 | Warning | < 1 object | Warning topic |
 | Bronze Bucket Empty | S3 | Warning | < 1 object | Warning topic |
 | Silver Bucket Empty | S3 | Warning | < 1 object | Warning topic |

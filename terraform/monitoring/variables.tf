@@ -59,9 +59,3 @@ variable "redshift_compute_seconds_threshold" {
   default     = 7200
 }
 
-variable "athena_log_group_name" {
-  description = "CloudWatch log group name for Athena query logs. Used for the failed-queries metric filter."
-  type        = string
-  default     = "/aws/athena/queries"
-}
-

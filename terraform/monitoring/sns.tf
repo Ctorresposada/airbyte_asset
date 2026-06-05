@@ -68,3 +68,37 @@ resource "aws_sns_topic_subscription" "critical_email" {
   protocol  = "email"
   endpoint  = var.critical_emails[count.index]
 }
+
+# ---------------------------------------------------------------------------
+# Critical topic policy — allows EventBridge to publish.
+#
+# Shared by every EventBridge rule that targets the critical topic (Glue
+# crawler failures in alarms_glue.tf, dbt task failures in alarms_dbt_ecs.tf).
+# A single SNS topic can have only one topic policy, so it lives here and is
+# gated only on var.create — not on any per-feature flag — so the policy is
+# always present whenever a rule that needs it could exist. EventBridge calls
+# SNS:Publish; SNS itself (sns.amazonaws.com, already granted in the SNS KMS
+# key policy in data.tf) performs the at-rest encryption, so no additional KMS
+# grant for events.amazonaws.com is required.
+# ---------------------------------------------------------------------------
+
+resource "aws_sns_topic_policy" "critical_eventbridge" {
+  count = var.create ? 1 : 0
+
+  arn = aws_sns_topic.critical[0].arn
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "AllowEventBridgePublish"
+        Effect = "Allow"
+        Principal = {
+          Service = "events.amazonaws.com"
+        }
+        Action   = "SNS:Publish"
+        Resource = aws_sns_topic.critical[0].arn
+      }
+    ]
+  })
+}

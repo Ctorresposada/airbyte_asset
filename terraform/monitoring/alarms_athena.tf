@@ -42,20 +42,32 @@ resource "aws_cloudwatch_metric_alarm" "athena_cost_control" {
   }
 }
 
-# Failed queries alarm uses the custom metric emitted by the log metric filter in log_metric_filters.tf
+# Athena does not write query logs to CloudWatch Logs, so failed queries cannot be
+# counted with a log metric filter. Instead, Athena publishes a native per-query
+# metric in the AWS/Athena namespace dimensioned by WorkGroup and QueryState. Each
+# failed query produces one datapoint, so SampleCount of any per-query metric scoped
+# to QueryState=FAILED equals the number of failed queries in the period.
+# TotalExecutionTime is emitted for both DDL and DML queries, making it the most
+# complete metric to count against. The metric only emits on failure, so missing
+# data is treated as not breaching.
 resource "aws_cloudwatch_metric_alarm" "athena_failed_queries" {
   count = var.create ? 1 : 0
 
   alarm_name          = "${local.name}-athena-failed-queries"
   alarm_description   = "5 or more Athena query failures in 10 minutes — schema change or missing data file likely"
-  namespace           = "Region20/Athena"
-  metric_name         = "FailedQueries"
-  statistic           = "Sum"
+  namespace           = "AWS/Athena"
+  metric_name         = "TotalExecutionTime"
+  statistic           = "SampleCount"
   period              = 600
   evaluation_periods  = 1
   threshold           = 5
   comparison_operator = "GreaterThanOrEqualToThreshold"
   treat_missing_data  = "notBreaching"
+
+  dimensions = {
+    WorkGroup  = "primary"
+    QueryState = "FAILED"
+  }
 
   alarm_actions = [aws_sns_topic.critical[0].arn]
   ok_actions    = [aws_sns_topic.critical[0].arn]

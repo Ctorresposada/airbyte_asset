@@ -113,10 +113,10 @@ locals {
       width  = 8
       height = 6
       properties = {
-        title   = "Failed Queries (custom metric)"
+        title   = "Failed Queries (WorkGroup=primary, QueryState=FAILED)"
         view    = "timeSeries"
         region  = var.aws_region
-        metrics = [["Region20/Athena", "FailedQueries", { stat = "Sum", period = 600 }]]
+        metrics = [["AWS/Athena", "TotalExecutionTime", "WorkGroup", "primary", "QueryState", "FAILED", { stat = "SampleCount", period = 600 }]]
       }
     },
   ]
@@ -170,36 +170,19 @@ locals {
         metrics = [["AWS/Lambda", "Duration", "FunctionName", "${local.name}-gdrive-sync", { stat = "Maximum", period = 300 }]]
       }
     },
+    # Glue crawler status is delivered as EventBridge "Glue Crawler State Change"
+    # events to the critical SNS topic (alarms_glue.tf), not as CloudWatch metrics.
+    # AWS publishes no native CloudWatch metrics for crawlers, so there is nothing
+    # to graph here — the previous Glue failure/duration widgets sourced custom
+    # metrics that are no longer emitted and would have stayed permanently empty.
     {
-      type   = "metric"
+      type   = "text"
       x      = 18
       y      = 15
       width  = 6
       height = 6
       properties = {
-        title  = "Glue Crawler Failures (Connect20 + Ascender)"
-        view   = "timeSeries"
-        region = var.aws_region
-        metrics = [
-          ["Region20/Glue", "Connect20CrawlerFailure", { stat = "Sum", period = 300, label = "Connect20" }],
-          ["Region20/Glue", "AscenderCrawlerFailure", { stat = "Sum", period = 300, label = "Ascender" }],
-        ]
-      }
-    },
-    {
-      type   = "metric"
-      x      = 0
-      y      = 21
-      width  = 12
-      height = 6
-      properties = {
-        title  = "Glue Crawler Duration (Connect20 + Ascender, seconds)"
-        view   = "timeSeries"
-        region = var.aws_region
-        metrics = [
-          ["Region20/Glue", "Connect20CrawlerDuration", { stat = "Maximum", period = 300, label = "Connect20" }],
-          ["Region20/Glue", "AscenderCrawlerDuration", { stat = "Maximum", period = 300, label = "Ascender" }],
-        ]
+        markdown = "### Glue Crawlers\nCrawler **failures** are delivered via EventBridge to the Critical SNS topic, not CloudWatch metrics (AWS publishes no native crawler metrics). Check email alerts and the Glue console **Crawlers** page for run history and duration."
       }
     },
   ]
@@ -209,7 +192,7 @@ locals {
     {
       type       = "text"
       x          = 0
-      y          = 27
+      y          = 21
       width      = 24
       height     = 1
       properties = { markdown = "## S3 Data Lake -- Object Counts (daily metric)" }
@@ -217,7 +200,7 @@ locals {
     {
       type   = "metric"
       x      = 0
-      y      = 28
+      y      = 22
       width  = 8
       height = 6
       properties = {
@@ -230,7 +213,7 @@ locals {
     {
       type   = "metric"
       x      = 8
-      y      = 28
+      y      = 22
       width  = 8
       height = 6
       properties = {
@@ -243,7 +226,7 @@ locals {
     {
       type   = "metric"
       x      = 16
-      y      = 28
+      y      = 22
       width  = 8
       height = 6
       properties = {
