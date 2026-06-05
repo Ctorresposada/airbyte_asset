@@ -108,6 +108,18 @@ resource "aws_s3_object" "ascender_prefix" {
   })
 }
 
+resource "aws_s3_object" "ascender_invoice_prefix" {
+  bucket  = aws_s3_bucket.buckets["raw"].id
+  key     = "ascender/invoice/"
+  content = ""
+
+  tags = merge(var.tags, {
+    Prefix = "ascender/invoice"
+    Source = "Ascender"
+    Layer  = "raw"
+  })
+}
+
 resource "aws_s3_object" "tea_prefix" {
   bucket  = aws_s3_bucket.buckets["raw"].id
   key     = "tea/"

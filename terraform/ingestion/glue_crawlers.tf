@@ -232,3 +232,87 @@ resource "aws_glue_security_configuration" "crawlers" {
   }
 }
 
+# ---------------------------------------------------------------------------
+# Manually managed Glue catalog tables for CSVs
+# Used when the crawler's automatic type inference is not suitable — e.g.
+# CSV sources with quoted fields that require OpenCSVSerde and all-string
+# columns to avoid NULL values from misaligned parsing.
+#
+# The crawler still runs for schema discovery (detecting new columns via
+# MergeNewColumns) but will not change existing column types, avoiding failures.
+# ---------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------
+# Ascender — manually managed Glue catalog tables
+# The Glue crawler cannot use OpenCSVSerde or force all-string columns, so
+# the table is defined here instead. The crawler still runs for schema
+# discovery but will not override column types on an existing table.
+# ---------------------------------------------------------------------------
+
+locals {
+  # Fixed column list for the Ascender invoice CSV — 70 columns in source delivery order.
+  # Duplicate source headers (MODULE, INVC_NBR, FUND, etc.) are disambiguated with
+  # numeric suffixes (_1, _2) to produce unique Glue column names.
+  #
+  # IMPORTANT: column ORDER must exactly match the source file. OpenCSVSerde maps
+  # by position, not by header name. If Ascender reorders or inserts columns in the
+  # middle of the file this list must be updated before the next delivery or data
+  # will be silently misaligned. New columns must always be appended at the end.
+  ascender_invoice_columns = [
+    "invoice_number", "customer_number", "requested_by", "request_date",
+    "invoiced_by", "due_date", "department_id", "module", "original_amount",
+    "cust_nbr", "customer_name", "stat_flg", "addr_atn", "addr_str",
+    "addr_cty", "addr_st", "addr_zip", "addr_zip4", "pri_contact",
+    "phone_ac", "phone_nbr", "phone_nbr_ext", "fax_ac", "fax_nbr",
+    "po_required", "email", "local_use", "dt_last_used", "module_1",
+    "vendor_nbr", "invc_nbr", "product_seq_nbr", "product_nbr",
+    "product_description", "product_unit_iss", "quantity", "unit_price",
+    "total_amount", "invc_nbr_1", "adjust_seq_nbr", "dt_adjust", "user_id",
+    "fund", "fscl_yr", "func", "obj", "sobj", "org", "pgm", "ed_span",
+    "proj_dtl", "adjustment_amount", "adjust_reason", "pymt_nbr",
+    "invc_nbr_2", "dts", "payment_amount", "fund_1", "fscl_yr_1",
+    "func_1", "obj_1", "sobj_1", "org_1", "pgm_1", "ed_span_1",
+    "proj_dtl_1", "dt_reverse", "reverse_user_id", "over_pymt_flg", "module_2",
+  ]
+}
+
+resource "aws_glue_catalog_table" "ascender_invoice" {
+  count         = var.create ? 1 : 0
+  name          = "ascender_invoice"
+  database_name = aws_glue_catalog_database.databases["raw"].name
+
+  storage_descriptor {
+    # Folder-level location so all delta files dropped by Ascender are picked up automatically.
+    location      = "s3://${aws_s3_bucket.buckets["raw"].id}/ascender/invoice/"
+    input_format  = "org.apache.hadoop.mapred.TextInputFormat"
+    output_format = "org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat"
+
+    # OpenCSVSerde correctly handles quoted fields that contain commas — the default
+    # LazySimpleSerDe splits on every comma including those inside quotes, producing
+    # misaligned rows and NULL values in Athena. Columns are mapped positionally;
+    # the CSV header row is skipped via skip.header.line.count below.
+    ser_de_info {
+      serialization_library = "org.apache.hadoop.hive.serde2.OpenCSVSerde"
+      parameters = {
+        separatorChar = ","
+        quoteChar     = "\""
+      }
+    }
+
+    # All columns typed as string to prevent type inference failures on values like
+    # scientific notation numbers (2.02304E+15) or dates stored as integers (20250603).
+    # DataType casting to proper types is handled in the bronze layer transformation.
+    dynamic "columns" {
+      for_each = local.ascender_invoice_columns
+      content {
+        name = columns.value
+        type = "string"
+      }
+    }
+  }
+
+  parameters = {
+    "skip.header.line.count" = "1"
+    "classification"         = "csv"
+  }
+}
