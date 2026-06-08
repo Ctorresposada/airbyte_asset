@@ -1,0 +1,28 @@
+version: 2
+
+sources:
+  - name: oracle
+    description: "Oracle CMT tables — raw data via Airbyte Cloud, Iceberg no S3 bronze catalogado no Glue"
+    database: awsdatacatalog
+    schema: escr20_bronze_dev
+    tables:
+      - name: cmt_form
+        description: "Formulários de commitment"
+      - name: cmt_period
+        description: "Períodos de commitment"
+      - name: cmt_form_item
+        description: "Itens dos formulários de commitment"
+      - name: cmt_form_item_group
+        description: "Grupos de itens dos formulários de commitment"
+      - name: contact
+        description: "Contatos ESC"
+      - name: cmt_range_price_forms
+        description: "Tabela de preços por faixa dos formulários de commitment"
+      - name: cmt_section
+        description: "Seções do formulário de commitment"
+      - name: cmt_category
+        description: "Categorias de commitment — não ingerido ainda"
+      - name: cmt_count_type
+        description: "Tipos de contagem de commitment — não ingerido ainda"
+      - name: esc_employee_data
+        description: "Dados de funcionários ESC — não ingerido ainda"
