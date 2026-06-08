@@ -55,7 +55,7 @@ airbyte_rds_deletion_protection = false
 airbyte_s3_force_destroy        = true
 
 # Populate with external IP CIDRs to allow access to the Airbyte ALB (e.g., ["1.2.3.4/32"])
-airbyte_alb_allowed_cidr_blocks = ["181.96.188.51/32", "38.46.246.237/32"]
+airbyte_alb_allowed_cidr_blocks = ["181.96.188.51/32", "38.46.246.237/32", "69.147.62.1/32"]
 vpn_available                   = true
 
 # Lake Formation: lakeformation_admin_arns intentionally empty.
