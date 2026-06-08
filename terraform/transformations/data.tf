@@ -33,13 +33,14 @@ data "aws_s3_bucket" "silver" {
   bucket = "escr20-silver-${var.environment}"
 }
 
-# Reads the currently deployed revision to preserve the CI-managed image tag on
-# subsequent applies. Requires the task family to already exist — on a brand-new
-# environment do a first apply with image = "${var.ecr_repository_url}:initial"
-# hardcoded, then switch to this pattern.
-data "aws_ecs_task_definition" "dbt_core_current" {
-  count           = var.create && var.enable_dbt_task ? 1 : 0
-  task_definition = "${local.name}-dbt-core"
+# CI writes the deployed image URI here after every successful ECR push.
+# Terraform reads it so the task definition always gets the CI-managed tag.
+# Parameter is created by aws_ssm_parameter.dbt_image_uri in main.tf.
+data "aws_ssm_parameter" "dbt_image_uri" {
+  count = var.create && var.enable_dbt_task ? 1 : 0
+
+  name            = var.dbt_image_ssm_parameter_name
+  with_decryption = false
 }
 
 # Redshift Serverless SG owned by the warehouse stack — looked up here so the dbt

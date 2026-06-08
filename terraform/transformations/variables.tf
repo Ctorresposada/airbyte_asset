@@ -55,6 +55,11 @@ variable "enable_dbt_task" {
   default     = true
 }
 
+variable "dbt_image_ssm_parameter_name" {
+  description = "SSM Parameter Store path that holds the currently deployed dbt Core image URI. Created by Terraform on first apply and written by CI after every subsequent ECR push. Convention: /region-20/<env>/dbt-core/image-uri."
+  type        = string
+}
+
 variable "dbt_task_cpu" {
   description = "Fargate task-level CPU units for the dbt Core task. Must be a valid Fargate CPU value. 1024 units = 1 vCPU."
   type        = number

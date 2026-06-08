@@ -26,3 +26,6 @@ kms_key_users = [
 redshift_db     = "gold"
 redshift_schema = "gold"
 redshift_user   = "dbt_service"
+
+# SSM parameter created by Terraform and written by CI after every successful dbt Core ECR push.
+dbt_image_ssm_parameter_name = "/region-20/dev/dbt-core/image-uri"

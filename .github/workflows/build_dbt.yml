@@ -96,6 +96,16 @@ jobs:
 
           echo "Registered: $NEW_ARN"
 
+      - name: Update DEV image URI in SSM
+        env:
+          IMAGE_URI: ${{ needs.build.outputs.image-uri }}
+        run: |
+          aws ssm put-parameter \
+            --name "/region-20/dev/dbt-core/image-uri" \
+            --value "$IMAGE_URI" \
+            --type String \
+            --overwrite
+
   # ---------------------------------------------------------------------------
   # Tag dbt-vX.X.X: promote the image currently running in DEV to PROD.
   # Reads the image URI from the DEV task definition, retags it in ECR
@@ -207,3 +217,13 @@ jobs:
             --output text)
 
           echo "Registered: $NEW_ARN"
+
+      - name: Update PROD image URI in SSM
+        env:
+          IMAGE_URI: ${{ steps.retag.outputs.uri }}
+        run: |
+          aws ssm put-parameter \
+            --name "/region-20/prod/dbt-core/image-uri" \
+            --value "$IMAGE_URI" \
+            --type String \
+            --overwrite
