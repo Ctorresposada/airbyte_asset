@@ -242,6 +242,19 @@ resource "aws_vpc_security_group_egress_rule" "airbyte_instance_to_oci" {
   tags = var.tags
 }
 
+resource "aws_vpc_security_group_egress_rule" "airbyte_instance_to_tas" {
+  count = var.create ? 1 : 0
+
+  security_group_id = module.airbyte[0].instance_sg_id
+  description       = "Airbyte access to TAS bastion"
+  from_port         = 22
+  to_port           = 22
+  ip_protocol       = "tcp"
+  cidr_ipv4         = var.tas_bastion_host
+
+  tags = var.tags
+}
+
 # ---------------------------------------------------------------------------
 # Route53: hosted zone data source (lives in account 332872251707)
 # ---------------------------------------------------------------------------

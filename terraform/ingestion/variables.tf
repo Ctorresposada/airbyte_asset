@@ -143,6 +143,11 @@ variable "oci_bastion_host" {
   description = "OCI bastion host to forward traffic to the Oracle DB"
 }
 
+variable "tas_bastion_host" {
+  type        = string
+  description = "TAS bastion host to forward traffic to the MSSQL DB"
+}
+
 # ---------------------------------------------------------------------------
 # Glue Crawlers → S3 raw sync (Ascender, TEA, Connect20)
 # ---------------------------------------------------------------------------

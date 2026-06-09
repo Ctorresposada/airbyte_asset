@@ -97,6 +97,7 @@ This stack provisions the AWS infrastructure for the Region 20 Data Lake ingesti
 | [aws_secretsmanager_secret_version.gdrive_sa_placeholder](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/secretsmanager_secret_version) | resource |
 | [aws_ssm_parameter.gdrive_sync_cursor](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/ssm_parameter) | resource |
 | [aws_vpc_security_group_egress_rule.airbyte_instance_to_oci](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/vpc_security_group_egress_rule) | resource |
+| [aws_vpc_security_group_egress_rule.airbyte_instance_to_tas](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/vpc_security_group_egress_rule) | resource |
 | [aws_vpc_security_group_ingress_rule.airbyte_instance_from_vpn_ui](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/vpc_security_group_ingress_rule) | resource |
 | [aws_caller_identity.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/caller_identity) | data source |
 | [aws_iam_policy_document.airbyte_kms](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
@@ -149,6 +150,7 @@ This stack provisions the AWS infrastructure for the Region 20 Data Lake ingesti
 | <a name="input_lakeformation_terraform_role_name"></a> [lakeformation\_terraform\_role\_name](#input\_lakeformation\_terraform\_role\_name) | Name of the IAM role used by Terraform to manage this stack. Registered as a Lake Formation admin so Terraform retains the ability to manage LF resources after location registration. | `string` | `"region-20-terraform-execution-role"` | no |
 | <a name="input_oci_bastion_host"></a> [oci\_bastion\_host](#input\_oci\_bastion\_host) | OCI bastion host to forward traffic to the Oracle DB | `string` | n/a | yes |
 | <a name="input_tags"></a> [tags](#input\_tags) | Common tags to apply to all resources required | `map(string)` | `{}` | no |
+| <a name="input_tas_bastion_host"></a> [tas\_bastion\_host](#input\_tas\_bastion\_host) | TAS bastion host to forward traffic to the MSSQL DB | `string` | n/a | yes |
 | <a name="input_team"></a> [team](#input\_team) | Team that manages this project | `string` | n/a | yes |
 | <a name="input_vpn_available"></a> [vpn\_available](#input\_vpn\_available) | Whether the Client VPN endpoint and its security group are deployed in this environment. When false, no direct ingress rules are added to the Airbyte instance SG from the VPN. Set to false in environments where the VPN has not yet been provisioned. | `bool` | `false` | no |
 

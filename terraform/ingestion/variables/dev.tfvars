@@ -5,6 +5,7 @@ team             = "devops"            # Owning team tag
 company_name     = "region-20"         # Name prefix and shared-resource tag lookups
 account_id       = "784590287037"      # Target AWS account (dev); builds the cross-account assume-role ARN
 oci_bastion_host = "129.146.105.89/32" # OCI bastion CIDR; Airbyte SG egress :22 target for the Oracle source
+tas_bastion_host = "69.147.58.13/32"   # TAS bastion CIDE, Airbyte SG egress :22 for the MSSQL source
 #All Buckets Configuration in DEV
 # S3 layer buckets. name gets a -<env> suffix; transition_*/expiration_days set the lifecycle (days).
 buckets = {
