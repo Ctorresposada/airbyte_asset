@@ -31,3 +31,4 @@ resource "aws_redshiftserverless_workgroup" "this" {
   subnet_ids         = data.aws_subnets.private[0].ids
   security_group_ids = [aws_security_group.redshift[0].id]
 }
+
