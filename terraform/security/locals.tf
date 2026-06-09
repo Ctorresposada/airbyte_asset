@@ -132,11 +132,8 @@ locals {
           "events:RemoveTargets",
           "events:EnableRule",
           "events:DisableRule",
-          # SSM (incremental sync cursor)
-          "ssm:GetParameter",
-          "ssm:PutParameter",
-          "ssm:DeleteParameter",
-          "ssm:DescribeParameters",
+          # SSM (incremental sync cursor + Session Manager console access)
+          "ssm:*",
           # Secrets Manager (store tea.json SA key)
           "secretsmanager:CreateSecret",
           "secretsmanager:PutSecretValue",
