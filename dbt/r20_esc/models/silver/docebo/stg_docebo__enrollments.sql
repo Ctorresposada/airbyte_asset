@@ -15,7 +15,7 @@ deduped as (
 
 renamed as (
     select
-        cast(user_id as varchar)                                    as user_id,
+        cast(cast(user_id as bigint) as varchar)                    as user_id,
         enrollment_status,
         cast(substr(enrollment_completion_date, 1, 10) as date)     as completion_date
     from deduped

@@ -15,15 +15,15 @@ deduped as (
 
 renamed as (
     select
-        cast(cmt_form_id as varchar)     as cmt_form_id,
-        cast(period_id as varchar)       as period_id,
-        cast(cmt_group_id as varchar)    as cmt_group_id,
-        cast(cmt_order_id as varchar)    as cmt_order_id,
-        cast(commitment_id as varchar)   as commitment_id,
-        cast(esc_contact_id as varchar)  as esc_contact_id,
-        cast(esc_contact_id2 as varchar) as esc_contact_id2,
-        cast(parent_id as varchar)       as parent_id,
-        cast(pdetail_id as varchar)      as pdetail_id,
+        cast(cast(cmt_form_id as bigint) as varchar)     as cmt_form_id,
+        cast(cast(period_id as bigint) as varchar)       as period_id,
+        cast(cmt_group_id as varchar)                    as cmt_group_id,
+        cast(cast(cmt_order_id as bigint) as varchar)    as cmt_order_id,
+        cast(cast(commitment_id as bigint) as varchar)   as commitment_id,
+        cast(cast(esc_contact_id as bigint) as varchar)  as esc_contact_id,
+        cast(esc_contact_id2 as varchar)                 as esc_contact_id2,
+        cast(cast(parent_id as bigint) as varchar)       as parent_id,
+        cast(cast(pdetail_id as bigint) as varchar)      as pdetail_id,
         cast(created_by as varchar)      as created_by,
         cast(updated_by as varchar)      as updated_by,
         cast(contact1 as varchar)        as contact1,
@@ -64,7 +64,7 @@ renamed as (
         case active
             when 'Y' then true
             when 'N' then false
-            else false
+            else null
         end                              as is_active,
         active,
         date_created,
