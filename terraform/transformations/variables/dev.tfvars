@@ -12,6 +12,8 @@ account_id   = "784590287037"
 ecr_repository_url = "471624149663.dkr.ecr.us-east-1.amazonaws.com/region-20-shared-dbt-core"
 ecr_repository_arn = "arn:aws:ecr:us-east-1:471624149663:repository/region-20-shared-dbt-core"
 
+enable_dbt_task = true # Whether to enable the DBT task resource, needs the CI pipeline and SSM parameter created first
+
 dbt_task_cpu           = 1024
 dbt_task_memory        = 2048
 dbt_log_retention_days = 30
