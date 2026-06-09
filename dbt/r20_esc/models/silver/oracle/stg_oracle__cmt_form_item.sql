@@ -15,9 +15,9 @@ deduped as (
 
 renamed as (
     select
-        cast(cmt_form_item_id as varchar) as cmt_form_item_id,
-        cast(cmt_form_id as varchar)      as cmt_form_id,
-        cast(period_id as varchar)        as period_id,
+        cast(cmt_form_item_id as varchar)              as cmt_form_item_id,
+        cast(cast(cmt_form_id as bigint) as varchar)   as cmt_form_id,
+        cast(cast(period_id as bigint) as varchar)     as period_id,
         cmt_group,
         description,
         unit_price,

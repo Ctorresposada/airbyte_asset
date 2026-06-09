@@ -15,8 +15,8 @@ deduped as (
 
 renamed as (
     select
-        cast(cmt_form_item_group_id as varchar) as cmt_form_item_group_id,
-        cast(period_id as varchar)              as period_id,
+        cast(cmt_form_item_group_id as varchar)    as cmt_form_item_group_id,
+        cast(cast(period_id as bigint) as varchar) as period_id,
         title,
         description,
         page,
@@ -26,7 +26,7 @@ renamed as (
         case active
             when 'Y' then true
             when 'N' then false
-            else false
+            else null
         end                                     as is_active,
         date_created,
         date_modified

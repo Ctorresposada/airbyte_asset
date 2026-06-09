@@ -21,9 +21,9 @@ renamed as (
         effective_end_date          as end_date,
         enrollment_start_date,
         case status
-            when 'Y' then true
-            when 'N' then false
-            else false
+            when 'A' then true
+            when 'I' then false
+            else null
         end                         as is_active,
         create_date,
         update_date
