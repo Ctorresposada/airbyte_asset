@@ -56,7 +56,7 @@ airbyte_rds_skip_final_snapshot = true          # dev: skip final snapshot on de
 airbyte_rds_deletion_protection = false         # dev: deletion protection off so the env can be torn down
 airbyte_s3_force_destroy        = true          # dev only: allows TF to empty/destroy the bucket
 
-# Populate with external IP CIDRs to allow access to the Airbyte ALB (e.g., ["1.2.3.4/32"])
+# Populate with external IP CIDRs to allow access to the Airbyte ALB (e.g., ["1.2.3.4/32"]) - ctorres IP added 2026-06-09
 airbyte_alb_allowed_cidr_blocks = ["181.96.188.51/32", "38.46.246.237/32", "69.147.62.1/32", "190.53.0.160/32"] # IPs allowed to reach the Airbyte ALB UI
 vpn_available                   = true                                                                          # Adds an Airbyte :8000 ingress from the VPN SG (VPN active in dev)
 
