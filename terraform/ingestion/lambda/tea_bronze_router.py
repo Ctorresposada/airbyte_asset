@@ -2,10 +2,21 @@
 tea_bronze_router.py — Lambda that routes files from raw/tea/ to bronze/tea/<subfolder>/.
 
 Routing rules (evaluated in order):
-  1. .pdf extension           → bronze/tea/<FY-folder>/pdfs/<filename>
-  2. .csv with > 1200 columns → bronze/tea/<FY-folder>/wide_tables/<filename>
-  3. .csv with ≤ 1200 columns → bronze/tea/<FY-folder>/<table_name>/<filename>
-  4. anything else            → bronze/tea/<FY-folder>/other/<filename>
+  1. .pdf extension           → bronze/tea/pdfs/<fy_prefix>_<filename>
+  2. .csv with > 1200 columns → bronze/tea/wide_tables/<fy_prefix>_<filename>
+  3. .csv with ≤ 1200 columns → bronze/tea/<fy_prefix>_<table_name>/<filename>
+  4. anything else            → bronze/tea/other/<fy_prefix>_<filename>
+
+FY prefix derivation:
+  The raw key's second path segment is the Google Drive FY folder name
+  (e.g. "FY 2024-2025").  This is normalised to "2024_2025" and prepended
+  to the table subfolder so each year gets its own Glue table:
+    tea/2024_2025_campus_staar_grade_7/   → Glue table: tea_2024_2025_campus_staar_grade_7
+    tea/2025_2026_campus_staar_grade_7/   → Glue table: tea_2025_2026_campus_staar_grade_7
+
+  Special folders (pdfs, wide_tables, other) are flat top-level singletons;
+  the FY prefix is baked into the filename so files from different years
+  remain distinguishable without affecting the Glue exclusion patterns.
 
 Table name derivation (for narrow CSVs):
   - Strip extension
@@ -65,9 +76,25 @@ WIDE_COLUMN_THRESHOLD = 1200
 # Routing helpers
 # ---------------------------------------------------------------------------
 
+def _normalize_fy(fy_folder: str) -> str:
+    """
+    Convert a Google Drive FY folder name to a clean underscore-separated prefix.
+
+    Examples:
+      "FY 2024-2025" → "2024_2025"
+      "FY 2025-2026" → "2025_2026"
+      "2024-2025"    → "2024_2025"
+    """
+    # Strip leading "FY " (case-insensitive)
+    name = re.sub(r"^FY\s*", "", fy_folder, flags=re.IGNORECASE)
+    # Collapse non-alphanumeric runs to underscores
+    name = re.sub(r"[^a-z0-9]+", "_", name.lower())
+    return name.strip("_")
+
+
 def _derive_table_name(filename_no_ext: str) -> str:
     """
-    Convert a filename stem to a clean Glue-compatible table name.
+    Convert a filename stem to a clean Glue-compatible table name segment.
 
     Steps:
       1. Remove a leading 4-digit year followed by optional spaces or dashes.
@@ -76,9 +103,9 @@ def _derive_table_name(filename_no_ext: str) -> str:
       4. Strip leading/trailing underscores.
 
     Examples:
-      "2025 Campus STAAR Grade 3"                       → "campus_staar_grade_3"
-      "2025-additional-targeted-support"                 → "additional_targeted_support"
-      "multi-year-unacceptable-list-2025-after-2025-appeal" → "multi_year_unacceptable_list_2025_after_2025_appeal"
+      "2025 Campus STAAR Grade 3"                            → "campus_staar_grade_3"
+      "2025-additional-targeted-support"                     → "additional_targeted_support"
+      "multi-year-unacceptable-list-2025-after-2025-appeal"  → "multi_year_unacceptable_list_2025_after_2025_appeal"
     """
     # Strip a leading 4-digit year plus any immediately following spaces or dashes.
     name = re.sub(r"^\d{4}[\s\-]+", "", filename_no_ext)
@@ -123,7 +150,7 @@ def _parse_raw_key(raw_key: str):
     and return (fy_folder, filename).
 
     parts[0] = "tea"
-    parts[1] = FY folder (e.g. "2024-2025")
+    parts[1] = FY folder (e.g. "FY 2024-2025")
     parts[-1] = filename
     """
     parts = raw_key.split("/")
@@ -139,27 +166,40 @@ def _parse_raw_key(raw_key: str):
 def _destination_key(raw_key: str) -> str:
     """
     Determine the bronze destination key for a given raw key.
+
+    Flat bronze layout — FY year baked into the folder or filename so each
+    year's data lives in its own Glue table and never merges across years:
+
+      Regular CSV  → tea/<fy_prefix>_<table_name>/<filename>
+                     e.g. tea/2024_2025_campus_staar_grade_7/2025 Campus STAAR Grade 7.csv
+                          → Glue table: tea_2024_2025_campus_staar_grade_7
+
+      Wide CSV     → tea/wide_tables/<fy_prefix>_<filename>   (excluded from crawler)
+      PDF          → tea/pdfs/<fy_prefix>_<filename>          (excluded from crawler)
+      Other        → tea/other/<fy_prefix>_<filename>         (excluded from crawler)
     """
     fy_folder, filename = _parse_raw_key(raw_key)
+    fy_prefix = _normalize_fy(fy_folder)
     name, _, ext = filename.rpartition(".")
     ext_lower = ext.lower() if ext else ""
 
     if ext_lower == "pdf":
-        subfolder = "pdfs"
-        logger.info("Routing %s → pdfs/", filename)
+        dest_key = f"tea/pdfs/{fy_prefix}_{filename}"
+        logger.info("Routing %s → pdfs/ (pdf)", filename)
     elif ext_lower == "csv":
         col_count = _count_csv_columns(RAW_BUCKET, raw_key)
         logger.info("CSV %s has %d columns", filename, col_count)
         if col_count > WIDE_COLUMN_THRESHOLD:
-            subfolder = "wide_tables"
+            dest_key = f"tea/wide_tables/{fy_prefix}_{filename}"
+            logger.info("Routing %s → wide_tables/ (%d cols)", filename, col_count)
         else:
             table_name = _derive_table_name(name)
-            subfolder = table_name
+            dest_key = f"tea/{fy_prefix}_{table_name}/{filename}"
+            logger.info("Routing %s → %s_%s/", filename, fy_prefix, table_name)
     else:
-        subfolder = "other"
-        logger.info("Routing %s → other/", filename)
+        dest_key = f"tea/other/{fy_prefix}_{filename}"
+        logger.info("Routing %s → other/ (unknown ext)", filename)
 
-    dest_key = f"tea/{fy_folder}/{subfolder}/{filename}"
     return dest_key
 
 
