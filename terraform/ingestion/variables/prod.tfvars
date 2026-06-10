@@ -41,7 +41,7 @@ lakeformation_de_table_permissions    = ["SELECT", "DESCRIBE"] # Table-level LF 
 glue_crawlers = {
   connect_20 = { s3_bucket_key = "raw", s3_prefix = "connect20/", database_key = "raw", table_prefix = "connect20_", schedule = "cron(0 3 * * ? *)", enabled = false }
   ascender   = { s3_bucket_key = "raw", s3_prefix = "ascender/", database_key = "raw", table_prefix = "ascender_", schedule = "cron(0 5 * * ? *)", enabled = false, csv_classifier = true, csv_delimiter = ",", update_behavior = "LOG" }
-  tea        = { s3_bucket_key = "raw", s3_prefix = "tea/", database_key = "raw", table_prefix = "tea", schedule = "cron(0 5 * * ? *)", enabled = false, csv_classifier = true, csv_delimiter = ",", update_behavior = "LOG" }
+  tea        = { s3_bucket_key = "bronze", s3_prefix = "tea/", database_key = "bronze", table_prefix = "tea_", schedule = "cron(0 5 * * ? *)", enabled = false, csv_classifier = true, csv_delimiter = ",", update_behavior = "UPDATE_IN_DATABASE", exclusions = ["**/wide_tables/**", "**/pdfs/**", "**/other/**"], combine_compatible_schemas = false }
 }
 
 gdrive_tea_folder_id           = "0AC5xbBuRiUvXUk9PVA" # Google Drive TEA source folder ID synced into s3 raw/tea/
@@ -50,3 +50,8 @@ gdrive_sync_schedule           = "cron(0 2 * * ? *)"   # Sync cadence when enabl
 gdrive_sync_timeout            = 900                   # Lambda timeout seconds (max 900); raise for larger folders
 gdrive_sync_memory             = 512                   # Lambda memory MB; higher also raises CPU/network
 gdrive_sync_log_retention_days = 30                    # Days CloudWatch keeps the sync Lambda logs
+
+# TEA Bronze Router Lambda
+tea_bronze_router_timeout            = 900
+tea_bronze_router_memory             = 256
+tea_bronze_router_log_retention_days = 30
