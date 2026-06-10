@@ -41,19 +41,19 @@ resource "aws_glue_crawler" "crawlers" {
   }
 
   # MergeNewColumns: adds columns that appear in new files without breaking
-  # existing table definitions. TableGroupingPolicy: CombineCompatibleSchemas
-  # groups files under the same prefix into a single table; None keeps one
-  # table per folder — controlled per-crawler via combine_compatible_schemas.
-  configuration = jsonencode({
-    Version = 1.0
-    CrawlerOutput = {
-      Partitions = { AddOrUpdateBehavior = "InheritFromTable" }
-      Tables     = { AddOrUpdateBehavior = "MergeNewColumns" }
-    }
-    Grouping = {
-      TableGroupingPolicy = each.value.combine_compatible_schemas ? "CombineCompatibleSchemas" : "None"
-    }
-  })
+  # existing table definitions. When combine_compatible_schemas=true, the
+  # Grouping block is included with CombineCompatibleSchemas; when false it is
+  # omitted entirely — AWS does not accept "None" as a valid policy value.
+  configuration = jsonencode(merge(
+    {
+      Version = 1.0
+      CrawlerOutput = {
+        Partitions = { AddOrUpdateBehavior = "InheritFromTable" }
+        Tables     = { AddOrUpdateBehavior = "MergeNewColumns" }
+      }
+    },
+    each.value.combine_compatible_schemas ? { Grouping = { TableGroupingPolicy = "CombineCompatibleSchemas" } } : {}
+  ))
 
   schema_change_policy {
     delete_behavior = "LOG"
