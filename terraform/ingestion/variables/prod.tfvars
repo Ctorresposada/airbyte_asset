@@ -41,7 +41,7 @@ lakeformation_de_table_permissions    = ["SELECT", "DESCRIBE"] # Table-level LF 
 glue_crawlers = {
   connect_20 = { s3_bucket_key = "raw", s3_prefix = "connect20/", database_key = "raw", table_prefix = "connect20_", schedule = "cron(0 3 * * ? *)", enabled = false }
   ascender   = { s3_bucket_key = "raw", s3_prefix = "ascender/", database_key = "raw", table_prefix = "ascender_", schedule = "cron(0 5 * * ? *)", enabled = false, csv_classifier = true, csv_delimiter = ",", update_behavior = "LOG" }
-  tea        = { s3_bucket_key = "bronze", s3_prefix = "tea/", database_key = "bronze", table_prefix = "tea_", schedule = "cron(0 5 * * ? *)", enabled = false, csv_classifier = true, csv_delimiter = ",", update_behavior = "UPDATE_IN_DATABASE", exclusions = ["**/wide_tables/**", "**/pdfs/**", "**/other/**"], combine_compatible_schemas = false }
+  tea        = { s3_bucket_key = "bronze", s3_prefix = "tea/", database_key = "bronze", table_prefix = "tea_", schedule = "cron(0 5 * * ? *)", enabled = false, csv_classifier = true, csv_delimiter = ",", update_behavior = "UPDATE_IN_DATABASE", exclusions = ["pdfs/**", "wide_tables/**", "other/**"], combine_compatible_schemas = false }
 }
 
 gdrive_tea_folder_id           = "0AC5xbBuRiUvXUk9PVA" # Google Drive TEA source folder ID synced into s3 raw/tea/
