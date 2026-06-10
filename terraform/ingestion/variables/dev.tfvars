@@ -116,7 +116,7 @@ glue_crawlers = {
     csv_classifier             = true
     csv_delimiter              = ","
     update_behavior            = "UPDATE_IN_DATABASE"
-    exclusions                 = ["**/wide_tables/**", "**/pdfs/**", "**/other/**"]
+    exclusions                 = ["pdfs/**", "wide_tables/**", "other/**"]
     combine_compatible_schemas = false # each subfolder = one table; disable cross-folder schema merging
   }
 }
