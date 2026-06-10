@@ -154,15 +154,17 @@ variable "tas_bastion_host" {
 variable "glue_crawlers" {
   description = "Map of Glue crawlers to provision. Each entry creates a crawler with its own IAM role, KMS key, and security configuration. Set enabled=false to suspend the schedule without destroying the crawler. Set csv_classifier=true for CSV sources that use quoted fields containing commas."
   type = map(object({
-    s3_bucket_key   = string
-    s3_prefix       = string
-    database_key    = string
-    table_prefix    = string
-    schedule        = string
-    enabled         = bool
-    csv_classifier  = optional(bool, false)
-    csv_delimiter   = optional(string, ",")
-    update_behavior = optional(string, "UPDATE_IN_DATABASE")
+    s3_bucket_key              = string
+    s3_prefix                  = string
+    database_key               = string
+    table_prefix               = string
+    schedule                   = string
+    enabled                    = bool
+    csv_classifier             = optional(bool, false)
+    csv_delimiter              = optional(string, ",")
+    update_behavior            = optional(string, "UPDATE_IN_DATABASE")
+    exclusions                 = optional(list(string), [])
+    combine_compatible_schemas = optional(bool, true)
   }))
   default = {}
 }
@@ -201,6 +203,27 @@ variable "gdrive_sync_memory" {
 
 variable "gdrive_sync_log_retention_days" {
   description = "CloudWatch log retention in days for the gdrive sync Lambda log group."
+  type        = number
+  default     = 30
+}
+
+# ---------------------------------------------------------------------------
+# TEA Bronze Router Lambda
+# ---------------------------------------------------------------------------
+variable "tea_bronze_router_timeout" {
+  description = "Lambda timeout in seconds for the TEA bronze router. Max 900 (15 min). Raise for large backfills."
+  type        = number
+  default     = 900
+}
+
+variable "tea_bronze_router_memory" {
+  description = "Lambda memory in MB for the TEA bronze router. Reads only the first line of each CSV; 256 MB is sufficient for normal routing."
+  type        = number
+  default     = 256
+}
+
+variable "tea_bronze_router_log_retention_days" {
+  description = "CloudWatch log retention in days for the TEA bronze router Lambda log group."
   type        = number
   default     = 30
 }

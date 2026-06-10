@@ -106,16 +106,18 @@ glue_crawlers = {
     csv_delimiter   = ","                 # field delimiter for the CSV classifier
     update_behavior = "LOG"               # prevents crawler from overwriting the Terraform-managed ascender_invoice table
   }
-  tea = {                                 #CSV file
-    s3_bucket_key   = "raw"               # which buckets key to crawl
-    s3_prefix       = "tea/"              # key prefix within the bucket
-    database_key    = "raw"               # target Glue DB (glue_databases key)
-    table_prefix    = "tea"               # prefix added to discovered table names
-    schedule        = "cron(0 5 * * ? *)" # 11 PM CST / 5 AM UTC
-    enabled         = false               # if set to false, it pauses schedule, crawler still exists but won't run automatically
-    csv_classifier  = true                # CSV files contain quoted fields with commas — uses OpenCSVSerDe
-    csv_delimiter   = ","                 # field delimiter for the CSV classifier
-    update_behavior = "LOG"               # prevents crawler from overwriting the Terraform-managed ascender_invoice table
+  tea = { # CSV files from TEA — crawls bronze subfolders, one table per folder
+    s3_bucket_key              = "bronze"
+    s3_prefix                  = "tea/"
+    database_key               = "bronze"
+    table_prefix               = "tea_"
+    schedule                   = "cron(0 5 * * ? *)" # 11 PM CST / 5 AM UTC — after gdrive sync and router Lambda
+    enabled                    = true
+    csv_classifier             = true
+    csv_delimiter              = ","
+    update_behavior            = "UPDATE_IN_DATABASE"
+    exclusions                 = ["**/wide_tables/**", "**/pdfs/**", "**/other/**"]
+    combine_compatible_schemas = false # each subfolder = one table; disable cross-folder schema merging
   }
 }
 
@@ -130,3 +132,10 @@ gdrive_sync_schedule           = "cron(0 2 * * ? *)" # daily 02:00 UTC
 gdrive_sync_timeout            = 900                 # Lambda timeout seconds (max 900); raise for larger folders
 gdrive_sync_memory             = 512                 # Lambda memory MB; higher also raises CPU/network
 gdrive_sync_log_retention_days = 30                  # Days CloudWatch keeps the sync Lambda logs
+
+# ---------------------------------------------------------------------------
+# TEA Bronze Router Lambda
+# ---------------------------------------------------------------------------
+tea_bronze_router_timeout            = 900 # 15 min max — backfill of 100+ files needs time
+tea_bronze_router_memory             = 256 # reads only CSV headers; low memory sufficient
+tea_bronze_router_log_retention_days = 30
