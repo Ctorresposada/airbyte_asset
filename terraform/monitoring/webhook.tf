@@ -54,6 +54,7 @@ resource "aws_lambda_function" "airbyte_webhook" {
   #checkov:skip=CKV_AWS_117:Lambda receives inbound API Gateway calls on a private VPC endpoint; it publishes to SNS via public AWS endpoints, so VPC placement is not required and would add NAT Gateway cost
   #checkov:skip=CKV_AWS_50:X-Ray tracing is intentionally omitted; CloudWatch logs provide sufficient observability for this low-frequency webhook receiver
   #checkov:skip=CKV_AWS_272:Code signing is not used in this repository; image integrity is ensured by the plan-artifact CI/CD workflow
+  #checkov:skip=CKV_AWS_115:Reserved concurrency omitted; the prod account has insufficient unreserved concurrency headroom and this low-volume private webhook does not require a dedicated concurrency reservation
 
   function_name = "${local.name}-airbyte-webhook"
   description   = "Receives Airbyte sync webhook events and routes failures to SNS"
@@ -69,8 +70,6 @@ resource "aws_lambda_function" "airbyte_webhook" {
   # Encrypt env vars with the same CMK used for SNS. The Lambda execution role
   # already has kms:GenerateDataKey + kms:Decrypt on this key via iam_webhook.tf.
   kms_key_arn = aws_kms_key.sns[0].arn
-
-  reserved_concurrent_executions = 5
 
   environment {
     variables = {
