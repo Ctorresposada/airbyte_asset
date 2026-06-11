@@ -192,7 +192,7 @@ module "airbyte" {
 
   airbyte_url = "https://${var.environment == "prod" ? "airbyte" : "airbyte-${var.environment}"}.esc20.net"
 
-  tags = var.tags
+  tags = merge(var.tags, { Stack = "ingestion" })
 }
 
 # ---------------------------------------------------------------------------
