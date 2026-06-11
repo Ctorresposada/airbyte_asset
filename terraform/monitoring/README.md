@@ -248,6 +248,7 @@ Below are the available Airbyte notifications and their payload to be used as re
 | ---- | ------- |
 | <a name="provider_archive"></a> [archive](#provider\_archive) | 2.8.0 |
 | <a name="provider_aws"></a> [aws](#provider\_aws) | 6.49.0 |
+| <a name="provider_terraform"></a> [terraform](#provider\_terraform) | n/a |
 
 ## Modules
 
@@ -310,6 +311,7 @@ No modules.
 | [aws_sns_topic_policy.warning_webhook](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/sns_topic_policy) | resource |
 | [aws_sns_topic_subscription.critical_email](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/sns_topic_subscription) | resource |
 | [aws_sns_topic_subscription.warning_email](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/sns_topic_subscription) | resource |
+| [terraform_data.lambda_source_hash](https://registry.terraform.io/providers/hashicorp/terraform/latest/docs/resources/data) | resource |
 | [aws_caller_identity.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/caller_identity) | data source |
 | [aws_db_instance.airbyte](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/db_instance) | data source |
 | [aws_ecs_cluster.dbt](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/ecs_cluster) | data source |

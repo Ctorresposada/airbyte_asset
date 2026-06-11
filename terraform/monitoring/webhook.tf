@@ -7,13 +7,23 @@
 # execute-api VPC endpoint already provisioned in the networking stack.
 # ---------------------------------------------------------------------------
 
-# Zip the handler source on each plan so a file change triggers redeployment.
+# Zip the handler source on apply when handler.py changes. terraform_data tracks
+# the file hash as a resource attribute so replace_triggered_by fires reliably.
+resource "terraform_data" "lambda_source_hash" {
+  count = local.enable_webhook ? 1 : 0
+  input = filebase64sha256("${path.module}/lambda/handler.py")
+}
+
 resource "archive_file" "airbyte_webhook" {
   count = local.enable_webhook ? 1 : 0
 
   type        = "zip"
   source_file = "${path.module}/lambda/handler.py"
   output_path = "/tmp/${local.name}-airbyte-webhook.zip"
+
+  lifecycle {
+    replace_triggered_by = [terraform_data.lambda_source_hash[0]]
+  }
 }
 
 # ---------------------------------------------------------------------------
