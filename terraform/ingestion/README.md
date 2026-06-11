@@ -28,6 +28,7 @@ This stack provisions the AWS infrastructure for the Region 20 Data Lake ingesti
 | Name | Type |
 | ---- | ---- |
 | [aws_cloudwatch_log_group.gdrive_sync](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/cloudwatch_log_group) | resource |
+| [aws_cloudwatch_log_group.pdf_to_bronze](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/cloudwatch_log_group) | resource |
 | [aws_glue_catalog_database.databases](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/glue_catalog_database) | resource |
 | [aws_glue_catalog_table.ascender_invoice](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/glue_catalog_table) | resource |
 | [aws_glue_classifier.csv_quoted](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/glue_classifier) | resource |
@@ -39,13 +40,16 @@ This stack provisions the AWS infrastructure for the Region 20 Data Lake ingesti
 | [aws_iam_role.gdrive_sync_lambda](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role) | resource |
 | [aws_iam_role.gdrive_sync_scheduler](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role) | resource |
 | [aws_iam_role.glue_crawlers](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role) | resource |
+| [aws_iam_role.pdf_to_bronze_lambda](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role) | resource |
 | [aws_iam_role_policy.gdrive_sync_lambda_permissions](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy) | resource |
 | [aws_iam_role_policy.gdrive_sync_scheduler_invoke](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy) | resource |
 | [aws_iam_role_policy.glue_crawlers_logs](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy) | resource |
 | [aws_iam_role_policy.glue_crawlers_s3](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy) | resource |
+| [aws_iam_role_policy.pdf_to_bronze_lambda_permissions](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy) | resource |
 | [aws_iam_role_policy_attachment.airbyte_instance_s3_bronze](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy_attachment) | resource |
 | [aws_iam_role_policy_attachment.gdrive_sync_lambda_basic](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy_attachment) | resource |
 | [aws_iam_role_policy_attachment.glue_crawlers_service](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy_attachment) | resource |
+| [aws_iam_role_policy_attachment.pdf_to_bronze_lambda_basic](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy_attachment) | resource |
 | [aws_iam_user.airbyte](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_user) | resource |
 | [aws_iam_user_policy_attachment.airbyte](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_user_policy_attachment) | resource |
 | [aws_kms_alias.airbyte](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/kms_alias) | resource |
@@ -67,9 +71,13 @@ This stack provisions the AWS infrastructure for the Region 20 Data Lake ingesti
 | [aws_lakeformation_resource.raw](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/lakeformation_resource) | resource |
 | [aws_lakeformation_resource.silver](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/lakeformation_resource) | resource |
 | [aws_lambda_function.gdrive_sync](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/lambda_function) | resource |
+| [aws_lambda_function.pdf_to_bronze](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/lambda_function) | resource |
 | [aws_lambda_layer_version.gdrive_deps](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/lambda_layer_version) | resource |
+| [aws_lambda_layer_version.pdf_extraction_deps](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/lambda_layer_version) | resource |
+| [aws_lambda_permission.pdf_to_bronze_s3](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/lambda_permission) | resource |
 | [aws_s3_bucket.buckets](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket) | resource |
 | [aws_s3_bucket_lifecycle_configuration.buckets](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket_lifecycle_configuration) | resource |
+| [aws_s3_bucket_notification.raw_pdf_trigger](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket_notification) | resource |
 | [aws_s3_bucket_policy.raw_ascender_crr](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket_policy) | resource |
 | [aws_s3_bucket_public_access_block.buckets](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket_public_access_block) | resource |
 | [aws_s3_bucket_server_side_encryption_configuration.buckets](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket_server_side_encryption_configuration) | resource |
@@ -138,6 +146,11 @@ This stack provisions the AWS infrastructure for the Region 20 Data Lake ingesti
 | <a name="input_lakeformation_de_table_permissions"></a> [lakeformation\_de\_table\_permissions](#input\_lakeformation\_de\_table\_permissions) | Lake Formation table-level permissions granted to the Data Engineer role on bronze and silver. Defaults to read-only. Add DROP in dev to allow cleanup of test tables — remove before replicating to stg/prod. | `list(string)` | <pre>[<br/>  "SELECT",<br/>  "DESCRIBE"<br/>]</pre> | no |
 | <a name="input_lakeformation_terraform_role_name"></a> [lakeformation\_terraform\_role\_name](#input\_lakeformation\_terraform\_role\_name) | Name of the IAM role used by Terraform to manage this stack. Registered as a Lake Formation admin so Terraform retains the ability to manage LF resources after location registration. | `string` | `"region-20-terraform-execution-role"` | no |
 | <a name="input_oci_bastion_host"></a> [oci\_bastion\_host](#input\_oci\_bastion\_host) | OCI bastion host to forward traffic to the Oracle DB | `string` | n/a | yes |
+| <a name="input_pdf_extraction_log_retention_days"></a> [pdf\_extraction\_log\_retention\_days](#input\_pdf\_extraction\_log\_retention\_days) | CloudWatch log retention in days for the PDF extraction Lambda log group. | `number` | `90` | no |
+| <a name="input_pdf_extraction_memory"></a> [pdf\_extraction\_memory](#input\_pdf\_extraction\_memory) | Lambda memory in MB for the PDF extraction function. pdfplumber and pyarrow both benefit from higher memory; 1024 MB is a safe baseline. | `number` | `1024` | no |
+| <a name="input_pdf_extraction_pandas_layer_arn"></a> [pdf\_extraction\_pandas\_layer\_arn](#input\_pdf\_extraction\_pandas\_layer\_arn) | ARN of the AWS-managed SDK for pandas Lambda layer (includes pandas + pyarrow). Used alongside the custom pdfplumber layer to stay within Lambda's 250 MB unzipped limit. Find the latest version for your region at https://github.com/aws/aws-sdk-pandas/releases — look for the AWSSDKPandas-Python312 layer ARN for us-east-1. | `string` | n/a | yes |
+| <a name="input_pdf_extraction_s3_prefix"></a> [pdf\_extraction\_s3\_prefix](#input\_pdf\_extraction\_s3\_prefix) | S3 key prefix in the raw bucket that triggers the PDF extraction Lambda. Must end with /. All .pdf objects created under this prefix automatically invoke the function. | `string` | `"tea/"` | no |
+| <a name="input_pdf_extraction_timeout"></a> [pdf\_extraction\_timeout](#input\_pdf\_extraction\_timeout) | Lambda timeout in seconds for the PDF extraction function. Max 900. Increase for large multi-page PDFs where pdfplumber takes longer to parse. | `number` | `300` | no |
 | <a name="input_tags"></a> [tags](#input\_tags) | Common tags to apply to all resources required | `map(string)` | `{}` | no |
 | <a name="input_team"></a> [team](#input\_team) | Team that manages this project | `string` | n/a | yes |
 | <a name="input_vpn_available"></a> [vpn\_available](#input\_vpn\_available) | Whether the Client VPN endpoint and its security group are deployed in this environment. When false, no direct ingress rules are added to the Airbyte instance SG from the VPN. Set to false in environments where the VPN has not yet been provisioned. | `bool` | `false` | no |
