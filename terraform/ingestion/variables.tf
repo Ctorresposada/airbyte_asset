@@ -207,7 +207,6 @@ variable "gdrive_sync_log_retention_days" {
   default     = 30
 }
 
-# ---------------------------------------------------------------------------
 # TEA Bronze Router Lambda
 # ---------------------------------------------------------------------------
 variable "tea_bronze_router_timeout" {
@@ -226,4 +225,36 @@ variable "tea_bronze_router_log_retention_days" {
   description = "CloudWatch log retention in days for the TEA bronze router Lambda log group."
   type        = number
   default     = 30
+}
+# ---------------------------------------------------------------------------
+# PDF Extraction Lambda (pdf_to_bronze)
+# ---------------------------------------------------------------------------
+variable "pdf_extraction_s3_prefix" {
+  description = "S3 key prefix in the raw bucket that triggers the PDF extraction Lambda. Must end with /. All .pdf objects created under this prefix automatically invoke the function."
+  type        = string
+  default     = "tea/"
+}
+
+variable "pdf_extraction_timeout" {
+  description = "Lambda timeout in seconds for the PDF extraction function. Max 900. Increase for large multi-page PDFs where pdfplumber takes longer to parse."
+  type        = number
+  default     = 300
+}
+
+variable "pdf_extraction_memory" {
+  description = "Lambda memory in MB for the PDF extraction function. pdfplumber and pyarrow both benefit from higher memory; 1024 MB is a safe baseline."
+  type        = number
+  default     = 1024
+}
+
+variable "pdf_extraction_log_retention_days" {
+  description = "CloudWatch log retention in days for the PDF extraction Lambda log group."
+  type        = number
+  default     = 180
+}
+
+variable "pdf_extraction_pandas_layer_arn" {
+  description = "ARN of the AWS-managed SDK for pandas Lambda layer (includes pandas + pyarrow). Used alongside the custom pdfplumber layer to stay within Lambda's 250 MB unzipped limit. Find the latest version for your region at https://github.com/aws/aws-sdk-pandas/releases — look for the AWSSDKPandas-Python312 layer ARN for us-east-1."
+  type        = string
+  default     = ""
 }
