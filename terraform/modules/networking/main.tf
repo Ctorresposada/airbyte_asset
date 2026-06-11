@@ -107,6 +107,13 @@ module "endpoints" {
       private_dns_enabled = true
       security_group_ids  = [aws_security_group.interface_endpoints.id]
     }
+    execute_api = {
+      service             = "execute-api"
+      service_type        = "Interface"
+      subnet_ids          = module.vpc.private_subnets
+      private_dns_enabled = true
+      security_group_ids  = [aws_security_group.interface_endpoints.id]
+    }
     s3 = {
       service         = "s3"
       service_type    = "Gateway"
