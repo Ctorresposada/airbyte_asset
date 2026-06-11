@@ -8,7 +8,7 @@
 # ---------------------------------------------------------------------------
 
 # Zip the handler source on each plan so a file change triggers redeployment.
-data "archive_file" "airbyte_webhook" {
+resource "archive_file" "airbyte_webhook" {
   count = local.enable_webhook ? 1 : 0
 
   type        = "zip"
@@ -49,8 +49,8 @@ resource "aws_lambda_function" "airbyte_webhook" {
   description   = "Receives Airbyte sync webhook events and routes failures to SNS"
   role          = aws_iam_role.airbyte_webhook[0].arn
 
-  filename         = data.archive_file.airbyte_webhook[0].output_path
-  source_code_hash = data.archive_file.airbyte_webhook[0].output_base64sha256
+  filename         = archive_file.airbyte_webhook[0].output_path
+  source_code_hash = archive_file.airbyte_webhook[0].output_base64sha256
 
   runtime       = "python3.12"
   architectures = ["arm64"]
