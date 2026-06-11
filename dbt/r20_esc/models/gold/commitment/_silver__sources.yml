@@ -1,0 +1,17 @@
+version: 2
+
+sources:
+  - name: silver
+    description: "Silver layer — tabelas Iceberg geradas pelo dbt-athena, acessíveis via Spectrum no Redshift"
+    database: gold
+    schema: silver
+    tables:
+      - name: stg_oracle__cmt_period
+      - name: stg_oracle__cmt_form
+      - name: stg_oracle__cmt_form_item
+      - name: stg_oracle__cmt_form_item_group
+      - name: stg_oracle__contact
+      - name: stg_oracle__cmt_range_price_forms
+      - name: stg_docebo__users
+      - name: stg_docebo__courses
+      - name: stg_docebo__enrollments

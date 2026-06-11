@@ -21,7 +21,7 @@ rebuilds it from the SSM-delivered Helm values.
 
 | Name | Version |
 | ---- | ------- |
-| <a name="provider_aws"></a> [aws](#provider\_aws) | 6.47.0 |
+| <a name="provider_aws"></a> [aws](#provider\_aws) | 6.48.0 |
 | <a name="provider_random"></a> [random](#provider\_random) | 3.9.0 |
 
 ## Modules
@@ -78,10 +78,13 @@ No modules.
 
 | Name | Description | Type | Default | Required |
 | ---- | ----------- | ---- | ------- | :------: |
+| <a name="input_airbyte_url"></a> [airbyte\_url](#input\_airbyte\_url) | Public HTTPS URL at which Airbyte is reachable (e.g. https://airbyte-dev.esc20.net). Set as global.airbyteUrl in the Helm values so Keycloak can build correct redirect URIs. | `string` | `""` | no |
 | <a name="input_alb_certificate_arn"></a> [alb\_certificate\_arn](#input\_alb\_certificate\_arn) | ACM certificate ARN for the ALB HTTPS listener. Required when create\_alb = true. | `string` | `""` | no |
-| <a name="input_alb_subnet_ids"></a> [alb\_subnet\_ids](#input\_alb\_subnet\_ids) | List of private subnet IDs for the internal Application Load Balancer. Required when create\_alb = true; ignored otherwise. | `list(string)` | `[]` | no |
+| <a name="input_alb_internal"></a> [alb\_internal](#input\_alb\_internal) | Whether the Application Load Balancer is internal (true) or internet-facing (false). Set to false to expose Airbyte publicly via an internet-facing ALB. | `bool` | `true` | no |
+| <a name="input_alb_subnet_ids"></a> [alb\_subnet\_ids](#input\_alb\_subnet\_ids) | List of subnet IDs for the Application Load Balancer. Use public subnets when alb\_internal = false; private subnets otherwise. Required when create\_alb = true; ignored otherwise. | `list(string)` | `[]` | no |
 | <a name="input_allowed_cidr_blocks"></a> [allowed\_cidr\_blocks](#input\_allowed\_cidr\_blocks) | CIDR blocks permitted to reach the ALB on port 443 (and port 80 for HTTPS redirect). Typically the VPC CIDR or a bastion range. Required when create\_alb = true; ignored otherwise. | `list(string)` | `[]` | no |
 | <a name="input_ami_id"></a> [ami\_id](#input\_ami\_id) | ID of the Docker-enabled AMI used for the Airbyte EC2 instance. Amazon Linux 2023 is recommended; Docker will be installed via user-data if not pre-baked. | `string` | n/a | yes |
+| <a name="input_compute_name"></a> [compute\_name](#input\_compute\_name) | Name to be added to compute resources only. | `string` | n/a | yes |
 | <a name="input_create"></a> [create](#input\_create) | When false, no resources are created. Set to false in a tfvars file to soft-delete everything this module manages while preserving Terraform state. | `bool` | `true` | no |
 | <a name="input_create_alb"></a> [create\_alb](#input\_create\_alb) | Whether to create an internal Application Load Balancer for the Airbyte webapp. Set to false to run without an ALB (access via SSM port forwarding or a future VPN). Defaults to false. | `bool` | `false` | no |
 | <a name="input_instance_type"></a> [instance\_type](#input\_instance\_type) | EC2 instance type for the Airbyte ASG. m6a.xlarge (4 vCPU, 16 GB) is the minimum viable size. Use m6a.2xlarge for production with more than 10 connectors or sub-hourly sync frequency. | `string` | `"m6a.xlarge"` | no |
@@ -106,8 +109,9 @@ No modules.
 | Name | Description |
 | ---- | ----------- |
 | <a name="output_airbyte_admin_secret_arn"></a> [airbyte\_admin\_secret\_arn](#output\_airbyte\_admin\_secret\_arn) | ARN of the Secrets Manager secret containing the Airbyte web UI admin credentials (username, password). Populated at instance boot by user-data. Null when create = false. |
-| <a name="output_alb_dns_name"></a> [alb\_dns\_name](#output\_alb\_dns\_name) | Internal ALB DNS name. Null when create\_alb = false. |
+| <a name="output_alb_dns_name"></a> [alb\_dns\_name](#output\_alb\_dns\_name) | ALB DNS name. Null when create\_alb = false. |
 | <a name="output_alb_sg_id"></a> [alb\_sg\_id](#output\_alb\_sg\_id) | ID of the security group attached to the internal ALB. Null when create\_alb = false. |
+| <a name="output_alb_zone_id"></a> [alb\_zone\_id](#output\_alb\_zone\_id) | Canonical hosted zone ID of the ALB. Used by Route53 alias records. Null when create\_alb = false. |
 | <a name="output_asg_name"></a> [asg\_name](#output\_asg\_name) | Name of the Auto Scaling Group managing the Airbyte EC2 instance. |
 | <a name="output_instance_role_arn"></a> [instance\_role\_arn](#output\_instance\_role\_arn) | ARN of the IAM role attached to the Airbyte EC2 instance profile. Grant this role additional permissions at the stack level if needed. |
 | <a name="output_instance_role_name"></a> [instance\_role\_name](#output\_instance\_role\_name) | Name of the IAM role attached to the Airbyte EC2 instance profile. Use this to attach additional policies at the stack level. |

@@ -1,0 +1,9 @@
+version: 2
+
+sources:
+  - name: escworks
+    description: "ESCWorks — arquivos Parquet históricos entregues via S3 por Zaman, Spectrum external schema no Redshift"
+    database: gold
+    schema: bronze
+    tables: []
+    # TODO: adicionar tabelas quando Zaman entregar os arquivos e o Glue Crawler rodar

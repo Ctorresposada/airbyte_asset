@@ -1,0 +1,18 @@
+version: 2
+
+sources:
+  - name: docebo
+    description: "Docebo LMS — raw data via Airbyte Cloud, Iceberg no S3 bronze catalogado no Glue"
+    database: awsdatacatalog
+    schema: escr20_bronze_dev
+    tables:
+      - name: docebo_users_src
+        description: "Usuários do Docebo LMS"
+      - name: docebo_courses_src
+        description: "Cursos do Docebo LMS"
+      - name: docebo_enrollments_src
+        description: "Matrículas do Docebo LMS"
+      - name: docebo_orgchart_src
+        description: "Organograma de branches do Docebo LMS"
+      - name: docebo_course_status_src
+        description: "Status de publicação dos cursos do Docebo LMS"

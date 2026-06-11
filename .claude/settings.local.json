@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3 -c \"import pypdf\")",
+      "Bash(python3:*)",
+      "Bash(pip3 install:*)",
+      "Bash(pre-commit run:*)",
+      "Bash(aws s3 ls:*)",
+      "Bash(aws s3 sync:*)"
+    ]
+  }
+}

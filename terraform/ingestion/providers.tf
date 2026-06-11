@@ -14,3 +14,12 @@ provider "aws" {
     }
   }
 }
+
+provider "aws" {
+  alias  = "route53"
+  region = "us-east-1"
+
+  assume_role {
+    role_arn = "arn:aws:iam::332872251707:role/region-20-terraform-execution-role"
+  }
+}

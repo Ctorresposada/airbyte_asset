@@ -52,7 +52,12 @@ variable "ecr_repository_arn" {
 variable "enable_dbt_task" {
   description = "Whether to enable the dbt Core ECS task definition"
   type        = bool
-  default     = true
+  default     = false
+}
+
+variable "dbt_image_ssm_parameter_name" {
+  description = "SSM Parameter Store path that holds the currently deployed dbt Core image URI. Created by Terraform on first apply and written by CI after every subsequent ECR push. Convention: /region-20/<env>/dbt-core/image-uri."
+  type        = string
 }
 
 variable "dbt_task_cpu" {

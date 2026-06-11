@@ -1,0 +1,42 @@
+version: 2
+
+sources:
+  - name: oracle
+    description: >
+      Oracle CMT tables — raw data via Airbyte Cloud, Iceberg no S3 bronze
+      catalogado no Glue. Glue tables use the apex_orcl_ prefix; we keep
+      logical names unprefixed here via `identifier:` so staging SQL stays
+      portable.
+    database: awsdatacatalog
+    schema: escr20_bronze_dev
+    tables:
+      - name: cmt_form
+        identifier: apex_orcl_cmt_form
+        description: "Formulários de commitment"
+      - name: cmt_period
+        identifier: apex_orcl_cmt_period
+        description: "Períodos de commitment"
+      - name: cmt_form_item
+        identifier: apex_orcl_cmt_form_item
+        description: "Itens dos formulários de commitment"
+      - name: cmt_form_item_group
+        identifier: apex_orcl_cmt_form_item_group
+        description: "Grupos de itens dos formulários de commitment"
+      - name: contact
+        identifier: apex_orcl_contact
+        description: "Contatos ESC"
+      - name: cmt_range_price_forms
+        identifier: apex_orcl_cmt_range_price_forms
+        description: "Tabela de preços por faixa dos formulários de commitment"
+      - name: cmt_section
+        identifier: apex_orcl_cmt_section
+        description: "Seções do formulário de commitment — não ingerido ainda"
+      - name: cmt_category
+        identifier: apex_orcl_cmt_category
+        description: "Categorias de commitment — não ingerido ainda"
+      - name: cmt_count_type
+        identifier: apex_orcl_cmt_count_type
+        description: "Tipos de contagem de commitment — não ingerido ainda"
+      - name: esc_employee_data
+        identifier: apex_orcl_esc_employee_data
+        description: "Dados de funcionários ESC — não ingerido ainda"

@@ -10,6 +10,11 @@ variable "name" {
   type        = string
 }
 
+variable "compute_name" {
+  description = "Name to be added to compute resources only."
+  type        = string
+}
+
 variable "vpc_id" {
   description = "ID of the VPC into which Airbyte resources are deployed."
   type        = string
@@ -41,9 +46,15 @@ variable "create_alb" {
 }
 
 variable "alb_subnet_ids" {
-  description = "List of private subnet IDs for the internal Application Load Balancer. Required when create_alb = true; ignored otherwise."
+  description = "List of subnet IDs for the Application Load Balancer. Use public subnets when alb_internal = false; private subnets otherwise. Required when create_alb = true; ignored otherwise."
   type        = list(string)
   default     = []
+}
+
+variable "alb_internal" {
+  description = "Whether the Application Load Balancer is internal (true) or internet-facing (false). Set to false to expose Airbyte publicly via an internet-facing ALB."
+  type        = bool
+  default     = true
 }
 
 variable "alb_certificate_arn" {
@@ -147,4 +158,10 @@ variable "tags" {
   description = "Map of additional tags to apply to all resources created by this module."
   type        = map(string)
   default     = {}
+}
+
+variable "airbyte_url" {
+  description = "Public HTTPS URL at which Airbyte is reachable (e.g. https://airbyte-dev.esc20.net). Set as global.airbyteUrl in the Helm values so Keycloak can build correct redirect URIs."
+  type        = string
+  default     = ""
 }

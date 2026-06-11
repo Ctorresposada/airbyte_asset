@@ -36,22 +36,24 @@ resource "aws_glue_crawler" "crawlers" {
   classifiers            = each.value.csv_classifier ? [aws_glue_classifier.csv_quoted[each.key].name] : null
 
   s3_target {
-    path = "s3://${aws_s3_bucket.buckets[each.value.s3_bucket_key].id}/${each.value.s3_prefix}"
+    path       = "s3://${aws_s3_bucket.buckets[each.value.s3_bucket_key].id}/${each.value.s3_prefix}"
+    exclusions = length(each.value.exclusions) > 0 ? each.value.exclusions : null
   }
 
   # MergeNewColumns: adds columns that appear in new files without breaking
-  # existing table definitions. CombineCompatibleSchemas: groups files under
-  # the same prefix into a single table rather than one table per file.
-  configuration = jsonencode({
-    Version = 1.0
-    CrawlerOutput = {
-      Partitions = { AddOrUpdateBehavior = "InheritFromTable" }
-      Tables     = { AddOrUpdateBehavior = "MergeNewColumns" }
-    }
-    Grouping = {
-      TableGroupingPolicy = "CombineCompatibleSchemas"
-    }
-  })
+  # existing table definitions. When combine_compatible_schemas=true, the
+  # Grouping block is included with CombineCompatibleSchemas; when false it is
+  # omitted entirely — AWS does not accept "None" as a valid policy value.
+  configuration = jsonencode(merge(
+    {
+      Version = 1.0
+      CrawlerOutput = {
+        Partitions = { AddOrUpdateBehavior = "InheritFromTable" }
+        Tables     = { AddOrUpdateBehavior = "MergeNewColumns" }
+      }
+    },
+    each.value.combine_compatible_schemas ? { Grouping = { TableGroupingPolicy = "CombineCompatibleSchemas" } } : {}
+  ))
 
   schema_change_policy {
     delete_behavior = "LOG"

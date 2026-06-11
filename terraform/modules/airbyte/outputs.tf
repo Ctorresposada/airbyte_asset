@@ -3,8 +3,13 @@
 # the broader stack (DNS records, monitoring, cross-stack references, etc.).
 
 output "alb_dns_name" {
-  description = "Internal ALB DNS name. Null when create_alb = false."
+  description = "ALB DNS name. Null when create_alb = false."
   value       = try(aws_lb.this[0].dns_name, null)
+}
+
+output "alb_zone_id" {
+  description = "Canonical hosted zone ID of the ALB. Used by Route53 alias records. Null when create_alb = false."
+  value       = try(aws_lb.this[0].zone_id, null)
 }
 
 output "alb_sg_id" {

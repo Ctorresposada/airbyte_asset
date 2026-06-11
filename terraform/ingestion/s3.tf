@@ -257,3 +257,57 @@ resource "aws_s3_bucket_policy" "raw_ascender_crr" {
 
   depends_on = [aws_s3_bucket_public_access_block.buckets]
 }
+
+# ---------------------------------------------------------------------------
+# Silver bucket policy: grant the Lake Formation SLR direct S3 access.
+# Required when LF location registration fails to create the SLR inline
+# policy automatically — the SLR must be able to GetObject/PutObject/Delete
+# on silver to vend temporary credentials to Athena for Iceberg reads/writes.
+# ---------------------------------------------------------------------------
+data "aws_iam_policy_document" "silver_lf_slr" {
+  count = var.create ? 1 : 0
+
+  statement {
+    sid    = "AllowLFServiceLinkedRoleObjectAccess"
+    effect = "Allow"
+
+    principals {
+      type        = "AWS"
+      identifiers = ["arn:aws:iam::${data.aws_caller_identity.this[0].account_id}:role/aws-service-role/lakeformation.amazonaws.com/AWSServiceRoleForLakeFormationDataAccess"]
+    }
+
+    actions = [
+      "s3:GetObject",
+      "s3:PutObject",
+      "s3:DeleteObject",
+    ]
+
+    resources = ["${aws_s3_bucket.buckets["silver"].arn}/*"]
+  }
+
+  statement {
+    sid    = "AllowLFServiceLinkedRoleBucketAccess"
+    effect = "Allow"
+
+    principals {
+      type        = "AWS"
+      identifiers = ["arn:aws:iam::${data.aws_caller_identity.this[0].account_id}:role/aws-service-role/lakeformation.amazonaws.com/AWSServiceRoleForLakeFormationDataAccess"]
+    }
+
+    actions = [
+      "s3:ListBucket",
+      "s3:GetBucketLocation",
+    ]
+
+    resources = [aws_s3_bucket.buckets["silver"].arn]
+  }
+}
+
+resource "aws_s3_bucket_policy" "silver_lf_slr" {
+  count = var.create ? 1 : 0
+
+  bucket = aws_s3_bucket.buckets["silver"].id
+  policy = data.aws_iam_policy_document.silver_lf_slr[0].json
+
+  depends_on = [aws_s3_bucket_public_access_block.buckets]
+}

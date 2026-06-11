@@ -74,8 +74,8 @@ resource "aws_ecs_task_definition" "dbt_core" {
       environment = [
         { name = "DBT_ARTIFACTS_BUCKET", value = aws_s3_bucket.dbt_artifacts[0].id },
         { name = "AWS_REGION", value = var.aws_region },
-        { name = "ATHENA_RESULTS_BUCKET", value = data.aws_s3_bucket.athena_results[0].id },
-        { name = "SILVER_BUCKET", value = data.aws_s3_bucket.silver[0].id },
+        { name = "ATHENA_RESULTS_BUCKET", value = "s3://${data.aws_s3_bucket.athena_results[0].id}/" },
+        { name = "SILVER_BUCKET", value = "s3://${data.aws_s3_bucket.silver[0].id}/" },
         { name = "REDSHIFT_HOST", value = data.aws_redshiftserverless_workgroup.this[0].endpoint[0].address },
         { name = "REDSHIFT_PORT", value = "5439" },
         { name = "REDSHIFT_DB", value = var.redshift_db },

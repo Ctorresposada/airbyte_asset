@@ -37,6 +37,7 @@ locals {
     s3_bucket_name = try(aws_s3_bucket.this[0].id, "")
     s3_region      = data.aws_region.current.region
     aws_region     = data.aws_region.current.region
+    airbyte_url    = var.airbyte_url
   })
 
   # Rendered user-data bootstrap script.
@@ -96,7 +97,7 @@ data "aws_iam_policy_document" "ec2_assume_role" {
 resource "aws_iam_role" "this" {
   count = var.create ? 1 : 0
 
-  name               = "${local.name_prefix}-airbyte-instance-role"
+  name               = "${local.name_prefix}-instance-role"
   assume_role_policy = data.aws_iam_policy_document.ec2_assume_role.json
 
   tags = local.common_tags
@@ -197,7 +198,7 @@ data "aws_iam_policy_document" "airbyte_inline" {
 resource "aws_iam_role_policy" "this" {
   count = var.create ? 1 : 0
 
-  name   = "${local.name_prefix}-airbyte-inline"
+  name   = "${local.name_prefix}-inline"
   role   = aws_iam_role.this[0].id
   policy = data.aws_iam_policy_document.airbyte_inline.json
 }
@@ -205,7 +206,7 @@ resource "aws_iam_role_policy" "this" {
 resource "aws_iam_instance_profile" "this" {
   count = var.create ? 1 : 0
 
-  name = "${local.name_prefix}-airbyte-instance-profile"
+  name = "${local.name_prefix}-instance-profile"
   role = aws_iam_role.this[0].name
 
   tags = local.common_tags
@@ -325,11 +326,11 @@ resource "aws_vpc_security_group_ingress_rule" "rds_from_instance" {
 resource "aws_security_group" "alb" {
   count = var.create ? (var.create_alb ? 1 : 0) : 0
 
-  name        = "${local.name_prefix}-airbyte-alb"
+  name        = "${local.name_prefix}-alb"
   description = "Controls inbound HTTPS/HTTP to the Airbyte internal ALB from ${var.name} allowed CIDRs."
   vpc_id      = var.vpc_id
 
-  tags = merge(local.common_tags, { Name = "${local.name_prefix}-airbyte-alb" })
+  tags = merge(local.common_tags, { Name = "${local.name_prefix}-alb" })
 
   lifecycle {
     create_before_destroy = true
@@ -366,9 +367,9 @@ resource "aws_vpc_security_group_egress_rule" "alb_to_instance" {
   count = var.create ? (var.create_alb ? 1 : 0) : 0
 
   security_group_id            = aws_security_group.alb[0].id
-  description                  = "HTTP egress to Airbyte instance on port 80"
-  from_port                    = 80
-  to_port                      = 80
+  description                  = "HTTP egress to Airbyte nginx on port 8000"
+  from_port                    = 8000
+  to_port                      = 8000
   ip_protocol                  = "tcp"
   referenced_security_group_id = aws_security_group.instance[0].id
 
@@ -379,11 +380,11 @@ resource "aws_security_group" "instance" {
   count = var.create ? 1 : 0
 
   #checkov:skip=CKV2_AWS_5: False positive -- this SG is attached to aws_launch_template.this via vpc_security_group_ids; checkov cannot follow the cross-resource reference
-  name        = "${local.name_prefix}-airbyte-instance"
+  name        = "${local.name_prefix}-instance"
   description = "Controls traffic to and from the Airbyte EC2 instance for ${var.name}."
   vpc_id      = var.vpc_id
 
-  tags = merge(local.common_tags, { Name = "${local.name_prefix}-airbyte-instance" })
+  tags = merge(local.common_tags, { Name = "${local.name_prefix}-instance" })
 
   lifecycle {
     create_before_destroy = true
@@ -395,9 +396,9 @@ resource "aws_vpc_security_group_ingress_rule" "instance_from_alb" {
 
   #checkov:skip=CKV_AWS_260: False positive -- ingress is restricted to the ALB security group via referenced_security_group_id, not from 0.0.0.0/0
   security_group_id            = aws_security_group.instance[0].id
-  description                  = "HTTP ingress from ALB only"
-  from_port                    = 80
-  to_port                      = 80
+  description                  = "HTTP ingress from ALB on port 8000"
+  from_port                    = 8000
+  to_port                      = 8000
   ip_protocol                  = "tcp"
   referenced_security_group_id = aws_security_group.alb[0].id
 
@@ -627,7 +628,7 @@ resource "aws_launch_template" "this" {
 
   #checkov:skip=CKV_AWS_88: Instances are in private subnets; associate_public_ip_address is false by subnet design
   #checkov:skip=CKV_AWS_341: hop_limit > 1 required for Docker/kind containers running inside the instance to reach IMDS
-  name_prefix = "${local.name_prefix}-airbyte-"
+  name_prefix = "${local.name_prefix}-"
   description = "Launch template for self-hosted Airbyte running abctl on ${var.name}"
 
   image_id      = var.ami_id
@@ -668,12 +669,12 @@ resource "aws_launch_template" "this" {
 
   tag_specifications {
     resource_type = "instance"
-    tags          = merge(local.common_tags, { Name = "${local.name_prefix}-airbyte" })
+    tags          = local.common_tags
   }
 
   tag_specifications {
     resource_type = "volume"
-    tags          = merge(local.common_tags, { Name = "${local.name_prefix}-airbyte-root" })
+    tags          = merge(local.common_tags, { Name = "${local.name_prefix}-root" })
   }
 
   tags = local.common_tags
@@ -691,10 +692,10 @@ resource "aws_lb" "this" {
   count = var.create ? (var.create_alb ? 1 : 0) : 0
 
   #checkov:skip=CKV_AWS_150: Deletion protection is intentionally omitted; module is used for dev/staging as well as prod. Enable at the stack level for prod if required.
-  #checkov:skip=CKV2_AWS_28: WAF association is managed outside this module; internal ALB is not public-facing
+  #checkov:skip=CKV2_AWS_28: WAF association is managed outside this module
   #checkov:skip=CKV_AWS_91: ALB access logging requires a dedicated S3 bucket; intentionally deferred to the calling stack
-  name                       = "${local.name_prefix}-airbyte"
-  internal                   = true
+  name                       = local.name_prefix
+  internal                   = var.alb_internal
   load_balancer_type         = "application"
   security_groups            = [aws_security_group.alb[0].id]
   subnets                    = var.alb_subnet_ids
@@ -708,8 +709,8 @@ resource "aws_lb" "this" {
 resource "aws_lb_target_group" "this" {
   count = var.create ? (var.create_alb ? 1 : 0) : 0
 
-  name        = "${local.name_prefix}-airbyte"
-  port        = 80
+  name        = local.name_prefix
+  port        = 8000
   protocol    = "HTTP"
   vpc_id      = var.vpc_id
   target_type = "instance"
@@ -778,7 +779,7 @@ resource "aws_lb_listener" "http" {
 resource "aws_autoscaling_group" "this" {
   count = var.create ? 1 : 0
 
-  name                = "${local.name_prefix}-airbyte"
+  name                = local.name_prefix
   min_size            = 1
   max_size            = 1
   desired_capacity    = 1
@@ -806,7 +807,7 @@ resource "aws_autoscaling_group" "this" {
 
   tag {
     key                 = "Name"
-    value               = "${local.name_prefix}-airbyte"
+    value               = var.compute_name
     propagate_at_launch = true
   }
 

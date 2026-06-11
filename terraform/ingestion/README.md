@@ -15,7 +15,8 @@ This stack provisions the AWS infrastructure for the Region 20 Data Lake ingesti
 
 | Name | Version |
 | ---- | ------- |
-| <a name="provider_aws"></a> [aws](#provider\_aws) | 6.46.0 |
+| <a name="provider_aws"></a> [aws](#provider\_aws) | 6.48.0 |
+| <a name="provider_aws.route53"></a> [aws.route53](#provider\_aws.route53) | 6.48.0 |
 
 ## Modules
 
@@ -27,8 +28,11 @@ This stack provisions the AWS infrastructure for the Region 20 Data Lake ingesti
 
 | Name | Type |
 | ---- | ---- |
+| [aws_acm_certificate.airbyte](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/acm_certificate) | resource |
+| [aws_acm_certificate_validation.airbyte](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/acm_certificate_validation) | resource |
 | [aws_cloudwatch_log_group.gdrive_sync](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/cloudwatch_log_group) | resource |
 | [aws_cloudwatch_log_group.pdf_to_bronze](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/cloudwatch_log_group) | resource |
+| [aws_cloudwatch_log_group.tea_bronze_router](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/cloudwatch_log_group) | resource |
 | [aws_glue_catalog_database.databases](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/glue_catalog_database) | resource |
 | [aws_glue_catalog_table.ascender_invoice](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/glue_catalog_table) | resource |
 | [aws_glue_classifier.csv_quoted](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/glue_classifier) | resource |
@@ -41,6 +45,7 @@ This stack provisions the AWS infrastructure for the Region 20 Data Lake ingesti
 | [aws_iam_role.gdrive_sync_scheduler](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role) | resource |
 | [aws_iam_role.glue_crawlers](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role) | resource |
 | [aws_iam_role.pdf_to_bronze_lambda](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role) | resource |
+| [aws_iam_role.tea_bronze_router_lambda](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role) | resource |
 | [aws_iam_role_policy.gdrive_sync_lambda_permissions](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy) | resource |
 | [aws_iam_role_policy.gdrive_sync_scheduler_invoke](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy) | resource |
 | [aws_iam_role_policy.glue_crawlers_logs](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy) | resource |
@@ -50,6 +55,11 @@ This stack provisions the AWS infrastructure for the Region 20 Data Lake ingesti
 | [aws_iam_role_policy_attachment.gdrive_sync_lambda_basic](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy_attachment) | resource |
 | [aws_iam_role_policy_attachment.glue_crawlers_service](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy_attachment) | resource |
 | [aws_iam_role_policy_attachment.pdf_to_bronze_lambda_basic](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy_attachment) | resource |
+| [aws_iam_role_policy.tea_bronze_router_lambda_permissions](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy) | resource |
+| [aws_iam_role_policy_attachment.airbyte_instance_s3_bronze](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy_attachment) | resource |
+| [aws_iam_role_policy_attachment.gdrive_sync_lambda_basic](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy_attachment) | resource |
+| [aws_iam_role_policy_attachment.glue_crawlers_service](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy_attachment) | resource |
+| [aws_iam_role_policy_attachment.tea_bronze_router_lambda_basic](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy_attachment) | resource |
 | [aws_iam_user.airbyte](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_user) | resource |
 | [aws_iam_user_policy_attachment.airbyte](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_user_policy_attachment) | resource |
 | [aws_kms_alias.airbyte](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/kms_alias) | resource |
@@ -64,6 +74,7 @@ This stack provisions the AWS infrastructure for the Region 20 Data Lake ingesti
 | [aws_lakeformation_permissions.de_raw_database](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/lakeformation_permissions) | resource |
 | [aws_lakeformation_permissions.de_raw_tables](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/lakeformation_permissions) | resource |
 | [aws_lakeformation_permissions.de_silver_database](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/lakeformation_permissions) | resource |
+| [aws_lakeformation_permissions.de_silver_location](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/lakeformation_permissions) | resource |
 | [aws_lakeformation_permissions.de_silver_tables](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/lakeformation_permissions) | resource |
 | [aws_lakeformation_permissions.glue_crawlers_database](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/lakeformation_permissions) | resource |
 | [aws_lakeformation_permissions.glue_crawlers_location](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/lakeformation_permissions) | resource |
@@ -78,7 +89,16 @@ This stack provisions the AWS infrastructure for the Region 20 Data Lake ingesti
 | [aws_s3_bucket.buckets](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket) | resource |
 | [aws_s3_bucket_lifecycle_configuration.buckets](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket_lifecycle_configuration) | resource |
 | [aws_s3_bucket_notification.raw_pdf_trigger](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket_notification) | resource |
+| [aws_lambda_function.tea_bronze_router](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/lambda_function) | resource |
+| [aws_lambda_layer_version.gdrive_deps](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/lambda_layer_version) | resource |
+| [aws_lambda_permission.tea_bronze_router_s3](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/lambda_permission) | resource |
+| [aws_route53_record.airbyte](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/route53_record) | resource |
+| [aws_route53_record.airbyte_cert_validation](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/route53_record) | resource |
+| [aws_s3_bucket.buckets](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket) | resource |
+| [aws_s3_bucket_lifecycle_configuration.buckets](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket_lifecycle_configuration) | resource |
+| [aws_s3_bucket_notification.raw_tea_router](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket_notification) | resource |
 | [aws_s3_bucket_policy.raw_ascender_crr](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket_policy) | resource |
+| [aws_s3_bucket_policy.silver_lf_slr](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket_policy) | resource |
 | [aws_s3_bucket_public_access_block.buckets](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket_public_access_block) | resource |
 | [aws_s3_bucket_server_side_encryption_configuration.buckets](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket_server_side_encryption_configuration) | resource |
 | [aws_s3_bucket_versioning.buckets](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket_versioning) | resource |
@@ -98,6 +118,7 @@ This stack provisions the AWS infrastructure for the Region 20 Data Lake ingesti
 | [aws_secretsmanager_secret_version.gdrive_sa_placeholder](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/secretsmanager_secret_version) | resource |
 | [aws_ssm_parameter.gdrive_sync_cursor](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/ssm_parameter) | resource |
 | [aws_vpc_security_group_egress_rule.airbyte_instance_to_oci](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/vpc_security_group_egress_rule) | resource |
+| [aws_vpc_security_group_egress_rule.airbyte_instance_to_tas](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/vpc_security_group_egress_rule) | resource |
 | [aws_vpc_security_group_ingress_rule.airbyte_instance_from_vpn_ui](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/vpc_security_group_ingress_rule) | resource |
 | [aws_caller_identity.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/caller_identity) | data source |
 | [aws_iam_policy_document.airbyte_kms](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
@@ -108,10 +129,13 @@ This stack provisions the AWS infrastructure for the Region 20 Data Lake ingesti
 | [aws_iam_policy_document.raw_bucket_ascender_crr](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
 | [aws_iam_policy_document.raw_bucket_connect20_delivery](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
 | [aws_iam_policy_document.raw_bucket_policy](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
+| [aws_iam_policy_document.silver_lf_slr](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
 | [aws_iam_role.terraform_execution](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_role) | data source |
+| [aws_route53_zone.esc_net](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/route53_zone) | data source |
 | [aws_security_groups.client_vpn](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/security_groups) | data source |
 | [aws_ssm_parameter.al2023_ami](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/ssm_parameter) | data source |
 | [aws_subnets.private](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/subnets) | data source |
+| [aws_subnets.public](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/subnets) | data source |
 | [aws_vpc.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/vpc) | data source |
 
 ## Inputs
@@ -138,7 +162,7 @@ This stack provisions the AWS infrastructure for the Region 20 Data Lake ingesti
 | <a name="input_gdrive_sync_schedule"></a> [gdrive\_sync\_schedule](#input\_gdrive\_sync\_schedule) | EventBridge Scheduler cron expression for the gdrive sync Lambda. Default is daily at 02:00 UTC. | `string` | `"cron(0 2 * * ? *)"` | no |
 | <a name="input_gdrive_sync_timeout"></a> [gdrive\_sync\_timeout](#input\_gdrive\_sync\_timeout) | Lambda timeout in seconds for the gdrive sync function. Max 900 (15 min). Increase if the TEA folder has many large files. | `number` | `900` | no |
 | <a name="input_gdrive_tea_folder_id"></a> [gdrive\_tea\_folder\_id](#input\_gdrive\_tea\_folder\_id) | Google Drive folder ID for the TEA source folder. Found in the Drive URL: drive.google.com/drive/folders/<FOLDER\_ID>. | `string` | n/a | yes |
-| <a name="input_glue_crawlers"></a> [glue\_crawlers](#input\_glue\_crawlers) | Map of Glue crawlers to provision. Each entry creates a crawler with its own IAM role, KMS key, and security configuration. Set enabled=false to suspend the schedule without destroying the crawler. Set csv\_classifier=true for CSV sources that use quoted fields containing commas. | <pre>map(object({<br/>    s3_bucket_key   = string<br/>    s3_prefix       = string<br/>    database_key    = string<br/>    table_prefix    = string<br/>    schedule        = string<br/>    enabled         = bool<br/>    csv_classifier  = optional(bool, false)<br/>    csv_delimiter   = optional(string, ",")<br/>    update_behavior = optional(string, "UPDATE_IN_DATABASE")<br/>  }))</pre> | `{}` | no |
+| <a name="input_glue_crawlers"></a> [glue\_crawlers](#input\_glue\_crawlers) | Map of Glue crawlers to provision. Each entry creates a crawler with its own IAM role, KMS key, and security configuration. Set enabled=false to suspend the schedule without destroying the crawler. Set csv\_classifier=true for CSV sources that use quoted fields containing commas. | <pre>map(object({<br/>    s3_bucket_key              = string<br/>    s3_prefix                  = string<br/>    database_key               = string<br/>    table_prefix               = string<br/>    schedule                   = string<br/>    enabled                    = bool<br/>    csv_classifier             = optional(bool, false)<br/>    csv_delimiter              = optional(string, ",")<br/>    update_behavior            = optional(string, "UPDATE_IN_DATABASE")<br/>    exclusions                 = optional(list(string), [])<br/>    combine_compatible_schemas = optional(bool, true)<br/>  }))</pre> | `{}` | no |
 | <a name="input_glue_databases"></a> [glue\_databases](#input\_glue\_databases) | Map of Glue catalog databases to manage | <pre>map(object({<br/>    name        = string<br/>    description = string<br/>  }))</pre> | n/a | yes |
 | <a name="input_lakeformation_admin_arns"></a> [lakeformation\_admin\_arns](#input\_lakeformation\_admin\_arns) | Additional IAM principal ARNs (roles or users) to grant Lake Formation admin rights beyond the Terraform execution role. Useful for granting data platform team members LF admin access. | `list(string)` | `[]` | no |
 | <a name="input_lakeformation_de_database_permissions"></a> [lakeformation\_de\_database\_permissions](#input\_lakeformation\_de\_database\_permissions) | Lake Formation database-level permissions granted to the Data Engineer role on bronze and silver. Defaults to DESCRIBE only. Add DROP in dev to allow cleanup of test databases — remove before replicating to stg/prod. | `list(string)` | <pre>[<br/>  "DESCRIBE"<br/>]</pre> | no |
@@ -152,6 +176,10 @@ This stack provisions the AWS infrastructure for the Region 20 Data Lake ingesti
 | <a name="input_pdf_extraction_s3_prefix"></a> [pdf\_extraction\_s3\_prefix](#input\_pdf\_extraction\_s3\_prefix) | S3 key prefix in the raw bucket that triggers the PDF extraction Lambda. Must end with /. All .pdf objects created under this prefix automatically invoke the function. | `string` | `"tea/"` | no |
 | <a name="input_pdf_extraction_timeout"></a> [pdf\_extraction\_timeout](#input\_pdf\_extraction\_timeout) | Lambda timeout in seconds for the PDF extraction function. Max 900. Increase for large multi-page PDFs where pdfplumber takes longer to parse. | `number` | `300` | no |
 | <a name="input_tags"></a> [tags](#input\_tags) | Common tags to apply to all resources required | `map(string)` | `{}` | no |
+| <a name="input_tas_bastion_host"></a> [tas\_bastion\_host](#input\_tas\_bastion\_host) | TAS bastion host to forward traffic to the MSSQL DB | `string` | n/a | yes |
+| <a name="input_tea_bronze_router_log_retention_days"></a> [tea\_bronze\_router\_log\_retention\_days](#input\_tea\_bronze\_router\_log\_retention\_days) | CloudWatch log retention in days for the TEA bronze router Lambda log group. | `number` | `30` | no |
+| <a name="input_tea_bronze_router_memory"></a> [tea\_bronze\_router\_memory](#input\_tea\_bronze\_router\_memory) | Lambda memory in MB for the TEA bronze router. Reads only the first line of each CSV; 256 MB is sufficient for normal routing. | `number` | `256` | no |
+| <a name="input_tea_bronze_router_timeout"></a> [tea\_bronze\_router\_timeout](#input\_tea\_bronze\_router\_timeout) | Lambda timeout in seconds for the TEA bronze router. Max 900 (15 min). Raise for large backfills. | `number` | `900` | no |
 | <a name="input_team"></a> [team](#input\_team) | Team that manages this project | `string` | n/a | yes |
 | <a name="input_vpn_available"></a> [vpn\_available](#input\_vpn\_available) | Whether the Client VPN endpoint and its security group are deployed in this environment. When false, no direct ingress rules are added to the Airbyte instance SG from the VPN. Set to false in environments where the VPN has not yet been provisioned. | `bool` | `false` | no |
 

@@ -143,21 +143,28 @@ variable "oci_bastion_host" {
   description = "OCI bastion host to forward traffic to the Oracle DB"
 }
 
+variable "tas_bastion_host" {
+  type        = string
+  description = "TAS bastion host to forward traffic to the MSSQL DB"
+}
+
 # ---------------------------------------------------------------------------
 # Glue Crawlers → S3 raw sync (Ascender, TEA, Connect20)
 # ---------------------------------------------------------------------------
 variable "glue_crawlers" {
   description = "Map of Glue crawlers to provision. Each entry creates a crawler with its own IAM role, KMS key, and security configuration. Set enabled=false to suspend the schedule without destroying the crawler. Set csv_classifier=true for CSV sources that use quoted fields containing commas."
   type = map(object({
-    s3_bucket_key   = string
-    s3_prefix       = string
-    database_key    = string
-    table_prefix    = string
-    schedule        = string
-    enabled         = bool
-    csv_classifier  = optional(bool, false)
-    csv_delimiter   = optional(string, ",")
-    update_behavior = optional(string, "UPDATE_IN_DATABASE")
+    s3_bucket_key              = string
+    s3_prefix                  = string
+    database_key               = string
+    table_prefix               = string
+    schedule                   = string
+    enabled                    = bool
+    csv_classifier             = optional(bool, false)
+    csv_delimiter              = optional(string, ",")
+    update_behavior            = optional(string, "UPDATE_IN_DATABASE")
+    exclusions                 = optional(list(string), [])
+    combine_compatible_schemas = optional(bool, true)
   }))
   default = {}
 }
@@ -230,4 +237,22 @@ variable "pdf_extraction_log_retention_days" {
 variable "pdf_extraction_pandas_layer_arn" {
   description = "ARN of the AWS-managed SDK for pandas Lambda layer (includes pandas + pyarrow). Used alongside the custom pdfplumber layer to stay within Lambda's 250 MB unzipped limit. Find the latest version for your region at https://github.com/aws/aws-sdk-pandas/releases — look for the AWSSDKPandas-Python312 layer ARN for us-east-1."
   type        = string
+# TEA Bronze Router Lambda
+# ---------------------------------------------------------------------------
+variable "tea_bronze_router_timeout" {
+  description = "Lambda timeout in seconds for the TEA bronze router. Max 900 (15 min). Raise for large backfills."
+  type        = number
+  default     = 900
+}
+
+variable "tea_bronze_router_memory" {
+  description = "Lambda memory in MB for the TEA bronze router. Reads only the first line of each CSV; 256 MB is sufficient for normal routing."
+  type        = number
+  default     = 256
+}
+
+variable "tea_bronze_router_log_retention_days" {
+  description = "CloudWatch log retention in days for the TEA bronze router Lambda log group."
+  type        = number
+  default     = 30
 }
