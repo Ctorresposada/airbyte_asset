@@ -237,6 +237,8 @@ variable "pdf_extraction_log_retention_days" {
 variable "pdf_extraction_pandas_layer_arn" {
   description = "ARN of the AWS-managed SDK for pandas Lambda layer (includes pandas + pyarrow). Used alongside the custom pdfplumber layer to stay within Lambda's 250 MB unzipped limit. Find the latest version for your region at https://github.com/aws/aws-sdk-pandas/releases — look for the AWSSDKPandas-Python312 layer ARN for us-east-1."
   type        = string
+}
+
 # TEA Bronze Router Lambda
 # ---------------------------------------------------------------------------
 variable "tea_bronze_router_timeout" {

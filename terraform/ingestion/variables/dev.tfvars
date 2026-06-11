@@ -134,19 +134,16 @@ gdrive_sync_memory             = 512
 gdrive_sync_log_retention_days = 30
 
 # ---------------------------------------------------------------------------
+# TEA Bronze Router Lambda
+# ---------------------------------------------------------------------------
+tea_bronze_router_timeout            = 900 # 15 min max — backfill of 100+ files needs time
+tea_bronze_router_memory             = 256 # reads only CSV headers; low memory sufficient
+tea_bronze_router_log_retention_days = 30
+
+# ---------------------------------------------------------------------------
 # PDF Extraction Lambda (raw → bronze)
 # ---------------------------------------------------------------------------
 # AWS-managed public layer for pandas + pyarrow (account 336392948345) / Free cost and memory
 # Check latest version: https://github.com/aws/aws-sdk-pandas/releases
 # Current: AWS SDK for pandas v3.16.1, Python 3.12, x86_64, us-east-1
 pdf_extraction_pandas_layer_arn = "arn:aws:lambda:us-east-1:336392948345:layer:AWSSDKPandas-Python312:27"
-gdrive_sync_timeout            = 900                 # Lambda timeout seconds (max 900); raise for larger folders
-gdrive_sync_memory             = 512                 # Lambda memory MB; higher also raises CPU/network
-gdrive_sync_log_retention_days = 30                  # Days CloudWatch keeps the sync Lambda logs
-
-# ---------------------------------------------------------------------------
-# TEA Bronze Router Lambda
-# ---------------------------------------------------------------------------
-tea_bronze_router_timeout            = 900 # 15 min max — backfill of 100+ files needs time
-tea_bronze_router_memory             = 256 # reads only CSV headers; low memory sufficient
-tea_bronze_router_log_retention_days = 30
