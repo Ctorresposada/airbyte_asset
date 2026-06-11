@@ -224,7 +224,7 @@ variable "pdf_extraction_memory" {
 variable "pdf_extraction_log_retention_days" {
   description = "CloudWatch log retention in days for the PDF extraction Lambda log group."
   type        = number
-  default     = 90
+  default     = 180
 }
 
 variable "pdf_extraction_pandas_layer_arn" {
