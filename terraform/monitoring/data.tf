@@ -118,23 +118,33 @@ data "aws_iam_policy_document" "sns_kms_key" {
     resources = ["*"]
   }
 
-  # CloudWatch Logs needs GenerateDataKey* + Decrypt to write encrypted log events
-  # to the /aws/lambda/${local.name}-airbyte-webhook log group.
+  # CloudWatch Logs needs the full action set to write encrypted log events.
+  # The region-specific principal and EncryptionContext condition are both
+  # mandated by AWS for CMK-backed log groups.
   statement {
     sid    = "AllowCloudWatchLogsToUseKey"
     effect = "Allow"
 
     principals {
       type        = "Service"
-      identifiers = ["logs.amazonaws.com"]
+      identifiers = ["logs.${var.aws_region}.amazonaws.com"]
     }
 
     actions = [
-      "kms:Decrypt",
+      "kms:Encrypt*",
+      "kms:Decrypt*",
+      "kms:ReEncrypt*",
       "kms:GenerateDataKey*",
+      "kms:Describe*",
     ]
 
     resources = ["*"]
+
+    condition {
+      test     = "ArnLike"
+      variable = "kms:EncryptionContext:aws:logs:arn"
+      values   = ["arn:aws:logs:${var.aws_region}:${data.aws_caller_identity.this.account_id}:*"]
+    }
   }
 
   # The Lambda execution role needs GenerateDataKey + Decrypt to publish to the
