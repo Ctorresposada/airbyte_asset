@@ -1,5 +1,15 @@
 r20_esc:
   outputs:
+    bronze:
+      type: athena
+      database: awsdatacatalog
+      schema: escr20_bronze_dev
+      s3_staging_dir: "{{ env_var('ATHENA_RESULTS_BUCKET') }}"
+      s3_data_dir: "{{ env_var('BRONZE_BUCKET') }}"
+      region_name: us-east-1
+      threads: 1
+      num_retries: 5
+
     silver:
       type: athena
       database: awsdatacatalog

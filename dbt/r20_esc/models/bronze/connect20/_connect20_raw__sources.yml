@@ -1,0 +1,19 @@
+version: 2
+
+sources:
+  - name: connect20_raw
+    description: >
+      Connect20 / ESCworks evaluation files dropped into the raw landing
+      zone (s3://escr20-landing-zone-raw-dev/connect20/). The Glue
+      crawler `region-20-dev-connect_20-crawler` catalogs them in the
+      escr20_raw_dev database. Only the Parquet table holds real data;
+      the CSV is header-only and the TXT is unclassified — both ignored.
+    database: awsdatacatalog
+    schema: escr20_raw_dev
+    tables:
+      - name: connect20_parquet
+        description: >
+          ESCworks online course evaluation responses, 103k rows as of
+          2026-06-10. One row per (attendee_id, sessionid, item_id,
+          evaluationid). Schema inferred by the Glue crawler with proper
+          types (timestamp, decimal, int).
