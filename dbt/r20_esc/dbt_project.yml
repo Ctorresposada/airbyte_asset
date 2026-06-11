@@ -31,6 +31,9 @@ clean-targets:         # directories to be removed by `dbt clean`
 # model that omits them.
 models:
   r20_esc:
+    bronze:
+      +materialized: table
+      +table_type: iceberg
     silver:
       +materialized: table
       +table_type: iceberg
