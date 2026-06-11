@@ -172,8 +172,6 @@ resource "aws_api_gateway_integration" "webhook_post" {
 resource "aws_api_gateway_deployment" "airbyte_webhook" {
   count = local.enable_webhook ? 1 : 0
 
-  #checkov:skip=CKV_AWS_217:create_before_destroy on a deployment with count meta-argument causes a Terraform cycle; the VPC-private API handles low request volume, making brief unavailability during redeployment acceptable
-
   rest_api_id = aws_api_gateway_rest_api.airbyte_webhook[0].id
 
   triggers = {
@@ -184,6 +182,10 @@ resource "aws_api_gateway_deployment" "airbyte_webhook" {
     aws_api_gateway_method.webhook_post,
     aws_api_gateway_integration.webhook_post,
   ]
+
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 resource "aws_api_gateway_stage" "airbyte_webhook" {
