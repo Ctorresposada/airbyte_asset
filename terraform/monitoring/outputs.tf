@@ -30,3 +30,8 @@ output "pipeline_health_alarm_name" {
   description = "Name of the composite Pipeline Health CloudWatch alarm, or null when the stack is disabled."
   value       = try(aws_cloudwatch_composite_alarm.pipeline_health[0].alarm_name, null)
 }
+
+output "airbyte_webhook_url" {
+  description = "Invoke URL for the Airbyte webhook endpoint. Configure this as the webhook URL in the Airbyte workspace notification settings."
+  value       = try("https://${aws_api_gateway_rest_api.airbyte_webhook[0].id}.execute-api.${var.aws_region}.amazonaws.com/${aws_api_gateway_stage.airbyte_webhook[0].stage_name}/webhook", null)
+}

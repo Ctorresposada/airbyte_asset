@@ -44,7 +44,28 @@ data "aws_ecs_cluster" "dbt" {
 }
 
 # ---------------------------------------------------------------------------
+# VPC and execute-api endpoint — looked up for the private API Gateway
+# ---------------------------------------------------------------------------
+
+data "aws_vpc" "this" {
+  count = local.enable_webhook ? 1 : 0
+
+  tags = {
+    Name = local.name
+  }
+}
+
+data "aws_vpc_endpoint" "execute_api" {
+  count = local.enable_webhook ? 1 : 0
+
+  vpc_id       = data.aws_vpc.this[0].id
+  service_name = "com.amazonaws.${var.aws_region}.execute-api"
+}
+
+# ---------------------------------------------------------------------------
 # IAM policy document for the SNS KMS key — allows CloudWatch Alarms to publish
+# and grants the webhook Lambda and CloudWatch Logs access for the encrypted
+# Lambda log group.
 # ---------------------------------------------------------------------------
 
 data "aws_iam_policy_document" "sns_kms_key" {
@@ -95,5 +116,47 @@ data "aws_iam_policy_document" "sns_kms_key" {
     ]
 
     resources = ["*"]
+  }
+
+  # CloudWatch Logs needs GenerateDataKey* + Decrypt to write encrypted log events
+  # to the /aws/lambda/${local.name}-airbyte-webhook log group.
+  statement {
+    sid    = "AllowCloudWatchLogsToUseKey"
+    effect = "Allow"
+
+    principals {
+      type        = "Service"
+      identifiers = ["logs.amazonaws.com"]
+    }
+
+    actions = [
+      "kms:Decrypt",
+      "kms:GenerateDataKey*",
+    ]
+
+    resources = ["*"]
+  }
+
+  # The Lambda execution role needs GenerateDataKey + Decrypt to publish to the
+  # KMS-encrypted SNS topics. Guarded by enable_webhook so the role reference is
+  # never evaluated when the webhook resources are not created.
+  dynamic "statement" {
+    for_each = local.enable_webhook ? [1] : []
+    content {
+      sid    = "AllowWebhookLambdaToUseKey"
+      effect = "Allow"
+
+      principals {
+        type        = "AWS"
+        identifiers = [aws_iam_role.airbyte_webhook[0].arn]
+      }
+
+      actions = [
+        "kms:Decrypt",
+        "kms:GenerateDataKey*",
+      ]
+
+      resources = ["*"]
+    }
   }
 }

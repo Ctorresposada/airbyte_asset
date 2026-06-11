@@ -82,6 +82,10 @@ resource "aws_sns_topic_subscription" "critical_email" {
 # grant for events.amazonaws.com is required.
 # ---------------------------------------------------------------------------
 
+# Critical topic policy — allows EventBridge rules AND the Airbyte webhook Lambda
+# to publish. A single SNS topic may have only one topic policy, so both
+# principals are consolidated here. The policy is gated only on var.create so
+# it is always present when any rule or Lambda that needs it could exist.
 resource "aws_sns_topic_policy" "critical_eventbridge" {
   count = var.create ? 1 : 0
 
@@ -89,16 +93,53 @@ resource "aws_sns_topic_policy" "critical_eventbridge" {
 
   policy = jsonencode({
     Version = "2012-10-17"
+    Statement = concat(
+      [
+        {
+          Sid    = "AllowEventBridgePublish"
+          Effect = "Allow"
+          Principal = {
+            Service = "events.amazonaws.com"
+          }
+          Action   = "SNS:Publish"
+          Resource = aws_sns_topic.critical[0].arn
+        },
+      ],
+      local.enable_webhook ? [
+        {
+          Sid    = "AllowWebhookLambdaPublish"
+          Effect = "Allow"
+          Principal = {
+            AWS = try(aws_iam_role.airbyte_webhook[0].arn, "")
+          }
+          Action   = "SNS:Publish"
+          Resource = aws_sns_topic.critical[0].arn
+        },
+      ] : []
+    )
+  })
+}
+
+# Warning topic policy — allows the Airbyte webhook Lambda to publish.
+# The warning topic had no resource policy prior to this addition; EventBridge
+# does not target the warning topic so no Service principal is needed here.
+resource "aws_sns_topic_policy" "warning_webhook" {
+  count = local.enable_webhook ? 1 : 0
+
+  arn = aws_sns_topic.warning[0].arn
+
+  policy = jsonencode({
+    Version = "2012-10-17"
     Statement = [
       {
-        Sid    = "AllowEventBridgePublish"
+        Sid    = "AllowWebhookLambdaPublish"
         Effect = "Allow"
         Principal = {
-          Service = "events.amazonaws.com"
+          AWS = aws_iam_role.airbyte_webhook[0].arn
         }
         Action   = "SNS:Publish"
-        Resource = aws_sns_topic.critical[0].arn
-      }
+        Resource = aws_sns_topic.warning[0].arn
+      },
     ]
   })
 }
