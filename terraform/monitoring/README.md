@@ -91,6 +91,148 @@ Below are the available Airbyte notifications and their payload to be used as re
 }
 ```
 
+### Warning - Repeated Failures
+
+```
+[INFO]  2026-06-11T14:22:40.633Z    141dfcdf-71cd-47e1-aab4-9f8d960efa27    Received webhook payload: {
+    "text": "Your connection from The Source to The Destination is scheduled to be automatically disabled because it either failed 10 times consecutively or there were only failed jobs in the past 7 days. Once it has failed 20 times consecutively or has been failing for 14 days in a row, the connection will be automatically disabled.\n\nPlease address the failing issues to ensure your syncs continue to run. The most recent attempted This is test notification. Everything is fine! This is where the error message will show up when an actual sync fails.\n\nWorkspace ID: 8049e58d-0884-454a-abfa-da533a12b844\nConnection ID: 250eccc1-93d1-4d6e-8337-2ac507b71200\n",
+    "blocks": [
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": "[THIS IS A TEST NOTIFICATION] Warning - repeated connection failures: <https://airbyte.com/|Test Connection>"
+            }
+        },
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": "Your connection has been repeatedly failing. Please address any issues to ensure your syncs continue to run.\n"
+            }
+        },
+        {
+            "type": "section",
+            "fields": [
+                {
+                    "type": "mrkdwn",
+                    "text": "*Source:*"
+                },
+                {
+                    "type": "mrkdwn",
+                    "text": "<https://airbyte.com/|The Source>"
+                },
+                {
+                    "type": "mrkdwn",
+                    "text": "*Destination:*"
+                },
+                {
+                    "type": "mrkdwn",
+                    "text": "<https://airbyte.com/|The Destination>"
+                },
+                {
+                    "type": "mrkdwn",
+                    "text": "*Duration:*"
+                },
+                {
+                    "type": "mrkdwn",
+                    "text": "1 hours 0 min"
+                }
+            ]
+        },
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": "*Failure reason:*\n\n```\n[transient_error] This is test notification. Everything is fine! This is where the error message will show up when an actual sync fails.\n```\n"
+            }
+        },
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": "*Sync Summary:*\n10000 record(s) extracted / 10 record(s) loaded\n151 MB extracted / 1 MB loaded\n"
+            }
+        }
+    ]
+}
+```
+
+### Sync Disabled - Repeated Failures
+
+```
+[INFO]  2026-06-11T14:22:41.794Z    d73fd47a-52c6-4340-8acd-d95cefb4f184    Received webhook payload: {
+    "text": "Your connection from The Source to The Destination was automatically disabled because it failed 20 times consecutively or has been failing for 14 days in a row.\n\nPlease address the failing issues to ensure your syncs continue to run. The most recent attempted This is test notification. Everything is fine! This is where the error message will show up when an actual sync fails.\n\nWorkspace ID: 8049e58d-0884-454a-abfa-da533a12b844\nConnection ID: 250eccc1-93d1-4d6e-8337-2ac507b71200\n",
+    "blocks": [
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": "[THIS IS A TEST NOTIFICATION] Connection disabled: <https://airbyte.com/|Test Connection>"
+            }
+        },
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": "Your connection has been repeatedly failing and has been automatically disabled.\n"
+            }
+        },
+        {
+            "type": "section",
+            "fields": [
+                {
+                    "type": "mrkdwn",
+                    "text": "*Source:*"
+                },
+                {
+                    "type": "mrkdwn",
+                    "text": "<https://airbyte.com/|The Source>"
+                },
+                {
+                    "type": "mrkdwn",
+                    "text": "*Destination:*"
+                },
+                {
+                    "type": "mrkdwn",
+                    "text": "<https://airbyte.com/|The Destination>"
+                },
+                {
+                    "type": "mrkdwn",
+                    "text": "*Duration:*"
+                },
+                {
+                    "type": "mrkdwn",
+                    "text": "1 hours 0 min"
+                }
+            ]
+        },
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": "*Failure reason:*\n\n```\n[transient_error] This is test notification. Everything is fine! This is where the error message will show up when an actual sync fails.\n```\n"
+            }
+        },
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": "*Sync Summary:*\n10000 record(s) extracted / 10 record(s) loaded\n151 MB extracted / 1 MB loaded\n"
+            }
+        }
+    ]
+}
+```
+
+### Connection Updates Requiring Action 
+
+```
+{
+    "text": "Hello World! This is a test from Airbyte to try slack notification settings about your connection has been updated and action is required."
+}
+```
+
 <!-- BEGIN_TF_DOCS -->
 ## Requirements
 
