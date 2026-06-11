@@ -141,6 +141,11 @@ tea_bronze_router_memory             = 256 # reads only CSV headers; low memory 
 tea_bronze_router_log_retention_days = 30
 
 # ---------------------------------------------------------------------------
+# TEA Schema Enforcer Lambda
+# ---------------------------------------------------------------------------
+tea_schema_enforcer_log_retention_days = 30 # days CloudWatch keeps schema enforcer logs
+
+# ---------------------------------------------------------------------------
 # PDF Extraction Lambda (raw → bronze)
 # ---------------------------------------------------------------------------
 # AWS-managed public layer for pandas + pyarrow (account 336392948345) / Free cost and memory
