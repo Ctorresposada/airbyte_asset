@@ -164,6 +164,62 @@ locals {
           "arn:aws:s3:::escr20-landing-zone-raw-${var.environment}",
         ]
       },
+      # Redshift Query Editor v2 write/admin actions. Mirrors the
+      # AmazonRedshiftQueryEditorV2FullAccess managed policy; lives inline
+      # because the permission set already attaches the 10-policy IAM cap.
+      # sqlworkbench:CreateAccount is the action behind the "Configure account"
+      # screen users hit on first QEv2 access. tag:GetResources is required by
+      # the editor to render resource tags. Read actions (sqlworkbench:Get*/List*)
+      # are already granted in the Statement1 block above.
+      {
+        Sid    = "RedshiftQueryEditorV2"
+        Effect = "Allow"
+        Action = [
+          "sqlworkbench:CreateAccount",
+          "sqlworkbench:GetAccount",
+          "sqlworkbench:UpdateAccountConnectionSettings",
+          "sqlworkbench:UpdateAccountExportSettings",
+          "sqlworkbench:UpdateAccountGeneralSettings",
+          "sqlworkbench:UpdateAccountQSqlSettings",
+          "sqlworkbench:PutUserWorkspaceSettings",
+          "sqlworkbench:PutTab",
+          "sqlworkbench:DeleteTab",
+          "sqlworkbench:CreateFolder",
+          "sqlworkbench:BatchDeleteFolder",
+          "sqlworkbench:UpdateFileFolder",
+          "sqlworkbench:GenerateSession",
+          "sqlworkbench:DriverExecute",
+          "sqlworkbench:CreateConnection",
+          "sqlworkbench:UpdateConnection",
+          "sqlworkbench:DeleteConnection",
+          "sqlworkbench:AssociateConnectionWithTab",
+          "sqlworkbench:AssociateConnectionWithChart",
+          "sqlworkbench:CreateChart",
+          "sqlworkbench:UpdateChart",
+          "sqlworkbench:DeleteChart",
+          "sqlworkbench:ListChartsForUser",
+          "sqlworkbench:CreateSavedQuery",
+          "sqlworkbench:UpdateSavedQuery",
+          "sqlworkbench:DeleteSavedQuery",
+          "sqlworkbench:CreateNotebook",
+          "sqlworkbench:CreateNotebookCell",
+          "sqlworkbench:CreateNotebookFromVersion",
+          "sqlworkbench:CreateNotebookVersion",
+          "sqlworkbench:DeleteNotebook",
+          "sqlworkbench:DeleteNotebookVersion",
+          "sqlworkbench:DuplicateNotebook",
+          "sqlworkbench:ImportNotebook",
+          "sqlworkbench:ListNotebooks",
+          "sqlworkbench:RestoreNotebookVersion",
+          "sqlworkbench:UpdateNotebook",
+          "sqlworkbench:UpdateNotebookCellContent",
+          "sqlworkbench:UpdateNotebookCellLayout",
+          "sqlworkbench:UpdateNotebookVersion",
+          "sqlworkbench:PutQCustomContext",
+          "tag:GetResources",
+        ]
+        Resource = ["*"]
+      },
     ]
   })
 

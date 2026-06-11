@@ -43,7 +43,6 @@ data_engineer_dev_permission_set = {
     "arn:aws:iam::aws:policy/AmazonEC2FullAccess",
     "arn:aws:iam::aws:policy/AmazonEventBridgeFullAccess",
     "arn:aws:iam::aws:policy/AmazonRedshiftFullAccess",
-    "arn:aws:iam::aws:policy/AmazonRedshiftQueryEditorV2FullAccess",
     "arn:aws:iam::aws:policy/AmazonS3FullAccess",
     "arn:aws:iam::aws:policy/AmazonSNSFullAccess",
     "arn:aws:iam::aws:policy/CloudWatchFullAccessV2",
