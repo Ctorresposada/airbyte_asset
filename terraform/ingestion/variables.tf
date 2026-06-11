@@ -207,6 +207,25 @@ variable "gdrive_sync_log_retention_days" {
   default     = 30
 }
 
+# TEA Bronze Router Lambda
+# ---------------------------------------------------------------------------
+variable "tea_bronze_router_timeout" {
+  description = "Lambda timeout in seconds for the TEA bronze router. Max 900 (15 min). Raise for large backfills."
+  type        = number
+  default     = 900
+}
+
+variable "tea_bronze_router_memory" {
+  description = "Lambda memory in MB for the TEA bronze router. Reads only the first line of each CSV; 256 MB is sufficient for normal routing."
+  type        = number
+  default     = 256
+}
+
+variable "tea_bronze_router_log_retention_days" {
+  description = "CloudWatch log retention in days for the TEA bronze router Lambda log group."
+  type        = number
+  default     = 30
+}
 # ---------------------------------------------------------------------------
 # PDF Extraction Lambda (pdf_to_bronze)
 # ---------------------------------------------------------------------------
@@ -237,24 +256,5 @@ variable "pdf_extraction_log_retention_days" {
 variable "pdf_extraction_pandas_layer_arn" {
   description = "ARN of the AWS-managed SDK for pandas Lambda layer (includes pandas + pyarrow). Used alongside the custom pdfplumber layer to stay within Lambda's 250 MB unzipped limit. Find the latest version for your region at https://github.com/aws/aws-sdk-pandas/releases — look for the AWSSDKPandas-Python312 layer ARN for us-east-1."
   type        = string
-}
-
-# TEA Bronze Router Lambda
-# ---------------------------------------------------------------------------
-variable "tea_bronze_router_timeout" {
-  description = "Lambda timeout in seconds for the TEA bronze router. Max 900 (15 min). Raise for large backfills."
-  type        = number
-  default     = 900
-}
-
-variable "tea_bronze_router_memory" {
-  description = "Lambda memory in MB for the TEA bronze router. Reads only the first line of each CSV; 256 MB is sufficient for normal routing."
-  type        = number
-  default     = 256
-}
-
-variable "tea_bronze_router_log_retention_days" {
-  description = "CloudWatch log retention in days for the TEA bronze router Lambda log group."
-  type        = number
-  default     = 30
+  default     = ""
 }
