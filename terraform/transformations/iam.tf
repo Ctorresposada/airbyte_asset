@@ -159,6 +159,55 @@ data "aws_iam_policy_document" "dbt_task" {
     resources = [data.aws_s3_bucket.silver[0].arn]
   }
 
+  # Bronze bucket — dbt writes Iceberg tables here (bronze layer target).
+  statement {
+    sid    = "BronzeBucketObjects"
+    effect = "Allow"
+
+    actions = [
+      "s3:GetObject",
+      "s3:PutObject",
+      "s3:DeleteObject",
+    ]
+
+    resources = ["${data.aws_s3_bucket.bronze[0].arn}/*"]
+  }
+
+  statement {
+    sid    = "BronzeBucket"
+    effect = "Allow"
+
+    actions = [
+      "s3:ListBucket",
+      "s3:GetBucketLocation",
+    ]
+
+    resources = [data.aws_s3_bucket.bronze[0].arn]
+  }
+
+  # Raw bucket — read-only so Athena can scan source files when dbt runs
+  # bronze models that query the raw Glue catalog (e.g. ascender_invoice).
+  statement {
+    sid    = "RawBucketObjects"
+    effect = "Allow"
+
+    actions = ["s3:GetObject"]
+
+    resources = ["${data.aws_s3_bucket.raw[0].arn}/*"]
+  }
+
+  statement {
+    sid    = "RawBucket"
+    effect = "Allow"
+
+    actions = [
+      "s3:ListBucket",
+      "s3:GetBucketLocation",
+    ]
+
+    resources = [data.aws_s3_bucket.raw[0].arn]
+  }
+
   # Athena adapter — required for dbt to execute and poll queries.
   statement {
     sid    = "AthenaWorkgroup"
