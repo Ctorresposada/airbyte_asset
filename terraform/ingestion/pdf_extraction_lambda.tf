@@ -1,32 +1,20 @@
 # ---------------------------------------------------------------------------
-# Lambda Layer: Python dependencies for pdf_to_bronze.py
+# Lambda Layer: pdfplumber dependencies for pdf_to_bronze.py
 #
-# !! PLACEHOLDER ZIP — rebuild before the first `terraform apply` !!
+# pandas + pyarrow come from the AWS-managed public layer (var.pdf_extraction_pandas_layer_arn).
+# This custom layer contains only pdfplumber and its dependencies (~21 MB zipped).
 #
-# The layer zip must be built for the linux/x86_64 Lambda runtime.
-# Run once from the repo root (requires Docker or a Linux host with pip):
-#
+# Rebuild when pdfplumber version changes:
 #   cd terraform/ingestion/lambda
-#
-#   # Option A — cross-compile on macOS/Windows (recommended):
-#   pip install pdfplumber pandas pyarrow \
+#   pip install pdfplumber \
 #       --target python/lib/python3.12/site-packages \
 #       --platform manylinux2014_x86_64 \
 #       --python-version 3.12 \
 #       --only-binary=:all: -q
-#
-#   # Option B — build inside a matching Lambda container:
-#   docker run --rm \
-#       -v "$PWD":/build -w /build \
-#       public.ecr.aws/lambda/python:3.12 \
-#       pip install pdfplumber pandas pyarrow \
-#           -t python/lib/python3.12/site-packages -q
-#
 #   zip -r pdf_extraction_layer.zip python/
 #   rm -rf python/
 #
-# The zip is checked in to terraform/ingestion/lambda/pdf_extraction_layer.zip.
-# Rebuild and re-commit whenever a dependency version changes.
+# Commit the updated zip — CI deploys whatever is checked in.
 # ---------------------------------------------------------------------------
 resource "aws_lambda_layer_version" "pdf_extraction_deps" {
   count = var.create ? 1 : 0
@@ -63,7 +51,7 @@ resource "aws_lambda_function" "pdf_to_bronze" {
   count = var.create ? 1 : 0
 
   function_name    = "${local.name}-pdf-to-bronze"
-  description      = "Extracts tables from TEA PDF files and writes Snappy Parquet to the bronze bucket"
+  description      = "Extracts tables from TEA PDF files and writes tables to the bronze DB"
   filename         = "${path.module}/lambda/pdf_to_bronze_code.zip"
   source_code_hash = filebase64sha256("${path.module}/lambda/pdf_to_bronze_code.zip")
   handler          = "pdf_to_bronze.handler"
