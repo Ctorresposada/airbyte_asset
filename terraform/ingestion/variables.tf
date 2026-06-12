@@ -138,6 +138,12 @@ variable "lakeformation_de_table_permissions" {
   default     = ["SELECT", "DESCRIBE"]
 }
 
+variable "lakeformation_dbt_task_role_arns" {
+  description = "ARNs of ECS dbt task roles to grant Lake Formation permissions: read on raw, read/write on bronze. Used by the dbt Core container to query raw sources and write Iceberg tables to bronze."
+  type        = list(string)
+  default     = []
+}
+
 variable "oci_bastion_host" {
   type        = string
   description = "OCI bastion host to forward traffic to the Oracle DB"
