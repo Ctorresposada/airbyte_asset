@@ -45,7 +45,7 @@ with source as (
         )                                                                         as file_date,
 
         -- Timestamp of when this dbt run ingested the row.
-        date_format(current_timestamp, '%Y-%m-%d %H:%i:%s')                       as ingested_at,
+        cast(current_timestamp as timestamp)                                       as ingested_at,
 
         -- ------------------------------------------------------------------
         -- Invoice header (all string — as delivered by OpenCSVSerde)
