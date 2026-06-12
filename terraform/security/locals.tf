@@ -152,14 +152,7 @@ locals {
           "logs:DescribeLogStreams",
           "glue:BatchDeletePartition",
           # ECS (run dbt Core tasks manually from console/CLI)
-          "ecs:ListClusters",
-          "ecs:DescribeClusters",
-          "ecs:ListTasks",
-          "ecs:DescribeTasks",
-          "ecs:ListTaskDefinitions",
-          "ecs:DescribeTaskDefinition",
-          "ecs:RunTask",
-          "ecs:StopTask",
+          "ecs:*",
           "iam:PassRole"
         ]
         Resource = ["*"]
