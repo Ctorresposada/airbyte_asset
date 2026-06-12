@@ -39,6 +39,12 @@ data "aws_s3_bucket" "bronze" {
   bucket = "escr20-bronze-${var.environment}"
 }
 
+data "aws_s3_bucket" "raw" {
+  count = var.create ? 1 : 0
+
+  bucket = "escr20-landing-zone-raw-${var.environment}"
+}
+
 # CI writes the deployed image URI here after every successful ECR push.
 # Terraform reads it so the task definition always gets the CI-managed tag.
 # Parameter is created by aws_ssm_parameter.dbt_image_uri in main.tf.
