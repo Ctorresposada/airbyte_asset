@@ -228,6 +228,17 @@ data "aws_iam_policy_document" "dbt_task" {
     ]
   }
 
+  # Lake Formation — allows the dbt container to call LF to get vended S3
+  # credentials when Athena queries LF-governed tables (raw and bronze).
+  statement {
+    sid    = "LakeFormationDataAccess"
+    effect = "Allow"
+
+    actions = ["lakeformation:GetDataAccess"]
+
+    resources = ["*"]
+  }
+
   # Athena reads the Glue Data Catalog to resolve databases and table schemas.
   statement {
     sid    = "GlueCatalogRead"
