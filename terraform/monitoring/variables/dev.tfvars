@@ -6,6 +6,16 @@ company_name              = "region-20"
 account_id                = "784590287037"
 enable_airbyte_monitoring = true
 enable_dbt_ecs_monitoring = true
-warning_emails            = ["matias.kahnlein@caylent.com"]
-critical_emails           = ["matias.kahnlein@caylent.com"]
+warning_emails = [
+  "matias.kahnlein@caylent.com",
+  "isadora.almeida@caylent.com",
+  "cristopher.torres@caylent.com",
+  "cassio.vargas@caylent.com",
+]
+critical_emails = [
+  "matias.kahnlein@caylent.com",
+  "isadora.almeida@caylent.com",
+  "cristopher.torres@caylent.com",
+  "cassio.vargas@caylent.com",
+]
 
