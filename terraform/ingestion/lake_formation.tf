@@ -270,6 +270,103 @@ resource "aws_lakeformation_permissions" "de_raw_tables" {
 }
 
 # ---------------------------------------------------------------------------
+# dbt Core ECS task role LF grants
+# The task role needs:
+#   raw      → DATA_LOCATION_ACCESS + SELECT on all tables (Athena source reads)
+#   bronze   → DATA_LOCATION_ACCESS + CREATE_TABLE on DB + full table access
+#              (SELECT/INSERT/DELETE/ALTER) for Iceberg table management
+# ---------------------------------------------------------------------------
+resource "aws_lakeformation_permissions" "dbt_raw_location" {
+  for_each = var.create ? toset(var.lakeformation_dbt_task_role_arns) : toset([])
+
+  principal = each.value
+
+  data_location {
+    arn = aws_s3_bucket.buckets["raw"].arn
+  }
+
+  permissions = ["DATA_LOCATION_ACCESS"]
+
+  depends_on = [aws_lakeformation_resource.raw]
+}
+
+resource "aws_lakeformation_permissions" "dbt_raw_database" {
+  for_each = var.create ? toset(var.lakeformation_dbt_task_role_arns) : toset([])
+
+  principal = each.value
+
+  database {
+    name = aws_glue_catalog_database.databases["raw"].name
+  }
+
+  permissions                   = ["DESCRIBE"]
+  permissions_with_grant_option = []
+
+  depends_on = [aws_lakeformation_data_lake_settings.this]
+}
+
+resource "aws_lakeformation_permissions" "dbt_raw_tables" {
+  for_each = var.create ? toset(var.lakeformation_dbt_task_role_arns) : toset([])
+
+  principal = each.value
+
+  table {
+    database_name = aws_glue_catalog_database.databases["raw"].name
+    wildcard      = true
+  }
+
+  permissions                   = ["SELECT", "DESCRIBE"]
+  permissions_with_grant_option = []
+
+  depends_on = [aws_lakeformation_data_lake_settings.this]
+}
+
+resource "aws_lakeformation_permissions" "dbt_bronze_location" {
+  for_each = var.create ? toset(var.lakeformation_dbt_task_role_arns) : toset([])
+
+  principal = each.value
+
+  data_location {
+    arn = aws_s3_bucket.buckets["bronze"].arn
+  }
+
+  permissions = ["DATA_LOCATION_ACCESS"]
+
+  depends_on = [aws_lakeformation_resource.bronze]
+}
+
+resource "aws_lakeformation_permissions" "dbt_bronze_database" {
+  for_each = var.create ? toset(var.lakeformation_dbt_task_role_arns) : toset([])
+
+  principal = each.value
+
+  database {
+    name = aws_glue_catalog_database.databases["bronze"].name
+  }
+
+  permissions                   = ["CREATE_TABLE", "DESCRIBE"]
+  permissions_with_grant_option = []
+
+  depends_on = [aws_lakeformation_data_lake_settings.this]
+}
+
+resource "aws_lakeformation_permissions" "dbt_bronze_tables" {
+  for_each = var.create ? toset(var.lakeformation_dbt_task_role_arns) : toset([])
+
+  principal = each.value
+
+  table {
+    database_name = aws_glue_catalog_database.databases["bronze"].name
+    wildcard      = true
+  }
+
+  permissions                   = ["SELECT", "INSERT", "DELETE", "ALTER", "DESCRIBE"]
+  permissions_with_grant_option = []
+
+  depends_on = [aws_lakeformation_data_lake_settings.this]
+}
+
+# ---------------------------------------------------------------------------
 # NOTE: lakeformation:GetDataAccess for SSO roles is managed via the security
 # stack (terraform/security/locals.tf), not here. DataEngineer inline policies
 # include lakeformation:Get* which covers GetDataAccess. Analyst and Auditor

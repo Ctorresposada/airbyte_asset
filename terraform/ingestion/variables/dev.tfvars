@@ -80,6 +80,11 @@ lakeformation_de_role_arns = [
   "arn:aws:iam::784590287037:role/aws-reserved/sso.amazonaws.com/AWSReservedSSO_DataEngineer_Dev_cd1bbeb9335fcaa8",
 ]
 
+# allows DBT to access data lake
+lakeformation_dbt_task_role_arns = [
+  "arn:aws:iam::784590287037:role/region-20-dev-dbt-task",
+]
+
 # DEV ONLY — DROP allows the team to clean up test databases and tables during development.
 # Remove DROP from both variables (keep DESCRIBE / SELECT + DESCRIBE only) when adding stg/prod tfvars.
 lakeformation_de_database_permissions = ["DESCRIBE", "DROP"]           # DB-level LF grant for DE; DROP is DEV ONLY for test cleanup; removed in prod
