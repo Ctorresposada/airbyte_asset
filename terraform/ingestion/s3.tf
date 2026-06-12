@@ -56,7 +56,7 @@ resource "aws_s3_bucket_lifecycle_configuration" "buckets" {
 
   bucket = aws_s3_bucket.buckets[each.key].id
 
-  # Rule 1 — transition current objects to cheaper storage
+  # Rule 1 — transition current objects to cheaper storage.
   rule {
     id     = "${each.value.layer}-transition-current"
     status = "Enabled"
@@ -80,7 +80,7 @@ resource "aws_s3_bucket_lifecycle_configuration" "buckets" {
     }
   }
 
-  # Rule 2 — clean up incomplete multipart uploads
+  # Rule 2 — clean up incomplete multipart uploads.
   rule {
     id     = "${each.value.layer}-abort-incomplete-multipart"
     status = "Enabled"

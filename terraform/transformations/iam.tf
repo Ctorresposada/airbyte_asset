@@ -249,6 +249,8 @@ data "aws_iam_policy_document" "dbt_task" {
       "glue:GetDatabases",
       "glue:GetTable",
       "glue:GetTables",
+      "glue:GetTableVersion",
+      "glue:GetTableVersions",
       "glue:GetPartition",
       "glue:GetPartitions",
       "glue:BatchGetPartition",
