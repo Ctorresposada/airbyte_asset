@@ -108,8 +108,9 @@ jobs:
 
   # ---------------------------------------------------------------------------
   # Tag dbt-vX.X.X: promote the image currently running in DEV to PROD.
-  # Reads the image URI from the DEV task definition, retags it in ECR
-  # (no rebuild), then registers a new PROD task definition revision.
+  # Reads the image URI from the DEV SSM parameter (the single source of truth
+  # written by deploy-dev), retags it in ECR (no rebuild), then registers a new
+  # PROD task definition revision.
   # ---------------------------------------------------------------------------
   promote-and-deploy-prod:
     name: Promote to PROD
@@ -117,7 +118,7 @@ jobs:
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/dbt-v')
 
     steps:
-      # Step 1: Read the current image tag from the DEV task definition.
+      # Step 1: Read the current DEV image URI from the DEV SSM parameter.
       - name: Configure AWS credentials (service account)
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -133,12 +134,12 @@ jobs:
           role-session-name: GitHubActions-dbt-promote-dev-${{ github.run_id }}
           role-chaining: true
 
-      - name: Get current DEV image tag
+      - name: Get current DEV image URI from SSM
         id: dev-image
         run: |
-          IMAGE_URI=$(aws ecs describe-task-definition \
-            --task-definition "${{ env.DEV_TASK_FAMILY }}" \
-            --query 'taskDefinition.containerDefinitions[0].image' \
+          IMAGE_URI=$(aws ssm get-parameter \
+            --name "/region-20/dev/dbt-core/image-uri" \
+            --query 'Parameter.Value' \
             --output text)
 
           SOURCE_TAG="${IMAGE_URI##*:}"
