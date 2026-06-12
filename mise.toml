@@ -1,6 +1,6 @@
 [tools]
 trufflehog = "latest"
-terraform = "1.14.3"
+terraform = "1.11.3"
 pre-commit = "latest"
 uv = "latest"
 #act = "latest"

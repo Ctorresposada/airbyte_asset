@@ -1,10 +1,14 @@
 # General Checks and Tests Workflow
 
+> **In plain terms:** This is the non-Terraform half of the pull-request safety inspection. It does two things on every pull request, with **no AWS access**: it checks that YAML files (such as the workflow files themselves) are well-formed (yamllint), and it scans the whole repository for accidentally committed secrets like passwords or access keys (Gitleaks). If either finds a problem, the pull request is blocked until it is fixed.
+>
+> New to the project? See the [documentation home](README.md) and the [Making Infrastructure Changes guide](kt-02-making-infrastructure-changes.md) for how these checks fit into your day-to-day workflow.
+
 ## Overview
 
 This is a **reusable workflow** that performs general code quality and security checks that don't require AWS credentials. It's designed to be called by other workflows to ensure code meets quality standards before deployment.
 
-**Workflow File:** [.github/workflows/general_checks.yaml](../workflows/general_checks.yaml)
+**Workflow File:** [.github/workflows/general_checks.yaml](../.github/workflows/general_checks.yaml)
 
 ## Inputs
 
@@ -81,5 +85,7 @@ Scans the entire repository for exposed secrets and credentials.
 
 ## Related Workflows
 
-- [terraform_checks.md](terraform_checks.md)
-- [terraform_pull_request.md](terraform_pull_request.md)
+- [terraform_checks.md](terraform_checks.md) - Terraform format, validate, lint, and security scan
+- [terraform_pull_request.md](terraform_pull_request.md) - Main PR workflow that calls this one
+- [kt-02-making-infrastructure-changes.md](kt-02-making-infrastructure-changes.md) - Running these checks locally before pushing
+- [README.md](README.md) - Documentation home

@@ -1,5 +1,9 @@
 # Deployment Process for Infrastructure Stacks
 
+> **In plain terms:** This document explains exactly what happens between "I opened a pull request" and "my change is live in AWS." The key idea is a **reviewed-plan handoff**: when you open a pull request, the pipeline computes a Terraform "plan" (a precise list of what will change) and saves it as a file. A reviewer approves that plan, and when the pull request is merged the pipeline applies *that exact saved plan* — it never re-computes it. This guarantees that what was reviewed is exactly what gets deployed. It also covers how to add a brand-new stack or environment.
+>
+> New to the project? Start with the [documentation home](README.md) and the [Deployment Guide](kt-03-deployment-guide.md) for a gentler walkthrough before this deep dive.
+
 This guide explains the complete process for updating and deploying infrastructure stacks in this repository. All stacks here are **infrastructure-only** — pure Terraform-managed AWS resources (e.g., VPCs, IAM roles, S3 buckets, KMS keys) with no application code or container build step.
 
 The deployment model uses a reviewed-plan handoff: PRs generate a Terraform plan artifact, reviewers approve it, and the merge to `main` applies that exact plan — no replanning at apply time.
@@ -249,7 +253,7 @@ Set in **Settings → Secrets and variables → Actions → Variables**:
 
 | Variable | Description | Example |
 |----------|-------------|---------|
-| `AWS_ROLE_ARN` | Central GitHub-OIDC CI role in the services account. The same value is used for every environment — environment isolation comes from the per-account assume-role chain in each stack's `providers.tf`. | `arn:aws:iam::471624149663:role/region-20-github-oidc` |
+| `AWS_ROLE_ARN` | Central GitHub-OIDC CI role in the services account. The same value is used for every environment — environment isolation comes from the per-account assume-role chain in each stack's `providers.tf`. | `arn:aws:iam::471624149663:role/region-20-terraform-role` |
 | `AWS_REGION` | Default deployment region | `us-east-1` |
 | `NETWORK_AWS_REGION` | Network stack region override (optional) | `us-east-2` |
 | `TERRAFORM_VERSION` | Terraform version override (optional) | `1.11.3` |
