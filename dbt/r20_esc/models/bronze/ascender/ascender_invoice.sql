@@ -1,5 +1,4 @@
-{{
-    /*
+{#
     Materialization: incremental + append
     ------------------------------------
     Bronze = faithful copy of raw. No type casting here — all 70 source
@@ -10,18 +9,17 @@
     On the very first run, is_incremental() is False, so the WHERE filter at
     the bottom is skipped and ALL files in the raw folder are loaded. On every
     subsequent run, is_incremental() is True and only files not yet present in
-    {{ this }} (this bronze table) are processed.
+    this bronze table are processed.
 
     Backfill a specific file: DELETE its rows from this table in Athena, then
     re-run dbt — the NOT IN guard will let that file_name through again.
-    */
-    config(
-        materialized='incremental',
-        incremental_strategy='append',
-        table_type='iceberg',
-        format='parquet'
-    )
-}}
+#}
+{{ config(
+    materialized='incremental',
+    incremental_strategy='append',
+    table_type='iceberg',
+    format='parquet'
+) }}
 
 with source as (
 
