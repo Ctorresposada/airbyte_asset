@@ -41,7 +41,12 @@ renamed as (
         district_number,
         campus_number,
         county_number,
-        active_flag                      as is_active,
+        case active_flag
+            when 'Y' then true
+            when 'N' then false
+            else null
+        end                              as is_active,
+        active_flag,
         date_created,
         date_modified
     from deduped

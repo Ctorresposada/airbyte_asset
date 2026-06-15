@@ -61,9 +61,12 @@ renamed as (
         price4,
         effective_start_date,
         effective_end_date,
-        case active
-            when 'Y' then true
-            when 'N' then false
+        conditions,
+        condition_details,
+        try_cast(market_price as double) as market_price,
+        case
+            when active in ('Y', 'Yes') then true
+            when active = 'N' then false
             else null
         end                              as is_active,
         active,
