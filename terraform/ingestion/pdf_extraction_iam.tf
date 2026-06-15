@@ -38,14 +38,19 @@ resource "aws_iam_role_policy" "pdf_to_bronze_lambda_permissions" {
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
-      # S3: read .pdf files from the raw bucket under the configured prefix only.
-      # Scoped to suffix *.pdf so the role cannot read CSV/Parquet/other raw objects.
+      # S3: read .pdf files from raw/tea/ — GetObject for file content,
+      # ListBucket must be on the bucket ARN or S3 returns a misleading
+      # "not authorized to perform: s3:ListBucket" error on GetObject.
       {
-        Sid    = "AllowS3ReadRawPDFs"
+        Sid    = "AllowS3ReadRawTEA"
         Effect = "Allow"
-        Action = ["s3:GetObject"]
+        Action = [
+          "s3:GetObject",
+          "s3:ListBucket",
+        ]
         Resource = [
-          "${aws_s3_bucket.buckets["raw"].arn}/${var.pdf_extraction_s3_prefix}*.pdf",
+          aws_s3_bucket.buckets["raw"].arn,
+          "${aws_s3_bucket.buckets["raw"].arn}/${var.pdf_extraction_s3_prefix}*",
         ]
       },
       # S3: write Parquet files to bronze under pdf-extracted/ only.
