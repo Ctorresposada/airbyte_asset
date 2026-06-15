@@ -129,7 +129,7 @@ def handler(event, context):
 
     return {"statusCode": 200, "body": f"Processed {len(df)} rows from {filename} (fiscal_year={fiscal_year})"}
 
-
+# Register the data into a table in Glue Catalog
 def _upsert_glue_table(database, table, location, columns, partition_keys):
     table_input = {
         "Name": table,

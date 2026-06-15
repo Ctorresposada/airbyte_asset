@@ -106,26 +106,3 @@ resource "aws_lambda_permission" "pdf_to_bronze_s3" {
   # account could invoke this function if they guess the ARN.
   source_account = var.account_id
 }
-
-# S3 event notification: invoke the Lambda on every .pdf ObjectCreated event
-# under the configured prefix (default: tea/).
-#
-# NOTE: AWS allows only one aws_s3_bucket_notification per bucket. If the raw
-# bucket needs additional event notifications in future, add extra
-# lambda_function / queue / topic blocks to this single resource rather than
-# creating a separate aws_s3_bucket_notification — the latter would silently
-# overwrite this one.
-resource "aws_s3_bucket_notification" "raw_pdf_trigger" {
-  count = var.create ? 1 : 0
-
-  bucket = aws_s3_bucket.buckets["raw"].id
-
-  lambda_function {
-    lambda_function_arn = aws_lambda_function.pdf_to_bronze[0].arn
-    events              = ["s3:ObjectCreated:*"]
-    filter_prefix       = var.pdf_extraction_s3_prefix
-    filter_suffix       = ".pdf"
-  }
-
-  depends_on = [aws_lambda_permission.pdf_to_bronze_s3]
-}
