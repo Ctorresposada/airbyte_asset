@@ -21,6 +21,7 @@ Lambda env vars:
 import io
 import os
 import re
+import urllib.parse
 
 import boto3
 import pandas as pd
@@ -55,7 +56,7 @@ def _stem(filename):
 
 def handler(event, context):
     bucket = event["Records"][0]["s3"]["bucket"]["name"]
-    key = event["Records"][0]["s3"]["object"]["key"]
+    key = urllib.parse.unquote_plus(event["Records"][0]["s3"]["object"]["key"])
 
     # 1. Read PDF from S3
     response = s3.get_object(Bucket=bucket, Key=key)
