@@ -18,7 +18,8 @@
     materialized='incremental',
     incremental_strategy='append',
     table_type='iceberg',
-    format='parquet'
+    format='parquet',
+    s3_data_dir=env_var('BRONZE_BUCKET') ~ 'ascender'
 ) }}
 
 with source as (
