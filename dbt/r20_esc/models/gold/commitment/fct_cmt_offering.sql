@@ -27,14 +27,22 @@ cmt_form_item as (
     group by cmt_form_id, period_id
 ),
 
--- Dedup: pega o título do grupo por período + grupo
+-- Dedup: pega o título e o count_type_id do grupo por período + grupo
 cmt_form_item_group as (
     select
         period_id,
         cmt_form_item_group_id,
-        min(title) as title
+        min(title) as title,
+        min(count_type_id) as count_type_id
     from {{ source('silver', 'stg_oracle__cmt_form_item_group') }}
     group by period_id, cmt_form_item_group_id
+),
+
+cmt_count_type as (
+    select
+        cmt_count_type_id,
+        count_type
+    from {{ source('silver', 'stg_oracle__cmt_count_type') }}
 ),
 
 -- Dedup: pega o primeiro full_name por contact_id
@@ -145,14 +153,15 @@ final as (
         cast(null as varchar)           as cmt_manager2,
         cast(null as varchar)           as cmt_manager3,
 
-        -- TODO: preencher quando cmt_count_type for ingerido
-        cast(null as varchar)           as count_type_used,
+        cct.count_type                  as count_type_used,
+
+        -- TODO: business rule de tot_al ainda não confirmada (não há coluna óbvia em
+        -- cmt_count_type nem esc_employee_data — possivelmente agregação ou cmt_enrollment)
         cast(null as double precision)  as tot_al,
 
-        -- TODO: colunas ausentes no source (confirmar se existem em outra tabela)
-        cast(null as varchar)           as conditions,
-        cast(null as varchar)           as condition_details,
-        cast(null as double precision)  as market_price
+        cmt.conditions,
+        cmt.condition_details,
+        cmt.market_price
 
     from cmt_form cmt
     left join cmt_period cp
@@ -168,6 +177,8 @@ final as (
     left join cmt_range_price_forms crpf
         on cmt.cmt_form_id = crpf.cmt_form_id
         and cmt.period_id  = crpf.period_id
+    left join cmt_count_type cct
+        on cfig.count_type_id = cct.cmt_count_type_id
 
     where cmt.period_id = '{{ var("commitment_period_id", "19") }}'
 )

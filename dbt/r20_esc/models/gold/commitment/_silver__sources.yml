@@ -12,6 +12,7 @@ sources:
       - name: stg_oracle__cmt_form_item_group
       - name: stg_oracle__contact
       - name: stg_oracle__cmt_range_price_forms
+      - name: stg_oracle__cmt_count_type
       - name: stg_docebo__users
       - name: stg_docebo__courses
       - name: stg_docebo__enrollments

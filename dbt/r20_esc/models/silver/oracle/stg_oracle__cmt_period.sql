@@ -15,7 +15,7 @@ deduped as (
 
 renamed as (
     select
-        cast(period_id as varchar)  as period_id,
+        cast(cast(period_id as bigint) as varchar) as period_id,
         description                 as period_description,
         effective_start_date        as start_date,
         effective_end_date          as end_date,

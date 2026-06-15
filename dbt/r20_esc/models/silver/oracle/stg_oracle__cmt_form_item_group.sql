@@ -21,7 +21,7 @@ renamed as (
         description,
         page,
         counts_used,
-        count_type_id,
+        cast(cast(count_type_id as bigint) as varchar) as count_type_id,
         allow_select_all,
         case active
             when 'Y' then true
