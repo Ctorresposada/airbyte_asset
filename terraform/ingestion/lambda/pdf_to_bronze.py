@@ -54,6 +54,29 @@ def _stem(filename):
     return name
 
 
+def _extract_file_date(stem):
+    """Extract the first date-like pattern found anywhere in a filename stem.
+
+    Tries in order of specificity so the most precise match wins:
+      YYYY-MM-DD  →  "2025-06-15"
+      YYYY-MM     →  "2025-06"
+      YYYY        →  "2025"
+
+    Works whether the year is a prefix, suffix, or embedded:
+      2025-campus-pairings  →  "2025"
+      peg-list-2025-final   →  "2025"
+
+    Returns None if no date pattern is found.
+    """
+    if m := re.search(r"\b(\d{4}-\d{2}-\d{2})\b", stem):
+        return m.group(1)
+    if m := re.search(r"\b(\d{4}-\d{2})\b", stem):
+        return m.group(1)
+    if m := re.search(r"\b(\d{4})\b", stem):
+        return m.group(1)
+    return None
+
+
 def handler(event, context):
     bucket = event["Records"][0]["s3"]["bucket"]["name"]
     key = urllib.parse.unquote_plus(event["Records"][0]["s3"]["object"]["key"])
@@ -79,12 +102,7 @@ def handler(event, context):
     if not headers:
         raise ValueError(f"No extractable table found in PDF: s3://{bucket}/{key}")
 
-    # 3. Build DataFrame with audit columns
-    df = pd.DataFrame(rows, columns=headers)
-    df["source_file_path"] = f"s3://{bucket}/{key}"
-    df["ingested_at"] = pd.Timestamp.now().isoformat()
-
-    # 4. Derive names from the S3 key
+    # 3. Derive names from the S3 key
     #    key structure: tea/<fiscal_year_folder>/<filename>.pdf
     #    e.g.          tea/FY 2024-2025/Campus Summary.pdf
     parts = key.split("/")
@@ -95,6 +113,16 @@ def handler(event, context):
 
     table_name = _slugify(_stem(filename))
     fiscal_year = _slugify(raw_fy)
+    file_date = _extract_file_date(_stem(filename))
+
+    # 4. Build DataFrame with audit columns
+    # Column order: table data | file info | fiscal_year | ingestion metadata
+    df = pd.DataFrame(rows, columns=headers)
+    df["file_name"] = filename
+    df["file_date"] = file_date
+    df["fiscal_year"] = fiscal_year
+    df["source_file_path"] = f"s3://{bucket}/{key}"
+    df["ingested_at"] = pd.Timestamp.now().isoformat()
 
     # Hive-style partition keeps each year isolated — no overwrite between years.
     output_prefix = f"pdf-extracted/{table_name}/fiscal_year={fiscal_year}/"
@@ -102,7 +130,7 @@ def handler(event, context):
 
     # 5. Write Snappy Parquet to bronze bucket
     buf = io.BytesIO()
-    pq.write_table(pa.Table.from_pandas(df), buf, compression="snappy")
+    pq.write_table(pa.Table.from_pandas(df), buf, compression="zstd")
     s3.put_object(
         Bucket=os.environ["BRONZE_BUCKET"],
         Key=output_key,
@@ -110,15 +138,17 @@ def handler(event, context):
     )
     print(f"Written: s3://{os.environ['BRONZE_BUCKET']}/{output_key}  ({len(df)} rows)")
 
-    # 6. Register / update Glue table
-    #    Location points to the table root so Athena picks up all fiscal_year partitions.
+    # 6. Register / update Glue table and partition
+    #    fiscal_year is a partition key — exclude it from StorageDescriptor columns.
     #    All columns typed as string — dbt Silver handles casting.
     columns = [
         {"Name": _slugify(col), "Type": "string"}
         for col in df.columns
+        if col != "fiscal_year"
     ]
     partition_keys = [{"Name": "fiscal_year", "Type": "string"}]
     table_root = f"s3://{os.environ['BRONZE_BUCKET']}/pdf-extracted/{table_name}/"
+    partition_location = f"{table_root}fiscal_year={fiscal_year}/"
 
     _upsert_glue_table(
         database=os.environ["GLUE_DATABASE"],
@@ -126,6 +156,13 @@ def handler(event, context):
         location=table_root,
         columns=columns,
         partition_keys=partition_keys,
+    )
+    _upsert_partition(
+        database=os.environ["GLUE_DATABASE"],
+        table=table_name,
+        partition_values=[fiscal_year],
+        location=partition_location,
+        columns=columns,
     )
 
     return {"statusCode": 200, "body": f"Processed {len(df)} rows from {filename} (fiscal_year={fiscal_year})"}
@@ -149,7 +186,7 @@ def _upsert_glue_table(database, table, location, columns, partition_keys):
         "TableType": "EXTERNAL_TABLE",
         "Parameters": {
             "classification": "parquet",
-            "compressionType": "snappy",
+            "compressionType": "zstd",
             "typeOfData": "file",
         },
     }
@@ -159,3 +196,31 @@ def _upsert_glue_table(database, table, location, columns, partition_keys):
     except glue.exceptions.EntityNotFoundException:
         glue.create_table(DatabaseName=database, TableInput=table_input)
         print(f"Created Glue table: {database}.{table}")
+
+
+def _upsert_partition(database, table, partition_values, location, columns):
+    partition_input = {
+        "Values": partition_values,
+        "StorageDescriptor": {
+            "Columns": columns,
+            "Location": location,
+            "InputFormat": "org.apache.hadoop.mapred.TextInputFormat",
+            "OutputFormat": "org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat",
+            "SerdeInfo": {
+                "SerializationLibrary": "org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe",
+                "Parameters": {"serialization.format": "1"},
+            },
+            "Compressed": True,
+        },
+    }
+    try:
+        glue.create_partition(DatabaseName=database, TableName=table, PartitionInput=partition_input)
+        print(f"Created partition {partition_values} on {database}.{table}")
+    except glue.exceptions.AlreadyExistsException:
+        glue.update_partition(
+            DatabaseName=database,
+            TableName=table,
+            PartitionValueList=partition_values,
+            PartitionInput=partition_input,
+        )
+        print(f"Updated partition {partition_values} on {database}.{table}")

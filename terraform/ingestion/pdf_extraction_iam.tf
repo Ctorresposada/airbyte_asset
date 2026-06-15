@@ -80,6 +80,9 @@ resource "aws_iam_role_policy" "pdf_to_bronze_lambda_permissions" {
           "glue:GetTable",
           "glue:CreateTable",
           "glue:UpdateTable",
+          "glue:GetPartition",
+          "glue:CreatePartition",
+          "glue:UpdatePartition",
         ]
         Resource = [
           "arn:aws:glue:${var.aws_region}:${var.account_id}:catalog",
