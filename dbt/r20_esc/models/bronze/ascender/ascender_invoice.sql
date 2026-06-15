@@ -18,7 +18,8 @@
     materialized='incremental',
     incremental_strategy='append',
     table_type='iceberg',
-    format='parquet'
+    format='parquet',
+    s3_data_dir='s3://escr20-bronze-dev/ascender'
 ) }}
 
 with source as (
