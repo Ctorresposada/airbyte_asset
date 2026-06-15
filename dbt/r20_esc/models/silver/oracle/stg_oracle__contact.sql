@@ -15,7 +15,7 @@ deduped as (
 
 renamed as (
     select
-        cast(contact_id as varchar)      as contact_id,
+        cast(cast(contact_id as bigint) as varchar) as contact_id,
         first_name,
         middle_name,
         last_name,
