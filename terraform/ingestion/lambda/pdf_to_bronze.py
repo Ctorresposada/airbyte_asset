@@ -129,6 +129,15 @@ def handler(event, context):
     # Raw headers like 'District Name' and 'Campus\nNumber' become 'district_name', 'campus_number'.
     slugified_headers = [_slugify(h) if h else f"col_{i}" for i, h in enumerate(headers)]
     df = pd.DataFrame(rows, columns=slugified_headers)
+
+    # Drop footer/summary rows that have no campus_number (e.g. "Total Campuses = 317")
+    if "campus_number" in df.columns:
+        before = len(df)
+        df = df[df["campus_number"].notna() & (df["campus_number"].str.strip() != "")]
+        dropped = before - len(df)
+        if dropped:
+            logger.info("Dropped %d non-data row(s) with null campus_number", dropped)
+
     df["file_name"] = filename
     df["file_date"] = file_date
     df["fiscal_year"] = fiscal_year
