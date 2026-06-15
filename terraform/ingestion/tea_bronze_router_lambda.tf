@@ -68,19 +68,6 @@ resource "aws_lambda_permission" "tea_bronze_router_s3" {
   source_arn    = aws_s3_bucket.buckets["raw"].arn
 }
 
-# ---------------------------------------------------------------------------
-# S3 Bucket Notification: trigger Lambda on ObjectCreated under tea/
-# ---------------------------------------------------------------------------
-resource "aws_s3_bucket_notification" "raw_tea_router" {
-  count = var.create ? 1 : 0
-
-  bucket = aws_s3_bucket.buckets["raw"].id
-
-  lambda_function {
-    lambda_function_arn = aws_lambda_function.tea_bronze_router[0].arn
-    events              = ["s3:ObjectCreated:*"]
-    filter_prefix       = "tea/"
-  }
-
-  depends_on = [aws_lambda_permission.tea_bronze_router_s3]
-}
+# NOTE: S3 allows only one aws_s3_bucket_notification per bucket.
+# The tea_bronze_router trigger is merged into aws_s3_bucket_notification.raw_tea_notifications
+# in pdf_extraction_lambda.tf, which owns all raw-bucket event wiring for the tea/ prefix.
