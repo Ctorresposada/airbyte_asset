@@ -125,7 +125,10 @@ def handler(event, context):
 
     # 4. Build DataFrame with audit columns
     # Column order: table data | file info | fiscal_year | ingestion metadata
-    df = pd.DataFrame(rows, columns=headers)
+    # Slugify headers so Parquet column names match the Glue catalog exactly.
+    # Raw headers like 'District Name' and 'Campus\nNumber' become 'district_name', 'campus_number'.
+    slugified_headers = [_slugify(h) if h else f"col_{i}" for i, h in enumerate(headers)]
+    df = pd.DataFrame(rows, columns=slugified_headers)
     df["file_name"] = filename
     df["file_date"] = file_date
     df["fiscal_year"] = fiscal_year
