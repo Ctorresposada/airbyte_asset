@@ -130,7 +130,7 @@ def handler(event, context):
 
     # 5. Write Snappy Parquet to bronze bucket
     buf = io.BytesIO()
-    pq.write_table(pa.Table.from_pandas(df), buf, compression="zstd")
+    pq.write_table(pa.Table.from_pandas(df), buf, compression="snappy")
     s3.put_object(
         Bucket=os.environ["BRONZE_BUCKET"],
         Key=output_key,
@@ -186,7 +186,7 @@ def _upsert_glue_table(database, table, location, columns, partition_keys):
         "TableType": "EXTERNAL_TABLE",
         "Parameters": {
             "classification": "parquet",
-            "compressionType": "zstd",
+            "compressionType": "snappy",
             "typeOfData": "file",
         },
     }
