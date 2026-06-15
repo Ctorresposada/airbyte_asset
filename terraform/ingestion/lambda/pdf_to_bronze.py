@@ -23,11 +23,16 @@ import os
 import re
 import urllib.parse
 
+import logging
+
 import boto3
 import pandas as pd
 import pdfplumber
 import pyarrow as pa
 import pyarrow.parquet as pq
+
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
 
 s3 = boto3.client("s3")
 glue = boto3.client("glue")
@@ -102,6 +107,9 @@ def handler(event, context):
     if not headers:
         raise ValueError(f"No extractable table found in PDF: s3://{bucket}/{key}")
 
+    logger.info("Extracted headers: %s", headers)
+    logger.info("Sample rows (first 3): %s", rows[:3])
+
     # 3. Derive names from the S3 key
     #    key structure: tea/<fiscal_year_folder>/<filename>.pdf
     #    e.g.          tea/FY 2024-2025/Campus Summary.pdf
@@ -122,7 +130,7 @@ def handler(event, context):
     df["file_date"] = file_date
     df["fiscal_year"] = fiscal_year
     df["source_file_path"] = f"s3://{bucket}/{key}"
-    df["ingested_at"] = pd.Timestamp.now().isoformat()
+    df["ingested_at"] = pd.Timestamp.now(tz="UTC").strftime("%Y-%m-%d %H:%M:%S")
 
     # Hive-style partition keeps each year isolated — no overwrite between years.
     output_prefix = f"pdf-extracted/{table_name}/fiscal_year={fiscal_year}/"
@@ -136,7 +144,7 @@ def handler(event, context):
         Key=output_key,
         Body=buf.getvalue(),
     )
-    print(f"Written: s3://{os.environ['BRONZE_BUCKET']}/{output_key}  ({len(df)} rows)")
+    logger.info("Written: s3://%s/%s  (%d rows)", os.environ["BRONZE_BUCKET"], output_key, len(df))
 
     # 6. Register / update Glue table and partition
     #    fiscal_year is a partition key — exclude it from StorageDescriptor columns.
@@ -163,6 +171,17 @@ def handler(event, context):
         partition_values=[fiscal_year],
         location=partition_location,
         columns=columns,
+    )
+
+    logger.info(
+        "PDF successfully extracted and loaded into Glue table.\n"
+        "  File        : %s\n"
+        "  Rows        : %d\n"
+        "  Table       : %s.%s\n"
+        "  Partition   : fiscal_year=%s\n"
+        "  S3 output   : s3://%s/%s",
+        filename, len(df), os.environ["GLUE_DATABASE"], table_name,
+        fiscal_year, os.environ["BRONZE_BUCKET"], output_key,
     )
 
     return {"statusCode": 200, "body": f"Processed {len(df)} rows from {filename} (fiscal_year={fiscal_year})"}
@@ -192,10 +211,10 @@ def _upsert_glue_table(database, table, location, columns, partition_keys):
     }
     try:
         glue.update_table(DatabaseName=database, TableInput=table_input)
-        print(f"Updated Glue table: {database}.{table}")
+        logger.info("Updated Glue table: %s.%s", database, table)
     except glue.exceptions.EntityNotFoundException:
         glue.create_table(DatabaseName=database, TableInput=table_input)
-        print(f"Created Glue table: {database}.{table}")
+        logger.info("Created Glue table: %s.%s", database, table)
 
 
 def _upsert_partition(database, table, partition_values, location, columns):
@@ -215,7 +234,7 @@ def _upsert_partition(database, table, partition_values, location, columns):
     }
     try:
         glue.create_partition(DatabaseName=database, TableName=table, PartitionInput=partition_input)
-        print(f"Created partition {partition_values} on {database}.{table}")
+        logger.info("Created partition %s on %s.%s", partition_values, database, table)
     except glue.exceptions.AlreadyExistsException:
         glue.update_partition(
             DatabaseName=database,
@@ -223,4 +242,4 @@ def _upsert_partition(database, table, partition_values, location, columns):
             PartitionValueList=partition_values,
             PartitionInput=partition_input,
         )
-        print(f"Updated partition {partition_values} on {database}.{table}")
+        logger.info("Updated partition %s on %s.%s", partition_values, database, table)
