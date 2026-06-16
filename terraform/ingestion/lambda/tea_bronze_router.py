@@ -2,10 +2,10 @@
 tea_bronze_router.py — Lambda that routes files from raw/tea/ to bronze/tea/<subfolder>/.
 
 Routing rules (evaluated in order):
-  1. .pdf extension           → bronze/tea/pdfs/<fy_prefix>_<filename>
-  2. .csv with > 1200 columns → bronze/tea/wide_tables/<fy_prefix>_<filename>
-  3. .csv with ≤ 1200 columns → bronze/tea/<fy_prefix>_<table_name>/<filename>
-  4. anything else            → bronze/tea/other/<fy_prefix>_<filename>
+  1. .pdf extension           → bronze/tea/pdfs/<fy_prefix>_<filename>              (copied as-is)
+  2. .csv with > 1200 columns → bronze/tea/wide_tables/<fy_prefix>_<filename>       (copied as-is)
+  3. .csv with ≤ 1200 columns → bronze/tea/<fy_prefix>_<table_name>/<stem>.parquet  (converted)
+  4. anything else            → bronze/tea/other/<fy_prefix>_<filename>              (copied as-is)
 
 FY prefix derivation:
   The raw key's second path segment is the Google Drive FY folder name
@@ -34,7 +34,9 @@ Environment variables:
   RAW_BUCKET    — name of the source S3 bucket
   BRONZE_BUCKET — name of the destination S3 bucket
 
-Copy strategy: s3.copy_object (server-side, same-account) — data never transits Lambda.
+Copy strategy:
+  Narrow CSVs: read into pandas (dtype=str) → write Snappy Parquet via put_object.
+  All other files: s3.copy_object (server-side, same-account) — data never transits Lambda.
 """
 
 import csv
@@ -45,6 +47,7 @@ import re
 import urllib.parse
 
 import boto3
+import pandas as pd
 from botocore.exceptions import ClientError
 
 # ---------------------------------------------------------------------------
@@ -194,8 +197,8 @@ def _destination_key(raw_key: str) -> str:
             logger.info("Routing %s → wide_tables/ (%d cols)", filename, col_count)
         else:
             table_name = _derive_table_name(name)
-            dest_key = f"tea/{fy_prefix}_{table_name}/{filename}"
-            logger.info("Routing %s → %s_%s/", filename, fy_prefix, table_name)
+            dest_key = f"tea/{fy_prefix}_{table_name}/{name}.parquet"
+            logger.info("Routing %s → %s_%s/ (parquet)", filename, fy_prefix, table_name)
     else:
         dest_key = f"tea/other/{fy_prefix}_{filename}"
         logger.info("Routing %s → other/ (unknown ext)", filename)
@@ -214,6 +217,32 @@ def _copy(raw_key: str, dest_key: str) -> None:
         Key=dest_key,
     )
     logger.info("Copied s3://%s/%s → s3://%s/%s", RAW_BUCKET, raw_key, BRONZE_BUCKET, dest_key)
+
+
+def _convert_to_parquet(raw_key: str, dest_key: str) -> None:
+    """
+    Read a CSV from RAW_BUCKET into pandas (all columns as string to prevent
+    type-inference issues in Glue/Athena), convert to Snappy Parquet, and
+    write to BRONZE_BUCKET.  The Parquet schema embeds string types so the
+    Glue crawler reads them directly without needing a post-crawl enforcer.
+    """
+    response = s3.get_object(Bucket=RAW_BUCKET, Key=raw_key)
+    df = pd.read_csv(response["Body"], dtype=str, keep_default_na=False)
+    buf = io.BytesIO()
+    df.to_parquet(buf, engine="pyarrow", compression="snappy", index=False)
+    s3.put_object(Bucket=BRONZE_BUCKET, Key=dest_key, Body=buf.getvalue())
+    logger.info(
+        "Converted s3://%s/%s → s3://%s/%s (%d rows, %d cols)",
+        RAW_BUCKET, raw_key, BRONZE_BUCKET, dest_key, len(df), len(df.columns),
+    )
+
+
+def _transfer(raw_key: str, dest_key: str) -> None:
+    """Route to parquet conversion for narrow CSVs, server-side copy for everything else."""
+    if dest_key.endswith(".parquet"):
+        _convert_to_parquet(raw_key, dest_key)
+    else:
+        _copy(raw_key, dest_key)
 
 
 def _bronze_key_exists(bronze_key: str) -> bool:
@@ -246,7 +275,7 @@ def _handle_s3_event(event: dict) -> None:
 
         try:
             dest_key = _destination_key(raw_key)
-            _copy(raw_key, dest_key)
+            _transfer(raw_key, dest_key)
         except Exception:
             logger.exception("Failed to route s3://%s/%s", RAW_BUCKET, raw_key)
             raise  # Re-raise so Lambda marks invocation failed → S3 retries

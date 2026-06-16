@@ -34,7 +34,7 @@ resource "aws_lambda_function" "tea_bronze_router" {
   count = var.create ? 1 : 0
 
   function_name    = "${local.name}-tea-bronze-router"
-  description      = "Routes files from raw/tea/ to bronze/tea/<subfolder>/ based on file type and column count"
+  description      = "Routes files from raw/tea/ to bronze/tea/<subfolder>/; converts narrow CSVs to Snappy Parquet"
   filename         = "${path.module}/lambda/tea_bronze_router_code.zip"
   source_code_hash = filebase64sha256("${path.module}/lambda/tea_bronze_router_code.zip")
   handler          = "tea_bronze_router.lambda_handler"
@@ -42,6 +42,7 @@ resource "aws_lambda_function" "tea_bronze_router" {
   timeout          = var.tea_bronze_router_timeout
   memory_size      = var.tea_bronze_router_memory
   role             = aws_iam_role.tea_bronze_router_lambda[0].arn
+  layers           = [var.pdf_extraction_pandas_layer_arn]
 
   environment {
     variables = {

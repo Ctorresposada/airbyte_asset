@@ -53,8 +53,5 @@ gdrive_sync_log_retention_days = 30                    # Days CloudWatch keeps t
 
 # TEA Bronze Router Lambda
 tea_bronze_router_timeout            = 900
-tea_bronze_router_memory             = 256
+tea_bronze_router_memory             = 512
 tea_bronze_router_log_retention_days = 30
-
-# TEA Schema Enforcer Lambda
-tea_schema_enforcer_log_retention_days = 30

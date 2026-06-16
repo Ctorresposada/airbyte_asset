@@ -187,7 +187,7 @@ def sync_folder(service, s3_client, bucket, s3_prefix,
         elif mime == PDF_MIME:
             try:
                 data = download_file(service, f["id"])
-                key  = s3_key(s3_prefix, drive_path, name, ".pdf")
+                key  = s3_key(s3_prefix, drive_path, name, "")
                 upload_to_s3(s3_client, bucket, key, data, "application/pdf")
                 print(f"  [OK pdf]        s3://{bucket}/{key}  ({len(data):,} B)")
                 stats["exported"] += 1

@@ -142,13 +142,8 @@ gdrive_sync_log_retention_days = 30
 # TEA Bronze Router Lambda
 # ---------------------------------------------------------------------------
 tea_bronze_router_timeout            = 900 # 15 min max — backfill of 100+ files needs time
-tea_bronze_router_memory             = 256 # reads only CSV headers; low memory sufficient
+tea_bronze_router_memory             = 512 # reads full CSVs into pandas for Parquet conversion
 tea_bronze_router_log_retention_days = 30
-
-# ---------------------------------------------------------------------------
-# TEA Schema Enforcer Lambda
-# ---------------------------------------------------------------------------
-tea_schema_enforcer_log_retention_days = 30 # days CloudWatch keeps schema enforcer logs
 
 # ---------------------------------------------------------------------------
 # PDF Extraction Lambda (raw → bronze)
