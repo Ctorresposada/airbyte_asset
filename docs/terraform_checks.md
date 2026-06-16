@@ -1,13 +1,17 @@
 # Terraform Checks and Tests Workflow
 
+> **In plain terms:** This is the automated "spell-check and safety inspection" for our infrastructure code. It runs on every pull request and needs **no AWS access at all** — it only reads the code. It checks four things: that the code is formatted consistently (`terraform fmt`), that it is syntactically valid (`terraform validate`), that it follows our naming and style rules (TFLint), and that it has no obvious security misconfigurations (Checkov). If any check fails, the pull request is blocked until it is fixed.
+>
+> New to the project? See the [documentation home](README.md) and the [Making Infrastructure Changes guide](kt-02-making-infrastructure-changes.md), which explain how to run these same checks on your own machine before you push.
+
 ## Overview
 
 This is a **reusable workflow** that performs comprehensive Terraform code quality and security checks without requiring AWS credentials. It validates Terraform syntax, runs linting, and performs security scanning.
 
-**Workflow File:** [.github/workflows/terraform_checks.yaml](../workflows/terraform_checks.yaml)
+**Workflow File:** [.github/workflows/terraform_checks.yaml](../.github/workflows/terraform_checks.yaml)
 
 ### Called By
-- [terraform_pull_request.yaml](../workflows/terraform_pull_request.yaml) - Runs on pull requests
+- [terraform_pull_request.yaml](../.github/workflows/terraform_pull_request.yaml) - Runs on pull requests
 
 ## Inputs
 
@@ -98,7 +102,7 @@ Runs security scanning on Terraform code using Checkov.
    - Fetches repository code
 
 2. **Verify Checkov config file**
-   - Checks if `.config/.checkov.yml` exists locally
+   - Checks if `.config/.checkov.yaml` exists locally
    - If not found, clones from central repository
    - Uses sparse checkout to fetch only config
    - Repository: `caylent/terraform-ci`
@@ -106,7 +110,7 @@ Runs security scanning on Terraform code using Checkov.
 3. **Run Checkov action**
    - Uses: `bridgecrewio/checkov-action@master`
    - Scans directory: `.` (entire repository)
-   - Config: `.config/.checkov.yml`
+   - Config: `.config/.checkov.yaml`
    - Generates security scan report
 
 Supports multiple frameworks:
@@ -123,7 +127,7 @@ Supports multiple frameworks:
 
 ### Checkov Configuration
 
-**Location:** `.config/.checkov.yml`
+**Location:** `.config/.checkov.yaml`
 
 ## Best Practices
 
@@ -148,6 +152,8 @@ terraform/
 
 - [general_checks.md](general_checks.md) - General code quality checks
 - [terraform_pull_request.md](terraform_pull_request.md) - Main PR workflow
+- [kt-02-making-infrastructure-changes.md](kt-02-making-infrastructure-changes.md) - How to run these checks locally before pushing
+- [README.md](README.md) - Documentation home
 
 ## Additional Resources
 

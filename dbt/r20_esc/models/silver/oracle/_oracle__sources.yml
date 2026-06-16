@@ -28,15 +28,9 @@ sources:
       - name: cmt_range_price_forms
         identifier: apex_orcl_cmt_range_price_forms
         description: "Tabela de preços por faixa dos formulários de commitment"
-      - name: cmt_section
-        identifier: apex_orcl_cmt_section
-        description: "Seções do formulário de commitment — não ingerido ainda"
-      - name: cmt_category
-        identifier: apex_orcl_cmt_category
-        description: "Categorias de commitment — não ingerido ainda"
       - name: cmt_count_type
         identifier: apex_orcl_cmt_count_type
-        description: "Tipos de contagem de commitment — não ingerido ainda"
+        description: "Tipos de contagem de commitment — lookup table"
       - name: esc_employee_data
         identifier: apex_orcl_esc_employee_data
-        description: "Dados de funcionários ESC — não ingerido ainda"
+        description: "Dados de funcionários ESC — usado para resolver cmt_manager*"

@@ -1,5 +1,30 @@
 # dbt-core and Airbyte OSS Self-Hosted Compute Options
 
+> Back to [docs landing page](README.md) · See also the [Concepts Glossary](concepts-glossary.md)
+
+> **In plain terms**
+>
+> The data platform uses two tools: **Airbyte** (which copies data out of source systems into our storage) and **dbt** (which cleans and reshapes that data into report-ready tables). For each tool we can either pay a vendor to run it for us (the "Cloud" / SaaS option, covered elsewhere) or run it ourselves on AWS servers (the "self-hosted" option). This document is only about the *self-hosted* path: if Region 20 chooses to run these tools itself, **what kind of AWS computer should each tool run on, and what will it cost?** It compares the realistic options side by side and ends with a clear recommendation for each tool.
+
+## What decision does this document help make?
+
+If Region 20 decides to self-host Airbyte and dbt (rather than buying the managed Cloud versions), it must pick the *compute platform* — the type of AWS infrastructure that actually runs the software. There is no single "best" answer; the right choice depends on how each tool behaves at runtime. This document walks through that reasoning and lands on a specific recommendation:
+
+- **dbt-core** → run it as a short-lived container job on **ECS Fargate** (explained below).
+- **Airbyte OSS** → run it on a single **EC2** virtual server using Airbyte's own installer.
+
+You do not need to read all of it to act on it. The [Recommendation](#5-recommendation) section is the bottom line; the rest explains why.
+
+> **A quick glossary of the compute terms used throughout**
+>
+> - **vCPU** — a "virtual CPU," i.e. one slice of a processor's computing power. More vCPUs means more work can run in parallel.
+> - **Memory (RAM)**, measured in GB — short-term working space the software uses while running. Running out of it causes crashes.
+> - **EC2 (Elastic Compute Cloud)** — a plain virtual server (a "computer in the cloud") that you rent by the hour and are responsible for patching and managing. See the [Concepts Glossary](concepts-glossary.md).
+> - **Container** — a lightweight, self-contained package of an application plus everything it needs to run, so it behaves the same anywhere.
+> - **ECS Fargate (Elastic Container Service with Fargate)** — AWS's "serverless" way to run containers. You hand AWS a container and how much vCPU/memory it needs; AWS finds a machine, runs it, and bills you only for the seconds it runs. There is no server for you to manage.
+> - **Kubernetes** — an industry-standard system for running and coordinating many containers across many machines. It is powerful but operationally heavy; Airbyte requires it internally.
+> - **Spot capacity** — spare AWS compute offered at a steep discount (often 60-70% off) with the catch that AWS can reclaim it on short notice. Safe for jobs that can simply be retried.
+
 ## Table of Contents
 
 1. [Executive Summary](#1-executive-summary)
@@ -22,8 +47,13 @@ if Region 20 ESC prefers running the self hosted versions of both tools.
   Fargate's serverless container model. Spot capacity reduces cost 60-70% with no operational overhead
   beyond what Fargate already abstracts.
 
-- **Airbyte OSS:** EC2 Auto Scaling Group running `abctl` on a Docker-enabled AMI, with all durable
-  state externalized to RDS PostgreSQL, S3, and Secrets Manager. `abctl` is Airbyte's vendor-supported
+- **Airbyte OSS:** EC2 Auto Scaling Group (an ASG is an AWS feature that keeps a target number of EC2
+  servers running and automatically launches a replacement if one dies) running `abctl` on a
+  Docker-enabled AMI (an AMI, Amazon Machine Image, is the pre-configured disk image a new server boots
+  from), with all durable state externalized to RDS PostgreSQL (RDS, Relational Database Service, is
+  AWS's managed database service — see the [Concepts Glossary](concepts-glossary.md)), S3 (object
+  storage), and Secrets Manager (AWS's encrypted store for passwords and credentials). `abctl` is
+  Airbyte's vendor-supported
   installer. The only AMI prerequisite is Docker. `abctl` handles kind cluster creation, Helm chart
   application, and version upgrades without any additional tooling on the host. Because every piece of
   durable state is external to the instance, the kind cluster holds no data and ASG replacement is safe:
@@ -34,6 +64,17 @@ if Region 20 ESC prefers running the self hosted versions of both tools.
 
 Understanding the runtime shape of each tool is what makes the compute choice non-obvious. They are
 fundamentally different classes of workload.
+
+> **Why "workload shape" decides the answer:** a tool that starts, does a few minutes of work, and shuts
+> down (dbt) is best matched to pay-per-second serverless compute. A tool that must stay running 24/7 to
+> listen for and coordinate jobs (Airbyte) is best matched to an always-on server. The tables below
+> establish each tool's shape; the cost comparison in [Section 3](#3-compute-option-comparison) follows
+> directly from it.
+>
+> Note: dbt does not crunch the data itself — it sends SQL instructions to **Redshift** (Amazon's data
+> warehouse, the "Gold" layer where report-ready data lives) and lets Redshift do the heavy lifting. That
+> is why dbt itself needs very little compute. See the [Concepts Glossary](concepts-glossary.md) for
+> Redshift, Iceberg, and the medallion (bronze/silver/gold) layers.
 
 ### dbt-core
 

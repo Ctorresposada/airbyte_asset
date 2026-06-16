@@ -21,7 +21,7 @@ renamed as (
         cast(cast(cmt_order_id as bigint) as varchar)    as cmt_order_id,
         cast(cast(commitment_id as bigint) as varchar)   as commitment_id,
         cast(cast(esc_contact_id as bigint) as varchar)  as esc_contact_id,
-        cast(esc_contact_id2 as varchar)                 as esc_contact_id2,
+        cast(cast(esc_contact_id2 as bigint) as varchar) as esc_contact_id2,
         cast(cast(parent_id as bigint) as varchar)       as parent_id,
         cast(cast(pdetail_id as bigint) as varchar)      as pdetail_id,
         cast(created_by as varchar)      as created_by,
@@ -61,9 +61,12 @@ renamed as (
         price4,
         effective_start_date,
         effective_end_date,
-        case active
-            when 'Y' then true
-            when 'N' then false
+        conditions,
+        condition_details,
+        try_cast(market_price as double) as market_price,
+        case
+            when active in ('Y', 'Yes') then true
+            when active = 'N' then false
             else null
         end                              as is_active,
         active,

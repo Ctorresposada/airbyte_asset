@@ -1,5 +1,9 @@
 # GitHub Actions OIDC Role Chain
 
+> **In plain terms:** This document explains how the automated pipeline proves to AWS that it is allowed to make changes — without any passwords or long-lived access keys stored anywhere. GitHub hands AWS a short-lived signed token, AWS trades it for temporary credentials on one central role, and Terraform then "hops" from that role into whichever account (dev, prod, etc.) it needs to deploy into. If you ever see an `AssumeRole` or "AccessDenied" error in a workflow, this is the doc that explains why and how to fix it.
+>
+> New to the project? Start with the [documentation home](README.md) and the [Deployment Guide](kt-03-deployment-guide.md), which introduce this flow gently before you dive into the mechanics here.
+
 This document explains the authentication model used by every CI workflow in this repository. It is the primary reference for anyone working on CI auth, onboarding a new AWS account, or debugging an `AssumeRole` or `AssumeRoleWithWebIdentity` failure.
 
 The model is a hub-and-spoke assume-role chain: GitHub Actions obtains a short-lived OIDC token, exchanges it for credentials on a single central CI role in the services account, and Terraform itself chain-assumes a dedicated execution role in each target account. No long-lived credentials exist anywhere in this chain.
@@ -99,7 +103,7 @@ provider "aws" {
 
 ### Central CI role trust policy (services account)
 
-The OIDC provider is created by the `base` stack (`terraform/base/oidc.tf`). The trust policy it generates trusts GitHub's OIDC issuer, scoped to this repository:
+The OIDC provider is created by the `base` stack (`terraform/base/oidc.tf`). The trust policy it generates trusts GitHub's OIDC issuer, scoped to the repositories allowed to assume the role. `terraform/base/oidc.tf` trusts **two** repository slugs: `esc-region-20/r20-data-lake-infrastructure` (the repository this code lives in today) and `caylent/region-20-infrastructure` (a legacy slug retained for backward compatibility). Both are listed in the `sub` claim condition:
 
 ```json
 {
@@ -115,21 +119,24 @@ The OIDC provider is created by the `base` stack (`terraform/base/oidc.tf`). The
         "token.actions.githubusercontent.com:aud": "sts.amazonaws.com"
       },
       "StringLike": {
-        "token.actions.githubusercontent.com:sub": "repo:caylent/region-20-infrastructure:*"
+        "token.actions.githubusercontent.com:sub": [
+          "repo:esc-region-20/r20-data-lake-infrastructure:*",
+          "repo:caylent/region-20-infrastructure:*"
+        ]
       }
     }
   }]
 }
 ```
 
-The `sub` claim is currently a wildcard (`*`) permitting all refs and workflow contexts. To restrict to specific branches or event types, replace the wildcard with a more specific pattern:
+The `sub` claim uses a trailing wildcard (`*`) on each repo, permitting all refs and workflow contexts within those repositories. To restrict to specific branches or event types, replace the wildcard with a more specific pattern (apply the same change to whichever repo slug is active):
 
 ```
 # Main branch pushes only:
-"repo:caylent/region-20-infrastructure:ref:refs/heads/main"
+"repo:esc-region-20/r20-data-lake-infrastructure:ref:refs/heads/main"
 
 # Pull requests only:
-"repo:caylent/region-20-infrastructure:pull_request"
+"repo:esc-region-20/r20-data-lake-infrastructure:pull_request"
 
 # Both, using two statement entries or a list value
 ```
@@ -206,6 +213,8 @@ State is stored in S3 bucket `region-20-tf-state` in the services account, encry
 
 ## Related Documentation
 
+- [kt-03-deployment-guide.md](kt-03-deployment-guide.md) -- the gentle, guided introduction to this authentication flow for newcomers
 - [deployment_with_artifacts.md](deployment_with_artifacts.md) -- full plan-artifact handoff walkthrough and new-stack creation guide
 - [terraform_pull_request.md](terraform_pull_request.md) -- PR validation checks that run on every Terraform change
-- [README.md](README.md) -- workflow overview and pull-request flow diagrams
+- [concepts-glossary.md](concepts-glossary.md) -- plain-language definitions of OIDC, IAM, AssumeRole, and other terms used here
+- [README.md](README.md) -- documentation home and workflow overview

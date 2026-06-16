@@ -1,10 +1,14 @@
 # Terraform CI Pull Request Workflow
 
+> **In plain terms:** This is the master "gatekeeper" that runs whenever you open a pull request. It does not do any work itself — instead it calls the two checking workflows ([Terraform Checks](terraform_checks.md) and [General Checks](general_checks.md)) and runs them in parallel for fast feedback. None of these checks touch AWS; they only read and validate the code. The pull request can merge only after every check passes. This doc also lists the recommended branch-protection settings that enforce that rule.
+>
+> New to the project? Start at the [documentation home](README.md) and the [Making Infrastructure Changes guide](kt-02-making-infrastructure-changes.md).
+
 ## Overview
 
 This is the **main orchestration workflow** for pull request validation. It coordinates multiple reusable workflows to perform comprehensive checks on Terraform infrastructure code and general repository standards.
 
-**Workflow File:** [.github/workflows/terraform_pull_request.yaml](../workflows/terraform_pull_request.yaml)
+**Workflow File:** [.github/workflows/terraform_pull_request.yaml](../.github/workflows/terraform_pull_request.yaml)
 
 ### When It Runs
 
@@ -125,6 +129,8 @@ Recommended branch protection settings for `main`:
 
 - [terraform_checks.md](terraform_checks.md) - Detailed Terraform validation
 - [general_checks.md](general_checks.md) - Code quality checks
+- [kt-02-making-infrastructure-changes.md](kt-02-making-infrastructure-changes.md) - Running these same checks locally before opening a PR
+- [README.md](README.md) - Documentation home
 
 ## Additional Resources
 

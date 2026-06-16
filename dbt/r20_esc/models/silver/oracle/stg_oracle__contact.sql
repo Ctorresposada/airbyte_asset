@@ -15,7 +15,7 @@ deduped as (
 
 renamed as (
     select
-        cast(contact_id as varchar)      as contact_id,
+        cast(cast(contact_id as bigint) as varchar) as contact_id,
         first_name,
         middle_name,
         last_name,
@@ -41,7 +41,12 @@ renamed as (
         district_number,
         campus_number,
         county_number,
-        active_flag                      as is_active,
+        case active_flag
+            when 'Y' then true
+            when 'N' then false
+            else null
+        end                              as is_active,
+        active_flag,
         date_created,
         date_modified
     from deduped

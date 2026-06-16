@@ -1,5 +1,11 @@
 # Monitoring
 
+> Back to [docs landing page](README.md) · See also the [Concepts Glossary](concepts-glossary.md)
+
+> **In plain terms**
+>
+> This document explains how the data platform keeps an eye on itself. Instead of someone manually checking every part of the system each morning, AWS continuously measures things like "how many queries failed" or "how full is the disk," and automatically emails the team the moment something looks wrong. It matters because the platform runs unattended: without this, a broken data feed or a failed nightly job could go unnoticed for days, and reports would quietly show stale numbers. Read [Section 1](#1-how-notifications-work) to understand how the alerts reach you, then use [Section 7](#7-alarm-quick-reference) as the at-a-glance list of everything being watched.
+
 This document describes the monitoring and alerting setup for the Region 20 ESC data platform. The platform is designed to watch itself — when something goes wrong, the team receives an automatic notification rather than discovering a problem after reports have gone stale or a data refresh has silently failed.
 
 Monitoring works through two complementary mechanisms. Dashboards are always-on visual screens showing graphs and numbers in near-real-time. Anyone with AWS console access can pull them up at any time as a quick health check. Alarms are automated sentinels that compare live measurements against defined thresholds and send an email notification the moment a threshold is crossed and another when the condition clears.
@@ -31,6 +37,17 @@ Some monitoring components in this document are marked as optional. The platform
 
 ## 1. How Notifications Work
 
+> **The four words used throughout this document**
+>
+> - **Metric** — a single number AWS measures over and over, on a schedule. Examples: the count of failed queries in the last 10 minutes, or the percentage of a disk that is full. Most metrics come from a service called **CloudWatch** (AWS's built-in measurement and dashboard service — see the [Concepts Glossary](concepts-glossary.md)).
+> - **Threshold** — the line a metric is not supposed to cross. For example, "5 failed queries in 10 minutes." It is the rule that defines "this is now a problem."
+> - **Alarm** — a watcher tied to one metric and one threshold. It sits quietly while the metric is fine, and switches to an "in alarm" state the moment the metric crosses the threshold. When it switches state, it sends a notification. (It also notifies again, with an "OK," when things return to normal.)
+> - **SNS notification** — the actual message that goes out. **SNS** (Simple Notification Service) is AWS's notification dispatcher: an alarm hands its message to SNS, and SNS emails it to everyone on the relevant list.
+>
+> Putting it together: AWS measures a **metric**, an **alarm** checks that metric against a **threshold**, and if the threshold is crossed the alarm uses **SNS** to email the team.
+>
+> **About the two severity tiers, in lay terms:** every alarm is labelled either **Warning** or **Critical**. Think of **Warning** as "the dashboard light came on — look into it soon, but nothing is broken yet" (for example, a disk filling up or queries running slow). Think of **Critical** as "something is actually broken right now and the data may already be wrong or missing — act promptly" (for example, a data sync failed or the warehouse is rejecting queries). The two tiers email two separate lists so the most urgent alerts can go to the people who need to drop what they are doing.
+
 When an alarm crosses its threshold, AWS SNS (Simple Notification Service, think of it as a managed notification broadcast channel) delivers a message to everyone subscribed to that channel. The platform uses two SNS topics, one per severity tier.
 
 - The **Warning topic** receives notifications for conditions that are degraded but not yet causing failures: slow queries, high resource usage, unusual data volumes.
@@ -43,6 +60,8 @@ When an alarm condition clears, for example a query failures drop back below the
 ## 2. Core Monitoring (Always Active)
 
 The following monitoring is deployed regardless of which optional components are in use. It covers the data lake storage layer, the two query engines (Redshift and Athena), the TEA data ingestion function, and the Connect20 and Ascender cataloging jobs.
+
+> **The "Raw / Bronze / Silver / Gold" layers (the medallion model):** the platform refines data in stages, like ore being purified. **Raw** is data exactly as it arrived from a source system; **Bronze** is that data cleaned and standardized; **Silver** is structured and analysis-ready; and **Gold** is the final report-ready tables (which live in Redshift). Each stage is monitored separately so the team can tell *which* step broke. See the [Concepts Glossary](concepts-glossary.md) for more on the medallion layers and the data lake.
 
 ### 2.1 Redshift Serverless — Data Warehouse
 

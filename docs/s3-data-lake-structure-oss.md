@@ -1,13 +1,34 @@
 # R2EP2IC-33 — S3 Data Lake: Folder Structure, Naming Convention & Partitioning Strategy
 # Variant: Airbyte OSS + dbt Core (self-hosted on EC2)
 
+> Back to [docs landing page](README.md) · See also the [Concepts Glossary](concepts-glossary.md)
+
+> **In plain terms**
+>
+> A "data lake" is just a very large, organized set of folders in cloud storage (AWS **S3**) where all the platform's data files live. This document defines the rules for *where* each file goes, *what* it is named, and *how* it is grouped — so that every tool writing data and every analyst reading it agree on the same layout. Getting this right matters because consistent folder structure is what lets queries stay fast and cheap, keeps sensitive data out of the wrong place, and means no one has to guess where a given dataset lives. This is the **OSS (self-hosted)** version of the design, where Region 20 runs the ingestion and transformation tools itself on its own AWS servers.
+
+> **Which variant is this? (OSS vs Cloud)**
+>
+> There are two versions of this design document, and they describe the *same* folder layout but a *different* way of running the tools that produce the data:
+>
+> - **This document (OSS / self-hosted):** Region 20 runs the *free, open-source editions* of both tools — **Airbyte OSS** and **dbt Core** — on its own AWS **EC2** virtual servers. "OSS" means open-source software. More control and no subscription fee, but Region 20 is responsible for patching, upgrading, and keeping those servers healthy.
+> - **The other document ([`s3-data-lake-structure-cloud.md`](s3-data-lake-structure-cloud.md), "Cloud"):** the same tools run *by their vendors* as paid online services (Airbyte Cloud and dbt Cloud), with no servers for Region 20 to operate.
+>
+> The decision between them is still open (see [Section 10](#10-open-decisions)). The folder structure, bucket names, and partitioning rules are intentionally identical across both so the choice can be made — or changed — without re-laying-out the data lake.
+
+> **The "Bronze / Silver / Gold" layers (the medallion model):** the platform refines data in stages, the way raw ore is purified into finished metal. **Bronze** is data freshly ingested from source systems (cleaned only enough to store reliably); **Silver** is data that has been reshaped and joined into structured, analysis-ready tables; **Gold** is the final report-ready output. Each layer lives in its own separate S3 bucket so access can be controlled independently and a problem in one stage cannot corrupt another. In this platform, Gold lives in the **Redshift** data warehouse rather than in S3, so there is no "gold bucket." (See the [Concepts Glossary](concepts-glossary.md) for the medallion model and Redshift.)
+
+> **What "partitioning" means:** partitioning is splitting a large table's files into folders by a column value — most often a date — so a query that only needs recent data can skip everything else. For example, if files are grouped into one folder per day, a query for "yesterday" reads a single day's folder instead of scanning years of history. Since the query engine (**Athena**) bills by the amount of data it reads, good partitioning makes queries both faster and cheaper. [Section 6](#6-partitioning-strategy) defines the exact partitioning rules.
+
 ## 1. Guiding Principles
+
+> **Two terms used heavily below.** The **Glue Catalog** (AWS Glue Data Catalog) is a central index of "what tables exist and where their files live" — it lets a query engine treat folders of files as if they were database tables. **Iceberg** (Apache Iceberg) is an open table format that adds database-like features (reliable updates, schema changes, time-travel snapshots) on top of plain files in S3. Both are defined in the [Concepts Glossary](concepts-glossary.md).
 
 1. **Uniformity first** — all data writers (Airbyte OSS, manual uploads) follow the same prefix schema so the Glue Catalog requires zero custom config per table.
 2. **Partition pruning** — partition keys match the most common query filters (date range + source) to minimize S3 scan costs.
 3. **Layer isolation** — each medallion layer (bronze → silver) lives in its own bucket; cross-layer access is IAM-controlled, not path-based.
 4. **Immutability at bronze** — raw Iceberg files are never modified after landing. Airbyte only appends new data files.
-5. **FERPA compliance** — no HR-schema data from Oracle APEX is ever written; enforced by Airbyte stream selection and documented here.
+5. **FERPA compliance** — no HR-schema data from Oracle APEX is ever written; enforced by Airbyte stream selection and documented here. (FERPA is the U.S. federal law protecting the privacy of student education records.)
 
 ---
 
