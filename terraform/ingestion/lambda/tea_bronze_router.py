@@ -321,7 +321,7 @@ def _handle_backfill() -> dict:
                     stats["skipped"] += 1
                     continue
 
-                _copy(raw_key, dest_key)
+                _transfer(raw_key, dest_key)
                 stats["processed"] += 1
 
             except Exception:
