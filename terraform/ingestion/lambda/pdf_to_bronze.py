@@ -69,6 +69,76 @@ def _strip_year(stem):
     return result.strip("-_")
 
 
+def _reconcile_headers(headers, rows):
+    """Fix two common PDF table extraction issues before building the DataFrame.
+
+    1. Multi-row headers — some PDFs split column headers across two rows
+       (e.g. row 0 has 'District Name' and row 1 has 'AEA Campus Type' for the
+       last column). Detected when the first data row contains no long numbers
+       (≥ 6 digits), which would indicate real data. The two rows are merged and
+       data starts from row 2.
+
+    2. Column shift — a header can be positioned one column to the left of its
+       actual data column (common when the PDF has a blank leading counter column).
+       Detected when a named header has all-empty data while the adjacent column
+       has data but no header; the header is shifted right to align.
+
+    Returns adjusted (headers, rows).
+    """
+    if not rows:
+        return headers, rows
+
+    def _looks_like_header_row(row):
+        has_text = False
+        for val in row:
+            s = str(val).strip() if val is not None else ""
+            if not s:
+                continue
+            if re.search(r"\d{5,}", s):
+                return False  # campus/district number → real data
+            has_text = True
+        return has_text
+
+    # Step 1: merge second header row
+    second_header = None
+    if _looks_like_header_row(rows[0]):
+        second_header = rows[0]
+        merged = list(headers)
+        for i, val in enumerate(second_header):
+            if i < len(merged) and val and str(val).strip():
+                if not merged[i] or not str(merged[i]).strip():
+                    merged[i] = val
+        headers = merged
+        rows = rows[1:]
+
+    # Remove repeated second header rows on subsequent pages
+    if second_header is not None:
+        rows = [row for row in rows if row != second_header]
+
+    if not rows:
+        return headers, rows
+
+    # Step 2: shift misaligned headers
+    n_cols = len(headers)
+    data_populated = [False] * n_cols
+    for row in rows:
+        for i, val in enumerate(row):
+            if i < n_cols and val is not None and str(val).strip():
+                data_populated[i] = True
+
+    new_headers = list(headers)
+    for i in range(n_cols):
+        hdr = new_headers[i]
+        if hdr and str(hdr).strip() and not data_populated[i]:
+            for j in range(i + 1, min(i + 3, n_cols)):
+                if data_populated[j] and (not new_headers[j] or not str(new_headers[j]).strip()):
+                    new_headers[j] = hdr
+                    new_headers[i] = None
+                    break
+
+    return new_headers, rows
+
+
 def _extract_file_date(stem):
     """Extract the first date-like pattern found anywhere in a filename stem.
 
@@ -117,7 +187,8 @@ def handler(event, context):
     if not headers:
         raise ValueError(f"No extractable table found in PDF: s3://{bucket}/{key}")
 
-    logger.info("Extracted headers: %s", headers)
+    headers, rows = _reconcile_headers(headers, rows)
+    logger.info("Reconciled headers: %s", headers)
     logger.info("Sample rows (first 3): %s", rows[:3])
 
     # 3. Derive names from the S3 key
