@@ -21,7 +21,7 @@ renamed as (
         cast(cast(cmt_order_id as bigint) as varchar)    as cmt_order_id,
         cast(cast(commitment_id as bigint) as varchar)   as commitment_id,
         cast(cast(esc_contact_id as bigint) as varchar)  as esc_contact_id,
-        cast(esc_contact_id2 as varchar)                 as esc_contact_id2,
+        cast(cast(esc_contact_id2 as bigint) as varchar) as esc_contact_id2,
         cast(cast(parent_id as bigint) as varchar)       as parent_id,
         cast(cast(pdetail_id as bigint) as varchar)      as pdetail_id,
         cast(created_by as varchar)      as created_by,
