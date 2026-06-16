@@ -222,9 +222,9 @@ variable "tea_bronze_router_timeout" {
 }
 
 variable "tea_bronze_router_memory" {
-  description = "Lambda memory in MB for the TEA bronze router. Reads only the first line of each CSV; 256 MB is sufficient for normal routing."
+  description = "Lambda memory in MB for the TEA bronze router. Narrow CSVs are fully loaded into pandas for Parquet conversion; 512 MB is the recommended baseline."
   type        = number
-  default     = 256
+  default     = 512
 }
 
 variable "tea_bronze_router_log_retention_days" {
@@ -233,14 +233,6 @@ variable "tea_bronze_router_log_retention_days" {
   default     = 30
 }
 
-# ---------------------------------------------------------------------------
-# TEA Schema Enforcer Lambda
-# ---------------------------------------------------------------------------
-variable "tea_schema_enforcer_log_retention_days" {
-  description = "CloudWatch log retention in days for the TEA schema enforcer Lambda log group."
-  type        = number
-  default     = 30
-}
 # ---------------------------------------------------------------------------
 # PDF Extraction Lambda (pdf_to_bronze)
 # ---------------------------------------------------------------------------
