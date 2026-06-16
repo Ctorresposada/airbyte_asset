@@ -163,6 +163,7 @@ def _extract_file_date(stem):
 
 
 def handler(event, context):
+    raise RuntimeError("TEST ALARM — remove this line after confirming the CloudWatch alarm fires")
     bucket = event["Records"][0]["s3"]["bucket"]["name"]
     key = urllib.parse.unquote_plus(event["Records"][0]["s3"]["object"]["key"])
 
