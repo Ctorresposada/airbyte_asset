@@ -228,7 +228,10 @@ def _convert_to_parquet(raw_key: str, dest_key: str) -> None:
     """
     response = s3.get_object(Bucket=RAW_BUCKET, Key=raw_key)
     df = pd.read_csv(response["Body"], dtype=str, keep_default_na=False)
-    df.columns = df.columns.str.strip()  # remove leading/trailing whitespace (incl. newlines) from header cells
+    # Glue rejects column names containing \n or \r. TEA source sheets sometimes
+    # have wrapped cells that export with embedded newlines. Replace any \n/\r
+    # with a space, then strip leading/trailing whitespace.
+    df.columns = df.columns.str.replace(r"[\n\r]", " ", regex=True).str.strip()
     buf = io.BytesIO()
     df.to_parquet(buf, engine="pyarrow", compression="snappy", index=False)
     s3.put_object(Bucket=BRONZE_BUCKET, Key=dest_key, Body=buf.getvalue())
