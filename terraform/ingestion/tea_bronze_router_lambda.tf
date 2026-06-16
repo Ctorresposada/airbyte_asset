@@ -3,6 +3,7 @@
 #
 # Created before the function so logs are retained even if the function is
 # recreated. Retention mirrors the gdrive_sync pattern in this stack.
+# (retrigger plan after stale artifact)
 # ---------------------------------------------------------------------------
 resource "aws_cloudwatch_log_group" "tea_bronze_router" {
   #checkov:skip=CKV_AWS_158: Log group encryption with KMS not required — consistent with other Lambda log groups in this stack
