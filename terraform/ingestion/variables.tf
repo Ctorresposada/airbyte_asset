@@ -233,14 +233,14 @@ variable "tea_bronze_router_log_retention_days" {
   default     = 30
 }
 
-# ---------------------------------------------------------------------------
-# TEA Schema Enforcer Lambda
-# ---------------------------------------------------------------------------
-variable "tea_schema_enforcer_log_retention_days" {
-  description = "CloudWatch log retention in days for the TEA schema enforcer Lambda log group."
-  type        = number
-  default     = 30
-}
+# # ---------------------------------------------------------------------------
+# # TEA Schema Enforcer Lambda
+# # ---------------------------------------------------------------------------
+# variable "tea_schema_enforcer_log_retention_days" {
+#   description = "CloudWatch log retention in days for the TEA schema enforcer Lambda log group."
+#   type        = number
+#   default     = 30
+# }
 
 # ---------------------------------------------------------------------------
 # PDF Extraction Lambda (pdf_to_bronze)

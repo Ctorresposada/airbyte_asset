@@ -20,7 +20,7 @@ resource "aws_iam_role" "pdf_to_bronze_lambda" {
   tags = merge(var.tags, { Name = "${local.name}-pdf-to-bronze-lambda-role" })
 }
 
-# Grants CreateLogGroup, CreateLogStream, PutLogEvents — minimum for Lambda
+# Grants CreateLogGroup, CreateLogStream, PutLogEvents — minimum privilege for Lambda
 # to write its stdout/stderr to CloudWatch Logs.
 resource "aws_iam_role_policy_attachment" "pdf_to_bronze_lambda_basic" {
   count = var.create ? 1 : 0
