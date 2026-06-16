@@ -228,6 +228,7 @@ def _convert_to_parquet(raw_key: str, dest_key: str) -> None:
     """
     response = s3.get_object(Bucket=RAW_BUCKET, Key=raw_key)
     df = pd.read_csv(response["Body"], dtype=str, keep_default_na=False)
+    df.columns = df.columns.str.strip()  # remove leading/trailing whitespace (incl. newlines) from header cells
     buf = io.BytesIO()
     df.to_parquet(buf, engine="pyarrow", compression="snappy", index=False)
     s3.put_object(Bucket=BRONZE_BUCKET, Key=dest_key, Body=buf.getvalue())
