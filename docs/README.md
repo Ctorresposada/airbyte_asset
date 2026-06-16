@@ -14,10 +14,12 @@ Read these in order. Each one builds on the previous, and together they take you
 4. **[03 — Deployment Guide](kt-03-deployment-guide.md)** — What happens after you open a pull request: how a change is planned, reviewed, and applied to AWS automatically.
 5. **[04 — Operations Runbook](kt-04-operations-runbook.md)** — Day-to-day operational procedures, including the bootstrap lifecycle of the foundational `base` stack.
 6. **[05 — Troubleshooting Guide](kt-05-troubleshooting-guide.md)** — Symptom-driven fixes for the most common failures you will encounter in CI/CD and Terraform.
+7. **[06 — dbt Build-and-Deploy Pipeline](kt-06-dbt-build-and-deploy.md)** — How the dbt container image is built, scanned, shipped to dev automatically, and promoted to prod with a release tag. Read this once you understand the Terraform pipeline (03–05); it covers application/container deployment, not infrastructure.
+8. **[07 — Airbyte Self-Hosted Deployment](kt-07-airbyte-deployment.md)** — How self-hosted Airbyte OSS runs on AWS: the Graviton EC2 server and its Auto Scaling Group, the public ALB and DNS/TLS, the external state in RDS/S3/Secrets Manager/SSM, the boot sequence, and how to reach and debug the instance.
 
 ## Knowledge-transfer documents
 
-The six documents that make up the guided learning path above. Start at the top if you are new.
+The documents that make up the guided learning path above. Start at the top if you are new. Items 01–05 cover the Terraform infrastructure pipeline; item 06 covers the dbt container deployment pipeline that runs on top of it, and item 07 covers the self-hosted Airbyte deployment.
 
 | Document | What it covers |
 |----------|----------------|
@@ -27,6 +29,8 @@ The six documents that make up the guided learning path above. Start at the top 
 | [03 — Deployment Guide](kt-03-deployment-guide.md) | The pull-request plan/apply pipeline and the OIDC authentication flow. |
 | [04 — Operations Runbook](kt-04-operations-runbook.md) | Operational procedures and the `base` stack bootstrap lifecycle. |
 | [05 — Troubleshooting Guide](kt-05-troubleshooting-guide.md) | Common errors and their resolutions. |
+| [06 — dbt Build-and-Deploy Pipeline](kt-06-dbt-build-and-deploy.md) | Building, scanning, and pushing the dbt container to ECR; automatic dev deploys on PR and tag-gated prod promotion. |
+| [07 — Airbyte Self-Hosted Deployment](kt-07-airbyte-deployment.md) | The self-hosted Airbyte OSS deployment: Graviton EC2 + ASG, public ALB/DNS/TLS, external state (RDS/S3/Secrets/SSM), the user-data boot sequence, SSM access, and kubectl/abctl debugging. |
 
 ## Reference (deep dive)
 
@@ -73,8 +77,8 @@ The CI/CD pipeline is built from **GitHub Actions workflows** (YAML files under 
 | [terraform_warehouse.yml](../.github/workflows/terraform_warehouse.yml) | Orchestrator | Push / PR | Deploy the `warehouse` stack | [deployment_with_artifacts.md](deployment_with_artifacts.md) |
 | [terraform_transformations.yml](../.github/workflows/terraform_transformations.yml) | Orchestrator | Push / PR | Deploy the `transformations` stack | [deployment_with_artifacts.md](deployment_with_artifacts.md) |
 | [terraform_monitoring.yml](../.github/workflows/terraform_monitoring.yml) | Orchestrator | Push / PR | Deploy the `monitoring` stack | [monitoring.md](monitoring.md) |
-| [build_dbt.yml](../.github/workflows/build_dbt.yml) | Orchestrator | Push / PR | Build, scan, and push the dbt container image to ECR | [dbt_airbyte_compute_options.md](dbt_airbyte_compute_options.md) |
-| [build_and_push.yml](../.github/workflows/build_and_push.yml) | Reusable | Called by `build_dbt.yml` | Generic Docker build/scan/push to ECR | [dbt_airbyte_compute_options.md](dbt_airbyte_compute_options.md) |
+| [build_dbt.yml](../.github/workflows/build_dbt.yml) | Orchestrator | PR (dbt/**) / tag (dbt-v*) | Build + scan + push the dbt image and deploy to dev on PR; promote to prod on a release tag | [kt-06-dbt-build-and-deploy.md](kt-06-dbt-build-and-deploy.md) |
+| [build_and_push.yml](../.github/workflows/build_and_push.yml) | Reusable | Called by `build_dbt.yml` | Generic Docker build/scan/push to ECR | [kt-06-dbt-build-and-deploy.md](kt-06-dbt-build-and-deploy.md) |
 
 > **Note:** The `airbyte-connectors` stack has **no workflow**, it is applied manually. There is also a template at [.github/workflows/templates/terraform_stack.yml](../.github/workflows/templates/terraform_stack.yml) used as the starting point when adding a new stack.
 
