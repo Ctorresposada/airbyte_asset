@@ -4,7 +4,7 @@
 # AWS allows only one aws_s3_bucket_notification per bucket. A second Terraform
 # resource targeting the same bucket silently overwrites the first one on apply.
 # All raw-bucket Lambda triggers live here; add extra lambda_function blocks
-# rather than creating a new resource.
+# rather than creating a new resource
 #
 # Two triggers with non-overlapping suffixes (S3 rejects overlapping filter pairs
 # on the same prefix):
