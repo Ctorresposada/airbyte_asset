@@ -59,6 +59,16 @@ def _stem(filename):
     return name
 
 
+def _strip_year(stem):
+    """Remove 4-digit year tokens from a filename stem so table names stay stable across years.
+
+    peg-list-2025-final  →  peg-list-final
+    2025-aea-campus      →  aea-campus
+    """
+    result = re.sub(r"[-_\s]?\b\d{4}\b[-_\s]?", "-", stem)
+    return result.strip("-_")
+
+
 def _extract_file_date(stem):
     """Extract the first date-like pattern found anywhere in a filename stem.
 
@@ -119,7 +129,7 @@ def handler(event, context):
     # Falls back to "unknown" if the PDF sits directly under tea/ with no subfolder.
     raw_fy = parts[-2] if len(parts) >= 3 else "unknown"
 
-    table_name = _slugify(_stem(filename))
+    table_name = _slugify(_strip_year(_stem(filename)))
     fiscal_year = _slugify(raw_fy)
     file_date = _extract_file_date(_stem(filename))
 
