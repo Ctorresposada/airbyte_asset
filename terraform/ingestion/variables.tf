@@ -241,6 +241,7 @@ variable "tea_schema_enforcer_log_retention_days" {
   type        = number
   default     = 30
 }
+
 # ---------------------------------------------------------------------------
 # PDF Extraction Lambda (pdf_to_bronze)
 # ---------------------------------------------------------------------------

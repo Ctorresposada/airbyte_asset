@@ -1,3 +1,6 @@
+# ---------------------------------------------------------------------------
+# gdrive-sync Lambda alarms
+# ---------------------------------------------------------------------------
 resource "aws_cloudwatch_metric_alarm" "lambda_sync_errors" {
   count = var.create ? 1 : 0
 
@@ -130,5 +133,89 @@ resource "aws_cloudwatch_metric_alarm" "lambda_sync_error_rate" {
 
   tags = {
     Name = "${local.name}-lambda-gdrive-sync-error-rate"
+  }
+}
+
+
+# ---------------------------------------------------------------------------
+# pdf_to_bronze Lambda alarms
+# Triggered by S3 ObjectCreated for .pdf files in the raw bucket (tea/ prefix).
+# One Lambda invocation per PDF — any error means a file was not ingested.
+# ---------------------------------------------------------------------------
+resource "aws_cloudwatch_metric_alarm" "lambda_pdf_to_bronze_errors" {
+  count = var.create ? 1 : 0
+
+  alarm_name          = "${local.name}-lambda-pdf-to-bronze-errors"
+  alarm_description   = "Any pdf_to_bronze Lambda error — a TEA PDF was not extracted to bronze; check CloudWatch Logs for details"
+  namespace           = "AWS/Lambda"
+  metric_name         = "Errors"
+  statistic           = "Sum"
+  period              = 600
+  evaluation_periods  = 1
+  threshold           = 1
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  treat_missing_data  = "notBreaching"
+
+  dimensions = {
+    FunctionName = "${local.name}-pdf-to-bronze"
+  }
+
+  alarm_actions = [aws_sns_topic.critical[0].arn]
+  ok_actions    = [aws_sns_topic.critical[0].arn]
+
+  tags = {
+    Name = "${local.name}-lambda-pdf-to-bronze-errors"
+  }
+}
+
+resource "aws_cloudwatch_metric_alarm" "lambda_pdf_to_bronze_throttling" {
+  count = var.create ? 1 : 0
+
+  alarm_name          = "${local.name}-lambda-pdf-to-bronze-throttling"
+  alarm_description   = "pdf_to_bronze Lambda throttled 3 or more times in 10 minutes — PDF ingestion is delayed"
+  namespace           = "AWS/Lambda"
+  metric_name         = "Throttles"
+  statistic           = "Sum"
+  period              = 600
+  evaluation_periods  = 1
+  threshold           = 3
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  treat_missing_data  = "notBreaching"
+
+  dimensions = {
+    FunctionName = "${local.name}-pdf-to-bronze"
+  }
+
+  alarm_actions = [aws_sns_topic.warning[0].arn]
+  ok_actions    = [aws_sns_topic.warning[0].arn]
+
+  tags = {
+    Name = "${local.name}-lambda-pdf-to-bronze-throttling"
+  }
+}
+
+resource "aws_cloudwatch_metric_alarm" "lambda_pdf_to_bronze_duration" {
+  count = var.create ? 1 : 0
+
+  alarm_name          = "${local.name}-lambda-pdf-to-bronze-duration"
+  alarm_description   = "pdf_to_bronze Lambda max duration exceeded 4.5 minutes (90% of the 5-minute hard limit) — pdfplumber may be struggling with a large PDF"
+  namespace           = "AWS/Lambda"
+  metric_name         = "Duration"
+  statistic           = "Maximum"
+  period              = 300
+  evaluation_periods  = 1
+  threshold           = 270000
+  comparison_operator = "GreaterThanThreshold"
+  treat_missing_data  = "notBreaching"
+
+  dimensions = {
+    FunctionName = "${local.name}-pdf-to-bronze"
+  }
+
+  alarm_actions = [aws_sns_topic.warning[0].arn]
+  ok_actions    = [aws_sns_topic.warning[0].arn]
+
+  tags = {
+    Name = "${local.name}-lambda-pdf-to-bronze-duration"
   }
 }

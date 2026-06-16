@@ -28,6 +28,7 @@ resource "aws_cloudwatch_event_rule" "glue_crawler_failure" {
       crawlerName = [
         "${local.name}-connect_20-crawler",
         "${local.name}-ascender-crawler",
+        "${local.name}-tea-crawler"
       ]
     }
   })
