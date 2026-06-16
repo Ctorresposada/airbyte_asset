@@ -34,3 +34,6 @@ sources:
       - name: esc_employee_data
         identifier: apex_orcl_esc_employee_data
         description: "Dados de funcionários ESC — usado para resolver cmt_manager*"
+      - name: cmt_enrollment
+        identifier: apex_orcl_cmt_enrollment
+        description: "Inscrições em commitments — uma linha por contact/org/period/form"

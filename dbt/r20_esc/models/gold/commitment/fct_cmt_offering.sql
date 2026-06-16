@@ -45,6 +45,19 @@ cmt_count_type as (
     from {{ source('silver', 'stg_oracle__cmt_count_type') }}
 ),
 
+-- esc_employee_data: resolve cmt_form.commitment_manager / contact1 / contact2
+-- (all 3 are user_name strings, e.g. 'SBILLA', 'JCMARTINEZ') into full names.
+-- user_name is reused across employees (e.g. JSANCHEZ -> 3 employees), so dedup
+-- with min(full_name) to keep the join 1:1 with cmt_form.
+esc_employee as (
+    select
+        user_name,
+        min(full_name) as full_name
+    from {{ source('silver', 'stg_oracle__esc_employee_data') }}
+    where user_name is not null
+    group by user_name
+),
+
 -- Dedup: pega o primeiro full_name por contact_id
 contact as (
     select
@@ -148,10 +161,9 @@ final as (
         ''                              as edit_price,
         ''                              as edit_category,
 
-        -- TODO: preencher quando esc_employee_data for ingerido
-        cast(null as varchar)           as cmt_manager1,
-        cast(null as varchar)           as cmt_manager2,
-        cast(null as varchar)           as cmt_manager3,
+        ee1.full_name                   as cmt_manager1,
+        ee2.full_name                   as cmt_manager2,
+        ee3.full_name                   as cmt_manager3,
 
         cct.count_type                  as count_type_used,
 
@@ -179,6 +191,12 @@ final as (
         and cmt.period_id  = crpf.period_id
     left join cmt_count_type cct
         on cfig.count_type_id = cct.cmt_count_type_id
+    left join esc_employee ee1
+        on cmt.commitment_manager = ee1.user_name
+    left join esc_employee ee2
+        on cmt.contact1 = ee2.user_name
+    left join esc_employee ee3
+        on cmt.contact2 = ee3.user_name
 
     where cmt.period_id = '{{ var("commitment_period_id", "19") }}'
 )
