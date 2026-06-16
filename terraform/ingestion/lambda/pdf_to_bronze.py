@@ -211,6 +211,16 @@ def handler(event, context):
     slugified_headers = [_slugify(h) if h else f"col_{i}" for i, h in enumerate(headers)]
     df = pd.DataFrame(rows, columns=slugified_headers)
 
+    # Drop placeholder columns (col_0, col_1, ...) that have no meaningful data.
+    # These arise from blank or undetected header cells in complex PDF table layouts.
+    empty_placeholders = [
+        col for col in df.columns
+        if re.match(r"^col_\d+$", col) and df[col].replace("", pd.NA).isna().all()
+    ]
+    if empty_placeholders:
+        df = df.drop(columns=empty_placeholders)
+        logger.info("Dropped empty placeholder columns: %s", empty_placeholders)
+
     # Drop footer/summary rows that have no campus_number (e.g. "Total Campuses = 317")
     if "campus_number" in df.columns:
         before = len(df)
