@@ -12,7 +12,8 @@ deduped as (
     select *
     --    , row_number() over (
     --         partition by pk_column
-    --         order by ingested_at desc
+    -- -- file_date desc nulls last — business time, newest file wins / ingested_at desc — tiebreaker for rows where file_date couldn't be parsed (NULL)
+    --         order by file_date desc nulls last, ingested_at desc
     --     ) as _rn
     from source
 ),
@@ -55,7 +56,8 @@ renamed as (
         -- Audit
         file_name,
         file_date,
-        ingested_at
+        ingested_at                             as ingested_at_bronze,
+        cast(current_timestamp as timestamp)    as ingested_at
     from deduped
   --  where _rn = 1
 )

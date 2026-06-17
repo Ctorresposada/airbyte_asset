@@ -11,7 +11,8 @@ deduped as (
     select *
     --    , row_number() over (
     --         partition by pk_column
-    --         order by ingested_at desc
+    -- -- file_date desc nulls last — business time, newest file wins / ingested_at desc — tiebreaker for rows where file_date couldn't be parsed (NULL)
+    --         order by file_date desc nulls last, ingested_at desc
     --     ) as _rn
     from source
 ),
