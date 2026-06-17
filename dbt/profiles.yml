@@ -14,9 +14,10 @@ r20_esc:
     silver:
       type: athena
       database: awsdatacatalog
-      schema: glue_reg20_silver
+      schema: escr20_silver_dev
       s3_staging_dir: "{{ env_var('ATHENA_RESULTS_BUCKET') }}"
       s3_data_dir: "{{ env_var('SILVER_BUCKET') }}"
+      s3_data_naming: table
       region_name: us-east-1
       threads: 1
       num_retries: 5
