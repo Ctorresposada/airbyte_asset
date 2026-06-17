@@ -1,0 +1,15 @@
+version: 2
+
+sources:
+  - name: ascender_bronze
+    description: >
+      Ascender invoice bronze layer — full-snapshot daily CSV ingested
+      append-only. Cada arquivo (file_name) é um histórico completo + dados
+      novos. Silver dedupa pegando só o latest file_date.
+    database: awsdatacatalog
+    schema: escr20_bronze_dev
+    tables:
+      - name: ascender_invoice
+        description: >
+          Cross-join denormalizado de invoice header × line × adjustment ×
+          payment × budget allocation. Silver normaliza em 4 entity-stagings.
