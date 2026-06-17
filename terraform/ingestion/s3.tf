@@ -146,7 +146,7 @@ resource "aws_s3_object" "connect20_prefix" {
 
 resource "aws_s3_object" "connect20_evaluationinformation_prefix" {
   bucket  = aws_s3_bucket.buckets["raw"].id
-  key     = "connect20/"
+  key     = "connect20/evaluationinformation/"
   content = ""
 
   tags = merge(var.tags, {
@@ -158,7 +158,7 @@ resource "aws_s3_object" "connect20_evaluationinformation_prefix" {
 
 resource "aws_s3_object" "connect20_schedule12_prefix" {
   bucket  = aws_s3_bucket.buckets["raw"].id
-  key     = "connect20/"
+  key     = "connect20/schedule12/"
   content = ""
 
   tags = merge(var.tags, {
@@ -170,7 +170,7 @@ resource "aws_s3_object" "connect20_schedule12_prefix" {
 
 resource "aws_s3_object" "connect20_sessioninformation_prefix" {
   bucket  = aws_s3_bucket.buckets["raw"].id
-  key     = "connect20/"
+  key     = "connect20/sessioninformation/"
   content = ""
 
   tags = merge(var.tags, {
