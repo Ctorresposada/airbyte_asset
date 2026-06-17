@@ -49,7 +49,7 @@ with source as (
         cast(current_timestamp as timestamp)                                       as ingested_at,
 
         -- ------------------------------------------------------------------
-        -- Invoice header (all string — as delivered by OpenCSVSerde)
+        -- Invoice header (all string — as delivered by RAW)
         -- ------------------------------------------------------------------
         invoice_number,
         customer_number,
