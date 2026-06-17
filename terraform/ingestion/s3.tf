@@ -144,6 +144,43 @@ resource "aws_s3_object" "connect20_prefix" {
   })
 }
 
+resource "aws_s3_object" "connect20_evaluationinformation_prefix" {
+  bucket  = aws_s3_bucket.buckets["raw"].id
+  key     = "connect20/"
+  content = ""
+
+  tags = merge(var.tags, {
+    Prefix = "connect20/evaluationinformation"
+    Source = "CONNECT20"
+    Layer  = "raw"
+  })
+}
+
+resource "aws_s3_object" "connect20_schedule12_prefix" {
+  bucket  = aws_s3_bucket.buckets["raw"].id
+  key     = "connect20/"
+  content = ""
+
+  tags = merge(var.tags, {
+    Prefix = "connect20/schedule12"
+    Source = "CONNECT20"
+    Layer  = "raw"
+  })
+}
+
+resource "aws_s3_object" "connect20_sessioninformation_prefix" {
+  bucket  = aws_s3_bucket.buckets["raw"].id
+  key     = "connect20/"
+  content = ""
+
+  tags = merge(var.tags, {
+    Prefix = "connect20/sessioninformation"
+    Source = "CONNECT20"
+    Layer  = "raw"
+  })
+}
+
+
 # Cross-account CRR destination policy: allow the Ascender source account's
 # replication role to write into raw/ascender/ only. Bucket-level list and
 # versioning reads are required by S3 for destination validation.
