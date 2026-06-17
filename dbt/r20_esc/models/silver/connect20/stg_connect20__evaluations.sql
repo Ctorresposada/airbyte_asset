@@ -57,7 +57,8 @@ renamed as (
         -- Audit
         file_name,
         file_date,
-        ingested_at
+        ingested_at                             as ingested_at_bronze,
+        cast(current_timestamp as timestamp)    as ingested_at
     from deduped
   --  where _rn = 1
 )
