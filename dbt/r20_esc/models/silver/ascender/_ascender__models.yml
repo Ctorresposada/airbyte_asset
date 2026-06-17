@@ -1,0 +1,60 @@
+version: 2
+
+models:
+  - name: stg_ascender__invoice_header
+    description: "Ascender invoice header — 1 row por invoice_number (latest snapshot)"
+    columns:
+      - name: invoice_number
+        description: "PK — Ascender invoice identifier"
+        tests:
+          - not_null
+          - unique
+
+  - name: stg_ascender__invoice_line
+    description: "Ascender invoice line items — 1 row por (invoice_number, product_seq_nbr)"
+    columns:
+      - name: invoice_number
+        description: "FK to stg_ascender__invoice_header.invoice_number"
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_ascender__invoice_header')
+                field: invoice_number
+      - name: product_seq_nbr
+        description: "Line sequence number within the invoice"
+        tests:
+          - not_null
+
+  - name: stg_ascender__invoice_adjustment
+    description: "Ascender invoice adjustments — só rows com adjust_seq_nbr populado"
+    columns:
+      - name: invoice_number
+        description: "FK to stg_ascender__invoice_header.invoice_number"
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_ascender__invoice_header')
+                field: invoice_number
+      - name: adjust_seq_nbr
+        description: "Adjustment sequence number within the invoice"
+        tests:
+          - not_null
+
+  - name: stg_ascender__invoice_payment
+    description: "Ascender invoice payments — 1 row por payment allocation event (após colapsar cross-join de lines)"
+    columns:
+      - name: payment_id
+        description: "Surrogate key (md5) sobre o natural key composto"
+        tests:
+          - not_null
+          - unique
+      - name: invoice_number
+        description: "FK to stg_ascender__invoice_header.invoice_number"
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_ascender__invoice_header')
+                field: invoice_number
