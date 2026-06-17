@@ -22,7 +22,6 @@ renamed as (
         cast(credits as decimal(10, 2)) as course_credits
     from deduped
     where _rn = 1
-    and status = 'published'
 )
 
 select * from renamed
