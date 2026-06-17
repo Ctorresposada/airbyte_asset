@@ -4,10 +4,13 @@ with source as (
     select * from {{ source('docebo', 'docebo_enrollments_src') }}
 ),
 
+-- Natural PK is the composite (user_id, course_id). One user enrolls in many
+-- courses. Partitioning by user_id alone collapsed 11.244 source rows down
+-- to ~1.241 and made it impossible to join to courses.
 deduped as (
     select *,
         row_number() over (
-            partition by user_id
+            partition by user_id, course_id
             order by _airbyte_extracted_at desc
         ) as _rn
     from source
@@ -15,13 +18,12 @@ deduped as (
 
 renamed as (
     select
-        cast(cast(user_id as bigint) as varchar)                    as user_id,
+        cast(cast(user_id as bigint) as varchar)   as user_id,
+        cast(cast(course_id as bigint) as varchar) as course_id,
         enrollment_status,
-        cast(substr(enrollment_completion_date, 1, 10) as date)     as completion_date
+        try_cast(substr(enrollment_completion_date, 1, 10) as date) as completion_date
     from deduped
     where _rn = 1
-    and enrollment_status = 'completed'
-    and enrollment_completion_date is not null
 )
 
 select * from renamed

@@ -18,3 +18,5 @@ sources:
       - name: stg_docebo__users
       - name: stg_docebo__courses
       - name: stg_docebo__enrollments
+      - name: stg_docebo__orgchart
+      - name: stg_docebo__course_status
