@@ -146,11 +146,11 @@ resource "aws_s3_object" "connect20_prefix" {
 
 resource "aws_s3_object" "connect20_evaluationinformation_prefix" {
   bucket  = aws_s3_bucket.buckets["raw"].id
-  key     = "connect20/evaluationinformation/"
+  key     = "connect20/evaluation_information/"
   content = ""
 
   tags = merge(var.tags, {
-    Prefix = "connect20/evaluationinformation"
+    Prefix = "connect20/evaluation_information"
     Source = "CONNECT20"
     Layer  = "raw"
   })
@@ -179,7 +179,6 @@ resource "aws_s3_object" "connect20_sessioninformation_prefix" {
     Layer  = "raw"
   })
 }
-
 
 # Cross-account CRR destination policy: allow the Ascender source account's
 # replication role to write into raw/ascender/ only. Bucket-level list and

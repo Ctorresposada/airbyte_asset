@@ -1,7 +1,7 @@
 version: 2
 
 sources:
-  - name: connect20_raw
+  - name: connect20_evaluationinformation_raw
     description: >
       Connect20 / ESCworks evaluation files dropped into the raw landing
       zone (s3://escr20-landing-zone-raw-dev/connect20/). The Glue
@@ -11,9 +11,32 @@ sources:
     database: awsdatacatalog
     schema: escr20_raw_dev
     tables:
-      - name: connect20_parquet
+      - name: connect20_evaluationinformation
         description: >
-          ESCworks online course evaluation responses, 103k rows as of
-          2026-06-10. One row per (attendee_id, sessionid, item_id,
-          evaluationid). Schema inferred by the Glue crawler with proper
-          types (timestamp, decimal, int).
+          ESCworks evaluation information records. One row per evaluation
+          response with full attendee, session, and evaluation metadata.
+          Schema inferred by the Glue crawler with proper types.
+  - name: connect20_schedule12_raw
+    description: >
+      Connect20 / ESCworks schedule files dropped into the raw landing
+      zone. The Glue crawler catalogs them in the escr20_raw_dev database.
+    database: awsdatacatalog
+    schema: escr20_raw_dev
+    tables:
+      - name: connect20_schedule12
+        description: >
+          ESCworks session schedule records. One row per session with
+          logistics, budget, attendance, and metadata. Several column names
+          contain spaces and are aliased to snake_case in the bronze model.
+  - name: connect20_sessioninformation_raw
+    description: >
+      Connect20 / ESCworks session information files dropped into the raw
+      landing zone. Cataloged in escr20_raw_dev by the Glue crawler.
+    database: awsdatacatalog
+    schema: escr20_raw_dev
+    tables:
+      - name: connect20_sessioninformation
+        description: >
+          ESCworks session attendance and registration records. One row per
+          attendee per session. Several column names contain spaces or
+          special characters and are aliased to snake_case in the bronze model.

@@ -153,7 +153,7 @@ with source as (
     from {{ source('ascender_raw', 'ascender_invoice') }}
 
     -- -----------------------------------------------------------------------
-    -- Incremental filter — Full Load Append
+    -- Incremental filter — Full Load Append in everyday's snapshot
     -- Only injected on run #2 onwards (is_incremental() = True).
     -- Each daily file is loaded exactly once; idempotency key = file_name.
     -- -----------------------------------------------------------------------
