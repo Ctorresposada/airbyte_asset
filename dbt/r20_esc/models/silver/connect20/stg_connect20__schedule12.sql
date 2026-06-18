@@ -1,5 +1,10 @@
-{{ config(materialized='table', table_type='iceberg', format='parquet') }}
+{{ config(
+    materialized='table',
+    table_type='iceberg',
+    format='parquet'
+) }}
 
+-- Grabs full table in bronze since bronze layer is append-only
 with source as (
     select * from {{ source('connect20_bronze', 'connect20_schedule12') }}
 ),
