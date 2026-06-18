@@ -1,4 +1,10 @@
-{{ config(materialized='table', table_type='iceberg', format='parquet') }}
+{{ config(
+    materialized='table',
+    table_type='iceberg',
+    format='parquet',
+    s3_data_dir=env_var('SILVER_BUCKET') ~ 'connect20',
+    s3_data_naming='table'
+) }}
 
 with source as (
     select * from {{ source('connect20_bronze', 'connect20_evaluations') }}
