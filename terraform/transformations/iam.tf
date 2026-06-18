@@ -137,12 +137,16 @@ data "aws_iam_policy_document" "dbt_task" {
     resources = [data.aws_s3_bucket.athena_results[0].arn]
   }
 
-  # Silver bucket — read-only source data dbt transforms via the Athena adapter.
+  # Silver bucket — dbt writes Iceberg tables here (silver layer target).
   statement {
     sid    = "SilverBucketObjects"
     effect = "Allow"
 
-    actions = ["s3:GetObject"]
+    actions = [
+      "s3:GetObject",
+      "s3:PutObject",
+      "s3:DeleteObject",
+    ]
 
     resources = ["${data.aws_s3_bucket.silver[0].arn}/*"]
   }
