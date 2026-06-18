@@ -137,7 +137,13 @@ locals {
           "ecs:*",
           "iam:PassRole",
           # Cost Explorer
-          "ce:*"
+          "ce:*",
+          # EC2 + EBS (describe/read-only)
+          "ec2:Describe*",
+          # Elastic Load Balancing (ALB/NLB + Classic, describe)
+          "elasticloadbalancing:Describe*",
+          # Auto Scaling Groups (describe)
+          "autoscaling:Describe*"
         ]
         Resource = ["*"]
     }]
@@ -279,7 +285,13 @@ locals {
           "ecs:*",
           "iam:PassRole",
           # Cost Explorer
-          "ce:*"
+          "ce:*",
+          # EC2 + EBS (describe/read-only)
+          "ec2:Describe*",
+          # Elastic Load Balancing (ALB/NLB + Classic, describe)
+          "elasticloadbalancing:Describe*",
+          # Auto Scaling Groups (describe)
+          "autoscaling:Describe*"
         ]
         Resource = ["*"]
       },
