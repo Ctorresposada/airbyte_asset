@@ -10,6 +10,7 @@ resource "aws_s3_bucket" "buckets" {
     Name        = "${each.value.name}-${var.environment}"
     Environment = var.environment
     Layer       = each.value.layer
+    Stack       = "Ingestion"
   })
 }
 

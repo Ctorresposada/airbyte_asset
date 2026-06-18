@@ -3,6 +3,11 @@ output "aws_caller_identity" {
   value       = try(data.aws_caller_identity.this[0], null)
 }
 
+output "aws_caller_identity_second" {
+  description = "AWS caller identity information for the second caller, or null when the stack is disabled (create = false)"
+  value       = try(data.aws_caller_identity.second[0], null)
+}
+
 output "bucket_names" {
   value = {
     for k, v in aws_s3_bucket.buckets : k => v.id

@@ -122,6 +122,7 @@ This stack provisions the AWS infrastructure for the Region 20 Data Lake ingesti
 | [aws_vpc_security_group_egress_rule.airbyte_instance_to_oci](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/vpc_security_group_egress_rule) | resource |
 | [aws_vpc_security_group_egress_rule.airbyte_instance_to_tas](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/vpc_security_group_egress_rule) | resource |
 | [aws_vpc_security_group_ingress_rule.airbyte_instance_from_vpn_ui](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/vpc_security_group_ingress_rule) | resource |
+| [aws_caller_identity.second](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/caller_identity) | data source |
 | [aws_caller_identity.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/caller_identity) | data source |
 | [aws_iam_policy_document.airbyte_kms](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
 | [aws_iam_policy_document.glue_crawler_assume_role](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
@@ -198,6 +199,7 @@ This stack provisions the AWS infrastructure for the Region 20 Data Lake ingesti
 | <a name="output_airbyte_s3_bucket_name"></a> [airbyte\_s3\_bucket\_name](#output\_airbyte\_s3\_bucket\_name) | S3 bucket name used by Airbyte for logs and artifacts. |
 | <a name="output_airbyte_secret_arn"></a> [airbyte\_secret\_arn](#output\_airbyte\_secret\_arn) | ARN of the Secrets Manager secret storing Airbyte credentials |
 | <a name="output_aws_caller_identity"></a> [aws\_caller\_identity](#output\_aws\_caller\_identity) | AWS caller identity information, or null when the stack is disabled (create = false) |
+| <a name="output_aws_caller_identity_second"></a> [aws\_caller\_identity\_second](#output\_aws\_caller\_identity\_second) | AWS caller identity information for the second caller, or null when the stack is disabled (create = false) |
 | <a name="output_bucket_arns"></a> [bucket\_arns](#output\_bucket\_arns) | All S3 bucket ARNs |
 | <a name="output_bucket_names"></a> [bucket\_names](#output\_bucket\_names) | All S3 bucket names |
 | <a name="output_glue_database_names"></a> [glue\_database\_names](#output\_glue\_database\_names) | Glue catalog database names |
