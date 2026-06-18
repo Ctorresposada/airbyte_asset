@@ -147,11 +147,11 @@ resource "aws_s3_object" "connect20_prefix" {
 
 resource "aws_s3_object" "connect20_evaluationinformation_prefix" {
   bucket  = aws_s3_bucket.buckets["raw"].id
-  key     = "connect20/evaluation_information/"
+  key     = "connect20/evaluationinformation/"
   content = ""
 
   tags = merge(var.tags, {
-    Prefix = "connect20/evaluation_information"
+    Prefix = "connect20/evaluationinformation"
     Source = "CONNECT20"
     Layer  = "raw"
   })
