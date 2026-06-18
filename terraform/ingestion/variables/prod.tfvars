@@ -29,8 +29,8 @@ airbyte_rds_skip_final_snapshot = false         # false takes a final snapshot o
 airbyte_rds_deletion_protection = true          # Blocks accidental DB deletion; must be off before an intended destroy
 airbyte_s3_force_destroy        = false         # false prevents TF from emptying/deleting the bucket; true allows it (dev only)
 
-airbyte_alb_allowed_cidr_blocks = ["181.96.188.51/32", "38.46.246.237/32", "69.147.62.1/32"] # IPs allowed to reach the Airbyte ALB UI; empty locks everyone out (VPN off in prod)
-vpn_available                   = false                                                      # No Client VPN in prod; true adds an Airbyte :8000 ingress from the VPN SG
+airbyte_alb_allowed_cidr_blocks = ["181.96.188.51/32", "38.46.246.237/32", "69.147.62.1/32", "190.53.0.160/32", "177.170.246.23/32", "189.6.208.52/32"] # IPs allowed to reach the Airbyte ALB UI; empty locks everyone out (VPN off in prod)
+vpn_available                   = false                                                                                                                 # No Client VPN in prod; true adds an Airbyte :8000 ingress from the VPN SG
 
 lakeformation_admin_arns              = []                     # Extra LF admins beyond the TF role; SSO reserved roles are rejected here
 lakeformation_de_role_arns            = []                     # DE SSO roles granted LF data perms; empty for first apply (prod role unknown)
