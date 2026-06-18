@@ -6,7 +6,7 @@ company_name = "region-20"    # Name prefix for resources and shared-resource ta
 account_id   = "784590287037" # Target AWS account (dev); builds the cross-account assume-role ARN
 
 # IAM principals allowed to use the Redshift KMS CMK; these are the dev account SSO role ARNs.
-redshift_key_users = ["arn:aws:iam::784590287037:role/aws-reserved/sso.amazonaws.com/AWSReservedSSO_DataEngineer_Dev_cd1bbeb9335fcaa8", "arn:aws:iam::784590287037:role/aws-reserved/sso.amazonaws.com/AWSReservedSSO_AWSAdministratorAccess_9a7f3e7b3aa4c5bb"]
+redshift_key_users = ["arn:aws:iam::784590287037:role/aws-reserved/sso.amazonaws.com/AWSReservedSSO_DataEngineer_Dev_cd1bbeb9335fcaa8", "arn:aws:iam::784590287037:role/aws-reserved/sso.amazonaws.com/AWSReservedSSO_AWSAdministratorAccess_9a7f3e7b3aa4c5bb"] # IAM role ARNs (dev SSO) granted kms:Decrypt on the Redshift CMK
 
 data_lake_bucket_arns       = ["arn:aws:s3:::escr20-bronze-dev", "arn:aws:s3:::escr20-silver-dev"] # S3 bucket ARNs the Redshift role may read via Spectrum/COPY; raising this widens read scope
 redshift_max_capacity       = 32                                                                   # Max RPU ceiling (lower in dev to cap cost)

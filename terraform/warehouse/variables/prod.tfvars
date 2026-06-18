@@ -7,10 +7,10 @@ account_id   = "029750300494" # Target AWS account; builds the cross-account ass
 
 # IAM principals allowed to use the Redshift KMS CMK. Empty for first apply - prod SSO role ARNs
 # not yet known; account root and the Redshift service role keep access regardless.
-redshift_key_users = []
+redshift_key_users = [] # IAM role ARNs granted kms:Decrypt on the Redshift CMK; empty for first apply (prod SSO ARNs not yet known)
 
 # S3 bucket ARNs the Redshift role may read via Spectrum/COPY; raising this widens read scope
-data_lake_bucket_arns = ["arn:aws:s3:::escr20-bronze-prod", "arn:aws:s3:::escr20-silver-prod"]
+data_lake_bucket_arns = ["arn:aws:s3:::escr20-bronze-prod", "arn:aws:s3:::escr20-silver-prod"] # S3 bucket ARNs the Redshift role may read via Spectrum/COPY; raising this widens read scope
 
 redshift_max_capacity       = 64 # Max RPU ceiling; raising it lifts the cost cap and allows bigger query bursts
 redshift_log_retention_days = 30 # Days CloudWatch keeps Redshift logs; higher = more retention and storage cost

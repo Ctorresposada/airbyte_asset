@@ -52,6 +52,6 @@ gdrive_sync_memory             = 512                   # Lambda memory MB; highe
 gdrive_sync_log_retention_days = 30                    # Days CloudWatch keeps the sync Lambda logs
 
 # TEA Bronze Router Lambda
-tea_bronze_router_timeout            = 900
-tea_bronze_router_memory             = 512
-tea_bronze_router_log_retention_days = 30
+tea_bronze_router_timeout            = 900 # TEA router Lambda max execution seconds; needs time for 100+ file backfills, ex 900 (AWS max)
+tea_bronze_router_memory             = 512 # TEA router Lambda memory MB; higher also proportionally increases CPU and network bandwidth, ex 512
+tea_bronze_router_log_retention_days = 30  # Days CloudWatch retains TEA router Lambda logs, ex 30
