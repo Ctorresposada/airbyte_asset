@@ -1,0 +1,84 @@
+version: 2
+
+models:
+  - name: stg_tas__activity_code
+    description: "TAS activity codes — 1 row per activity_code_id"
+    columns:
+      - name: activity_code_id
+        description: "PK — TAS activity code identifier"
+        tests:
+          - not_null
+          - unique
+
+  - name: stg_tas__campus
+    description: "TAS campuses — 1 row per campus_id"
+    columns:
+      - name: campus_id
+        description: "PK — TAS campus identifier"
+        tests:
+          - not_null
+          - unique
+      - name: client_id
+        description: "FK to stg_tas__client.client_id"
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_tas__client')
+                field: client_id
+
+  - name: stg_tas__client
+    description: "TAS clients — 1 row per client_id"
+    columns:
+      - name: client_id
+        description: "PK — TAS client identifier"
+        tests:
+          - not_null
+          - unique
+
+  - name: stg_tas__program
+    description: "TAS programs — 1 row per program_id"
+    columns:
+      - name: program_id
+        description: "PK — TAS program identifier"
+        tests:
+          - not_null
+          - unique
+
+  - name: stg_tas__timesheet
+    description: "TAS timesheets (fact) — 1 row per time_log_id after CDC dedup"
+    columns:
+      - name: time_log_id
+        description: "PK — TAS time log identifier"
+        tests:
+          - not_null
+          - unique
+      - name: client_id
+        description: "FK to stg_tas__client.client_id"
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_tas__client')
+                field: client_id
+      - name: campus_id
+        description: "FK to stg_tas__campus.campus_id"
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_tas__campus')
+                field: campus_id
+      - name: program_id
+        description: "FK to stg_tas__program.program_id"
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_tas__program')
+                field: program_id
+
+  - name: stg_tas__users
+    description: "TAS users — 1 row per user_id after CDC dedup"
+    columns:
+      - name: user_id
+        description: "PK — TAS user identifier"
+        tests:
+          - not_null
+          - unique
