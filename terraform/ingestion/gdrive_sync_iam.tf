@@ -72,7 +72,65 @@ resource "aws_iam_role_policy" "gdrive_sync_lambda_permissions" {
         ]
         Resource = aws_ssm_parameter.gdrive_sync_cursor[0].arn
       },
+      # EventBridge Scheduler: create/update the one-time schedule that
+      # triggers the TEA Glue crawler after sync completes
+      {
+        Sid    = "AllowSchedulerManage"
+        Effect = "Allow"
+        Action = [
+          "scheduler:CreateSchedule",
+          "scheduler:UpdateSchedule",
+          "scheduler:GetSchedule",
+        ]
+        Resource = "arn:aws:scheduler:${var.aws_region}:${var.account_id}:schedule/default/${local.name}-tea-crawler-after-sync"
+      },
+      # PassRole: allow the Lambda to pass the scheduler execution role
+      {
+        Sid      = "AllowPassSchedulerRole"
+        Effect   = "Allow"
+        Action   = "iam:PassRole"
+        Resource = aws_iam_role.tea_crawler_scheduler[0].arn
+      },
     ]
+  })
+}
+
+# ---------------------------------------------------------------------------
+# IAM: EventBridge Scheduler role to start the TEA Glue crawler
+# ---------------------------------------------------------------------------
+resource "aws_iam_role" "tea_crawler_scheduler" {
+  count = var.create ? 1 : 0
+
+  name = "${local.name}-tea-crawler-scheduler-role"
+  path = "/gdrive-sync/"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Sid       = "AllowSchedulerAssume"
+      Effect    = "Allow"
+      Principal = { Service = "scheduler.amazonaws.com" }
+      Action    = "sts:AssumeRole"
+    }]
+  })
+
+  tags = merge(var.tags, { Name = "${local.name}-tea-crawler-scheduler-role" })
+}
+
+resource "aws_iam_role_policy" "tea_crawler_scheduler_glue" {
+  count = var.create ? 1 : 0
+
+  name = "start-tea-crawler"
+  role = aws_iam_role.tea_crawler_scheduler[0].id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Sid      = "AllowStartCrawler"
+      Effect   = "Allow"
+      Action   = "glue:StartCrawler"
+      Resource = aws_glue_crawler.crawlers["tea"].arn
+    }]
   })
 }
 

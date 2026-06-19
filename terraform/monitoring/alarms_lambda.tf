@@ -194,6 +194,89 @@ resource "aws_cloudwatch_metric_alarm" "lambda_pdf_to_bronze_throttling" {
   }
 }
 
+# ---------------------------------------------------------------------------
+# tea-bronze-router Lambda alarms
+# Triggered by S3 ObjectCreated for CSV/PDF files in the raw bucket (tea/ prefix).
+# One Lambda invocation per file — any error means a file was not routed to bronze.
+# ---------------------------------------------------------------------------
+resource "aws_cloudwatch_metric_alarm" "lambda_tea_router_errors" {
+  count = var.create ? 1 : 0
+
+  alarm_name          = "${local.name}-lambda-tea-bronze-router-errors"
+  alarm_description   = "Any tea-bronze-router Lambda error — a TEA file was not routed to bronze; check CloudWatch Logs for details"
+  namespace           = "AWS/Lambda"
+  metric_name         = "Errors"
+  statistic           = "Sum"
+  period              = 600
+  evaluation_periods  = 1
+  threshold           = 1
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  treat_missing_data  = "notBreaching"
+
+  dimensions = {
+    FunctionName = "${local.name}-tea-bronze-router"
+  }
+
+  alarm_actions = [aws_sns_topic.critical[0].arn]
+  ok_actions    = [aws_sns_topic.critical[0].arn]
+
+  tags = {
+    Name = "${local.name}-lambda-tea-bronze-router-errors"
+  }
+}
+
+resource "aws_cloudwatch_metric_alarm" "lambda_tea_router_throttling" {
+  count = var.create ? 1 : 0
+
+  alarm_name          = "${local.name}-lambda-tea-bronze-router-throttling"
+  alarm_description   = "tea-bronze-router Lambda throttled 3 or more times in 10 minutes — TEA file ingestion is delayed"
+  namespace           = "AWS/Lambda"
+  metric_name         = "Throttles"
+  statistic           = "Sum"
+  period              = 600
+  evaluation_periods  = 1
+  threshold           = 3
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  treat_missing_data  = "notBreaching"
+
+  dimensions = {
+    FunctionName = "${local.name}-tea-bronze-router"
+  }
+
+  alarm_actions = [aws_sns_topic.warning[0].arn]
+  ok_actions    = [aws_sns_topic.warning[0].arn]
+
+  tags = {
+    Name = "${local.name}-lambda-tea-bronze-router-throttling"
+  }
+}
+
+resource "aws_cloudwatch_metric_alarm" "lambda_tea_router_duration" {
+  count = var.create ? 1 : 0
+
+  alarm_name          = "${local.name}-lambda-tea-bronze-router-duration"
+  alarm_description   = "tea-bronze-router Lambda max duration exceeded 13.5 minutes (90% of the 15-minute hard limit) — Parquet conversion may be struggling with a large CSV"
+  namespace           = "AWS/Lambda"
+  metric_name         = "Duration"
+  statistic           = "Maximum"
+  period              = 300
+  evaluation_periods  = 1
+  threshold           = 810000
+  comparison_operator = "GreaterThanThreshold"
+  treat_missing_data  = "notBreaching"
+
+  dimensions = {
+    FunctionName = "${local.name}-tea-bronze-router"
+  }
+
+  alarm_actions = [aws_sns_topic.warning[0].arn]
+  ok_actions    = [aws_sns_topic.warning[0].arn]
+
+  tags = {
+    Name = "${local.name}-lambda-tea-bronze-router-duration"
+  }
+}
+
 resource "aws_cloudwatch_metric_alarm" "lambda_pdf_to_bronze_duration" {
   count = var.create ? 1 : 0
 
