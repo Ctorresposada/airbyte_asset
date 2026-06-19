@@ -21,6 +21,20 @@ module "transformations_kms" {
 
   key_statements = [
     {
+      # EventBridge Scheduler encrypts schedule metadata using this key when
+      # kms_key_arn is set on aws_scheduler_schedule (CKV_AWS_297).
+      sid    = "AllowEventBridgeSchedulerUseOfKey"
+      effect = "Allow"
+      actions = [
+        "kms:Decrypt",
+        "kms:GenerateDataKey",
+        "kms:DescribeKey",
+      ]
+      resources  = ["*"]
+      principals = [{ type = "Service", identifiers = ["scheduler.amazonaws.com"] }]
+      conditions = []
+    },
+    {
       sid    = "AllowCloudWatchLogsUseOfKey"
       effect = "Allow"
       actions = [

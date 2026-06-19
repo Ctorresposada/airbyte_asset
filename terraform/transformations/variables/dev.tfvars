@@ -31,3 +31,11 @@ redshift_user   = "dbt_service" # Redshift IAM-brokered user dbt authenticates a
 
 # SSM parameter created by Terraform and written by CI after every successful dbt Core ECR push.
 dbt_image_ssm_parameter_name = "/region-20/dev/dbt-core/image-uri" # SSM path storing the live dbt image URI; CI overwrites this after each successful ECR push, ex "/region-20/dev/dbt-core/image-uri"
+
+# --- dbt pipeline schedule --------------------------------------------------
+# The cron fires at 06:00 UTC = 00:00 (midnight) Central Time, after nightly ingestion.
+enable_dbt_schedule     = true               # Set to false to disable unnecessary runs in dev
+dbt_schedule_expression = "rate(30 minutes)" # every 30 min for POC testing; swap back to cron(0 6 * * ? *) after validation
+dbt_schedule_timezone   = "America/Chicago"
+dbt_capacity_provider   = "FARGATE_SPOT" # ~70% cheaper than on-demand; acceptable for dev testing
+dbt_schedule_command    = ["sh", "-c", "dbt deps && dbt run --select bronze && dbt run --select silver && dbt run --select gold"]
