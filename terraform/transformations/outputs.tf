@@ -47,3 +47,8 @@ output "transformations_kms_key_arn" {
   description = "ARN of the transformations stack KMS CMK, or null when the stack is disabled."
   value       = try(module.transformations_kms[0].key_arn, null)
 }
+
+output "dbt_scheduler_arn" {
+  description = "ARN of the EventBridge Scheduler rule that triggers the daily dbt pipeline, or null when scheduling is disabled."
+  value       = try(aws_scheduler_schedule.dbt_pipeline[0].arn, null)
+}

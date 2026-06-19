@@ -117,6 +117,41 @@ variable "redshift_user" {
   default     = "dbt_service"
 }
 
+variable "dbt_capacity_provider" {
+  description = "ECS capacity provider for the scheduled dbt task. Use FARGATE_SPOT in dev to reduce cost (~70% cheaper); use FARGATE in prod to avoid Spot interruptions mid-run."
+  type        = string
+  default     = "FARGATE"
+
+  validation {
+    condition     = contains(["FARGATE", "FARGATE_SPOT"], var.dbt_capacity_provider)
+    error_message = "dbt_capacity_provider must be either FARGATE or FARGATE_SPOT."
+  }
+}
+
+variable "dbt_schedule_command" {
+  description = "Command override passed to the dbt-core container at runtime. Replaces the container's default CMD. Format: [\"sh\", \"-c\", \"<shell commands>\"] — dbt deps must run before dbt run so package dependencies are installed. Layers must be sequenced with && so a failure in bronze halts silver and gold."
+  type        = list(string)
+  default     = ["sh", "-c", "dbt deps && dbt run"]
+}
+
+variable "enable_dbt_schedule" {
+  description = "Whether to provision the EventBridge Scheduler rule that triggers the dbt pipeline daily. Requires enable_dbt_task = true. Keep false until the container entrypoint has been validated with a manual run."
+  type        = bool
+  default     = false
+}
+
+variable "dbt_schedule_expression" {
+  description = "EventBridge Scheduler cron expression for the dbt pipeline. Uses cron(minutes hours day-of-month month day-of-week year) syntax. Example: cron(0 6 * * ? *) = 06:00 UTC daily. Evaluated in the timezone set by dbt_schedule_timezone."
+  type        = string
+  default     = "cron(0 6 * * ? *)"
+}
+
+variable "dbt_schedule_timezone" {
+  description = "IANA timezone applied to dbt_schedule_expression. Defaults to Central Time where ESC Region 20 is located (San Antonio, TX)."
+  type        = string
+  default     = "America/Chicago"
+}
+
 variable "tags" {
   description = "Common tags to apply to all resources"
   type        = map(string)
