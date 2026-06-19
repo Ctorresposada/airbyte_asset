@@ -37,5 +37,5 @@ dbt_image_ssm_parameter_name = "/region-20/dev/dbt-core/image-uri" # SSM path st
 enable_dbt_schedule     = true               # Set to false to disable unnecessary runs in dev
 dbt_schedule_expression = "rate(30 minutes)" # every 30 min for POC testing; swap back to cron(0 6 * * ? *) after validation
 dbt_schedule_timezone   = "America/Chicago"
-dbt_capacity_provider   = "FARGATE_SPOT" # ~70% cheaper than on-demand; acceptable for dev testing
-dbt_schedule_command    = ["sh", "-c", "dbt deps && dbt run --select bronze && dbt run --select silver && dbt run --select gold"]
+dbt_capacity_provider   = "FARGATE_SPOT"                                                                 # ~70% cheaper than on-demand; acceptable for dev testing
+dbt_schedule_command    = ["sh", "-c", "dbt deps && dbt run --select bronze && dbt run --select silver"] # gold excluded until the Athena catalog and Glue database are provisioned
