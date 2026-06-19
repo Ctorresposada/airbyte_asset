@@ -79,6 +79,21 @@ data "aws_iam_policy_document" "dbt_scheduler" {
       values   = ["ecs-tasks.amazonaws.com"]
     }
   }
+
+  # The scheduler role must be able to use the CMK to encrypt/decrypt the schedule
+  # payload when kms_key_arn is set on the aws_scheduler_schedule resource.
+  statement {
+    sid    = "KmsUseForScheduler"
+    effect = "Allow"
+
+    actions = [
+      "kms:Decrypt",
+      "kms:GenerateDataKey",
+      "kms:DescribeKey",
+    ]
+
+    resources = [module.transformations_kms[0].key_arn]
+  }
 }
 
 resource "aws_iam_role_policy" "dbt_scheduler" {
@@ -114,6 +129,11 @@ resource "aws_scheduler_schedule" "dbt_pipeline" {
 
   name       = "${local.name}-dbt-pipeline"
   group_name = "default"
+
+  # Encrypt schedule metadata at rest using the transformations CMK (CKV_AWS_297).
+  # The same key already encrypts dbt artifacts, the Secrets Manager secret, and
+  # the CloudWatch log groups — consistent encryption boundary across the stack.
+  kms_key_arn = module.transformations_kms[0].key_arn
 
   # Cron and timezone are driven by tfvars per environment so dev and prod
   # can run at different times without touching this file.
