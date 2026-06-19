@@ -24,8 +24,8 @@ dbt_image_ssm_parameter_name = "/region-20/prod/dbt-core/image-uri" # SSM path h
 
 # --- dbt pipeline schedule --------------------------------------------------
 # Not enabled in prod until the POC is validated in dev.
-enable_dbt_schedule     = false               # keep off until dev POC is signed off
-dbt_schedule_expression = "cron(0 6 * * ? *)" # 06:00 UTC daily = midnight Central
-dbt_schedule_timezone   = "America/Chicago"   # ESC Region 20 is in San Antonio, TX (Central)
-dbt_capacity_provider   = "FARGATE"           # on-demand in prod — no Spot interruption risk during pipeline runs
-dbt_schedule_command    = ["sh", "-c", "dbt deps && dbt run --select bronze && dbt run --select silver && dbt run --select gold"]
+enable_dbt_schedule     = false                                                                                                                          # keep off until dev POC is signed off
+dbt_schedule_expression = "cron(0 6 * * ? *)"                                                                                                            # 06:00 UTC daily = midnight Central
+dbt_schedule_timezone   = "America/Chicago"                                                                                                              # ESC Region 20 is in San Antonio, TX (Central)
+dbt_capacity_provider   = "FARGATE"                                                                                                                      # on-demand in prod — no Spot interruption risk during pipeline runs
+dbt_schedule_command    = ["sh", "-c", "dbt deps && dbt run --select bronze && dbt run --select silver && dbt run --select gold --target redshift_gold"] # --target redshift_gold routes gold models to Redshift instead of the default Athena target
