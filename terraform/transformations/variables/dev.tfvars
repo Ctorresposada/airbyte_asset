@@ -34,8 +34,8 @@ dbt_image_ssm_parameter_name = "/region-20/dev/dbt-core/image-uri" # SSM path st
 
 # --- dbt pipeline schedule --------------------------------------------------
 # The cron fires at 06:00 UTC = 00:00 (midnight) Central Time, after nightly ingestion.
-enable_dbt_schedule     = true               # Set to false to disable unnecessary runs in dev
-dbt_schedule_expression = "rate(30 minutes)" # every 30 min for POC testing; swap back to cron(0 6 * * ? *) after validation
+enable_dbt_schedule     = false               # set to true to re-enable
+dbt_schedule_expression = "cron(0 2 * * ? *)" # 02:00 America/Chicago (CST/CDT) daily
 dbt_schedule_timezone   = "America/Chicago"
 dbt_capacity_provider   = "FARGATE_SPOT"                                                                                                                 # ~70% cheaper than on-demand; acceptable for dev testing
 dbt_schedule_command    = ["sh", "-c", "dbt deps && dbt run --select bronze && dbt run --select silver && dbt run --select gold --target redshift_gold"] # --target redshift_gold routes gold models to Redshift instead of the default Athena target
