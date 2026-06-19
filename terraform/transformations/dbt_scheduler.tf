@@ -151,7 +151,10 @@ resource "aws_scheduler_schedule" "dbt_pipeline" {
     # RunTask payload — keys are PascalCase to match the AWS SDK/API contract.
     # Subnets and SecurityGroups are sourced from data lookups so this file
     # does not need to hard-code any IDs.
-    input = jsonencode({
+    # replace() fixes a Terraform jsonencode quirk: & is HTML-escaped to &,
+    # which makes the shell command unreadable to ECS. We convert it back to a
+    # literal & so the container receives "dbt deps && dbt run ..." correctly.
+    input = replace(jsonencode({
       Cluster = aws_ecs_cluster.this[0].arn
 
       # arn_without_revision tells ECS to always launch the latest ACTIVE revision
@@ -192,7 +195,7 @@ resource "aws_scheduler_schedule" "dbt_pipeline" {
           }
         ]
       }
-    })
+    }), "\\u0026", "&")
 
     retry_policy {
       maximum_retry_attempts       = 0    # no auto-retry — see note above
