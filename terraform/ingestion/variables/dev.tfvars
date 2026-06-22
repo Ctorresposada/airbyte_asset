@@ -111,7 +111,7 @@ glue_crawlers = {
     csv_delimiter   = ","                 # field delimiter for the CSV classifier
     update_behavior = "LOG"               # prevents crawler from overwriting the Terraform-managed ascender_invoice table
   }
-  tea = { # CSV files from TEA — crawls bronze subfolders, one table per folder
+  tea = { # Parquet files from TEA — crawls bronze subfolders, one table per folder
     s3_bucket_key              = "bronze"
     s3_prefix                  = "tea/"
     database_key               = "bronze"
