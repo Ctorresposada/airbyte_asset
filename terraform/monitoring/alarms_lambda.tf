@@ -1,5 +1,5 @@
 # ---------------------------------------------------------------------------
-# gdrive-sync Lambda alarms
+# gdrive-sync Lambda alarms (retrigger plan after stale artifact)
 # ---------------------------------------------------------------------------
 resource "aws_cloudwatch_metric_alarm" "lambda_sync_errors" {
   count = var.create ? 1 : 0
