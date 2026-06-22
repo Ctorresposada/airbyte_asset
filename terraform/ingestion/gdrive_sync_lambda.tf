@@ -49,11 +49,15 @@ resource "aws_lambda_function" "gdrive_sync" {
 
   environment {
     variables = {
-      SECRET_NAME     = aws_secretsmanager_secret.gdrive_sa[0].name
-      S3_BUCKET       = aws_s3_bucket.buckets["raw"].id
-      S3_PREFIX       = "tea/"
-      SSM_CURSOR_PATH = aws_ssm_parameter.gdrive_sync_cursor[0].name
-      DRIVE_FOLDER_ID = var.gdrive_tea_folder_id
+      SECRET_NAME                = aws_secretsmanager_secret.gdrive_sa[0].name
+      S3_BUCKET                  = aws_s3_bucket.buckets["raw"].id
+      S3_PREFIX                  = "tea/"
+      SSM_CURSOR_PATH            = aws_ssm_parameter.gdrive_sync_cursor[0].name
+      DRIVE_FOLDER_ID            = var.gdrive_tea_folder_id
+      CRAWLER_SCHEDULE_NAME      = "${local.name}-tea-crawler-after-sync"
+      CRAWLER_NAME               = aws_glue_crawler.crawlers["tea"].name
+      CRAWLER_SCHEDULER_ROLE_ARN = aws_iam_role.tea_crawler_scheduler[0].arn
+      CRAWLER_DELAY_HOURS        = "1"
     }
   }
 

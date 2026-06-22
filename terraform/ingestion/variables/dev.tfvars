@@ -116,8 +116,8 @@ glue_crawlers = {
     s3_prefix                  = "tea/"
     database_key               = "bronze"
     table_prefix               = "tea_"
-    schedule                   = "cron(0 5 * * ? *)" # 11 PM CST / 5 AM UTC — after gdrive sync and router Lambda
-    enabled                    = true
+    schedule                   = "cron(0 5 * * ? *)" # kept for reference; cron disabled — crawler is now triggered 1 hour after gdrive sync completes
+    enabled                    = false               # cron disabled — gdrive_sync Lambda schedules the crawler via EventBridge Scheduler
     csv_classifier             = true
     csv_delimiter              = ","
     update_behavior            = "UPDATE_IN_DATABASE"
@@ -141,9 +141,9 @@ gdrive_sync_log_retention_days = 30                  # Days CloudWatch retains t
 # ---------------------------------------------------------------------------
 # TEA Bronze Router Lambda
 # ---------------------------------------------------------------------------
-tea_bronze_router_timeout            = 900 # 15 min max — backfill of 100+ files needs time
-tea_bronze_router_memory             = 512 # reads full CSVs into pandas for Parquet conversion
-tea_bronze_router_log_retention_days = 30  # Days CloudWatch retains TEA router Lambda logs, ex 30
+tea_bronze_router_timeout            = 900  # 15 min max — backfill of 100+ files needs time
+tea_bronze_router_memory             = 1024 # reads full CSVs into pandas for Parquet conversion; 1024 prevents OOM on large files
+tea_bronze_router_log_retention_days = 30   # Days CloudWatch retains TEA router Lambda logs, ex 30
 
 # ---------------------------------------------------------------------------
 # PDF Extraction Lambda (raw → bronze)

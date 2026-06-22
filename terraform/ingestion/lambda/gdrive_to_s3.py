@@ -9,11 +9,15 @@ Local usage:
     python gdrive_to_s3.py --key tea.json --bucket escr20-landing-zone-raw-dev --prefix tea/ [--full-refresh]
 
 Lambda env vars:
-    SECRET_NAME     : Secrets Manager secret name containing tea.json contents
-    S3_BUCKET       : escr20-landing-zone-raw-dev
-    S3_PREFIX       : tea/
-    SSM_CURSOR_PATH : /r20/gdrive-sync/last-sync-time
-    DRIVE_FOLDER_ID : 0AC5xbBuRiUvXUk9PVA
+    SECRET_NAME          : Secrets Manager secret name containing tea.json contents
+    S3_BUCKET            : escr20-landing-zone-raw-dev
+    S3_PREFIX            : tea/
+    SSM_CURSOR_PATH      : /r20/gdrive-sync/last-sync-time
+    DRIVE_FOLDER_ID      : 0AC5xbBuRiUvXUk9PVA
+    CRAWLER_SCHEDULE_NAME: EventBridge Scheduler schedule name for the delayed crawler trigger
+    CRAWLER_NAME         : Glue crawler name to start after sync
+    CRAWLER_SCHEDULER_ROLE_ARN : IAM role ARN for EventBridge Scheduler to assume when calling Glue
+    CRAWLER_DELAY_HOURS  : Hours to delay crawler start after sync (default 1)
 """
 
 import argparse
@@ -21,7 +25,7 @@ import io
 import json
 import os
 import sys
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import boto3
 
@@ -142,6 +146,47 @@ def set_last_sync_time(ssm_path, dt):
     )
 
 
+# ── Delayed crawler trigger ────────────────────────────────────────────────────
+
+def schedule_crawler(schedule_name, crawler_name, role_arn, delay_hours=1):
+    """
+    Create a one-time EventBridge Scheduler schedule that starts the TEA Glue
+    crawler after a delay.  The schedule deletes itself after firing.
+    """
+    scheduler = boto3.client("scheduler")
+    run_at = datetime.now(timezone.utc) + timedelta(hours=delay_hours)
+
+    try:
+        scheduler.create_schedule(
+            Name=schedule_name,
+            ScheduleExpression=f"at({run_at.strftime('%Y-%m-%dT%H:%M:%S')})",
+            ScheduleExpressionTimezone="UTC",
+            FlexibleTimeWindow={"Mode": "OFF"},
+            Target={
+                "Arn": "arn:aws:scheduler:::aws-sdk:glue:startCrawler",
+                "RoleArn": role_arn,
+                "Input": json.dumps({"Name": crawler_name}),
+            },
+            ActionAfterCompletion="DELETE",
+        )
+        print(f"\nScheduled crawler '{crawler_name}' to start at {run_at.isoformat()}")
+    except scheduler.exceptions.ConflictException:
+        # Schedule already exists (e.g. from a previous retry) — update it.
+        scheduler.update_schedule(
+            Name=schedule_name,
+            ScheduleExpression=f"at({run_at.strftime('%Y-%m-%dT%H:%M:%S')})",
+            ScheduleExpressionTimezone="UTC",
+            FlexibleTimeWindow={"Mode": "OFF"},
+            Target={
+                "Arn": "arn:aws:scheduler:::aws-sdk:glue:startCrawler",
+                "RoleArn": role_arn,
+                "Input": json.dumps({"Name": crawler_name}),
+            },
+            ActionAfterCompletion="DELETE",
+        )
+        print(f"\nUpdated existing crawler schedule to start at {run_at.isoformat()}")
+
+
 # ── Core sync logic ────────────────────────────────────────────────────────────
 
 def sync_folder(service, s3_client, bucket, s3_prefix,
@@ -206,7 +251,9 @@ def sync_folder(service, s3_client, bucket, s3_prefix,
 def run(key_path=None, secret_name=None, bucket=None, s3_prefix="tea/",
         ssm_path="/r20/gdrive-sync/last-sync-time",
         drive_folder_id="0AC5xbBuRiUvXUk9PVA",
-        full_refresh=False):
+        full_refresh=False,
+        crawler_schedule_name=None, crawler_name=None,
+        crawler_scheduler_role_arn=None, crawler_delay_hours=1):
 
     print(f"{'='*60}")
     print(f"Google Drive → S3 Sync  {'(FULL REFRESH)' if full_refresh else '(INCREMENTAL)'}")
@@ -223,13 +270,26 @@ def run(key_path=None, secret_name=None, bucket=None, s3_prefix="tea/",
     sync_folder(service, s3_client, bucket, s3_prefix,
                 drive_folder_id, "", since, full_refresh)
 
-    # Update cursor only on success
-    if stats["failed"] == 0:
-        if ssm_path:
-            set_last_sync_time(ssm_path, sync_start)
-            print(f"\nCursor updated → {sync_start.isoformat()}")
-    else:
-        print(f"\nWARNING: {stats['failed']} file(s) failed — cursor NOT updated.")
+    # Update cursor even on partial success so successfully synced files are
+    # not re-downloaded on the next run. Failed files will have an older
+    # modifiedTime and will be retried automatically.
+    if ssm_path and stats["exported"] > 0:
+        set_last_sync_time(ssm_path, sync_start)
+        print(f"\nCursor updated → {sync_start.isoformat()}")
+
+    if stats["failed"] > 0:
+        print(f"\nWARNING: {stats['failed']} file(s) failed — will be retried on next run.")
+
+    # Schedule the TEA Glue crawler to run after a delay so the bronze router
+    # Lambda has time to convert all CSVs to Parquet before the crawler scans.
+    if crawler_schedule_name and crawler_name and crawler_scheduler_role_arn:
+        if stats["exported"] > 0:
+            schedule_crawler(
+                crawler_schedule_name, crawler_name,
+                crawler_scheduler_role_arn, crawler_delay_hours,
+            )
+        else:
+            print("\nNo files exported — skipping crawler schedule.")
 
     print(f"\n{'='*60}")
     print(f"Done. exported={stats['exported']}  skipped={stats['skipped']}  "
@@ -240,12 +300,16 @@ def run(key_path=None, secret_name=None, bucket=None, s3_prefix="tea/",
 def lambda_handler(event, context):
     """AWS Lambda entry point."""
     run(
-        secret_name    = os.environ["SECRET_NAME"],
-        bucket         = os.environ["S3_BUCKET"],
-        s3_prefix      = os.environ.get("S3_PREFIX", "tea/"),
-        ssm_path       = os.environ.get("SSM_CURSOR_PATH", "/r20/gdrive-sync/last-sync-time"),
-        drive_folder_id= os.environ.get("DRIVE_FOLDER_ID", "0AC5xbBuRiUvXUk9PVA"),
-        full_refresh   = event.get("full_refresh", False),
+        secret_name              = os.environ["SECRET_NAME"],
+        bucket                   = os.environ["S3_BUCKET"],
+        s3_prefix                = os.environ.get("S3_PREFIX", "tea/"),
+        ssm_path                 = os.environ.get("SSM_CURSOR_PATH", "/r20/gdrive-sync/last-sync-time"),
+        drive_folder_id          = os.environ.get("DRIVE_FOLDER_ID", "0AC5xbBuRiUvXUk9PVA"),
+        full_refresh             = event.get("full_refresh", False),
+        crawler_schedule_name    = os.environ.get("CRAWLER_SCHEDULE_NAME"),
+        crawler_name             = os.environ.get("CRAWLER_NAME"),
+        crawler_scheduler_role_arn = os.environ.get("CRAWLER_SCHEDULER_ROLE_ARN"),
+        crawler_delay_hours      = int(os.environ.get("CRAWLER_DELAY_HOURS", "1")),
     )
 
 

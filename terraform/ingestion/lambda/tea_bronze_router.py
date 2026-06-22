@@ -225,16 +225,36 @@ def _convert_to_parquet(raw_key: str, dest_key: str) -> None:
     type-inference issues in Glue/Athena), convert to Snappy Parquet, and
     write to BRONZE_BUCKET.  The Parquet schema embeds string types so the
     Glue crawler reads them directly without needing a post-crawl enforcer.
+
+    Uses a temp-key pattern (.tmp suffix) so the final key only appears once
+    the full Parquet file has been committed to S3.
     """
     response = s3.get_object(Bucket=RAW_BUCKET, Key=raw_key)
     df = pd.read_csv(response["Body"], dtype=str, keep_default_na=False)
-    # Glue rejects column names containing \n or \r. TEA source sheets sometimes
-    # have wrapped cells that export with embedded newlines. Replace any \n/\r
-    # with a space, then strip leading/trailing whitespace.
-    df.columns = df.columns.str.replace(r"[\n\r]", " ", regex=True).str.strip()
+    # Glue/Athena reject column names with control characters. TEA source
+    # sheets sometimes have wrapped cells that export with embedded newlines,
+    # tabs, or null bytes. Replace them with a space, collapse consecutive
+    # spaces to a single underscore, lowercase, then strip.
+    df.columns = (
+        df.columns
+        .str.replace(r"[\n\r\t\x00]", " ", regex=True)
+        .str.strip()
+    )
     buf = io.BytesIO()
     df.to_parquet(buf, engine="pyarrow", compression="snappy", index=False)
-    s3.put_object(Bucket=BRONZE_BUCKET, Key=dest_key, Body=buf.getvalue())
+
+    # Atomic write: put to a .tmp key first, then copy to the final key.
+    # The final key only appears once the data is fully committed.
+    tmp_key = dest_key + ".tmp"
+    parquet_bytes = buf.getvalue()
+    s3.put_object(Bucket=BRONZE_BUCKET, Key=tmp_key, Body=parquet_bytes)
+    s3.copy_object(
+        CopySource={"Bucket": BRONZE_BUCKET, "Key": tmp_key},
+        Bucket=BRONZE_BUCKET,
+        Key=dest_key,
+    )
+    s3.delete_object(Bucket=BRONZE_BUCKET, Key=tmp_key)
+
     logger.info(
         "Converted s3://%s/%s → s3://%s/%s (%d rows, %d cols)",
         RAW_BUCKET, raw_key, BRONZE_BUCKET, dest_key, len(df), len(df.columns),
