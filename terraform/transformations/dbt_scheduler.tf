@@ -209,8 +209,17 @@ resource "aws_scheduler_schedule" "dbt_pipeline" {
     }), "\\u0026", "&")
 
     retry_policy {
-      maximum_retry_attempts       = 0    # no auto-retry — see note above
-      maximum_event_age_in_seconds = 3600 # drop the event if ECS is unavailable for >1h
+      # Retries only apply when the RunTask API call itself fails — e.g. ECS is
+      # temporarily unavailable, the capacity provider cannot launch the task, or
+      # AWS returns a transient error. If the task launches and the container exits
+      # non-zero (dbt model failure, OOM) the scheduler sees a successful invocation
+      # and does NOT retry — a DE must investigate those failures manually.
+      maximum_retry_attempts = 2
+
+      # Drop the event entirely after 2 hours. At 2 retries the window gives enough
+      # time for transient ECS issues to resolve without the pipeline bleeding into
+      # business hours. The 2 AM CST schedule means retries complete by ~04:00 CST.
+      maximum_event_age_in_seconds = 7200
     }
   }
 }
