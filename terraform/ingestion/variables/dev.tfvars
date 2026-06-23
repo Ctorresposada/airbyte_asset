@@ -58,8 +58,8 @@ airbyte_rds_deletion_protection = false         # dev: deletion protection off s
 airbyte_s3_force_destroy        = true          # dev only: allows TF to empty/destroy the bucket
 
 # Populate with external IP CIDRs to allow access to the Airbyte ALB (e.g., ["1.2.3.4/32"]) - ctorres IP added 2026-06-09
-airbyte_alb_allowed_cidr_blocks = ["181.96.188.51/32", "38.46.246.237/32", "69.147.62.1/32", "190.53.0.160/32", "177.170.246.23/32", "189.6.208.52/32", "38.46.246.239/32"] # IPs allowed to reach the Airbyte ALB UI
-vpn_available                   = true                                                                                                                                      # Adds an Airbyte :8000 ingress from the VPN SG (VPN active in dev)
+airbyte_alb_allowed_cidr_blocks = ["181.96.188.51/32", "38.46.246.237/32", "69.147.62.1/32", "190.53.0.160/32", "177.170.246.23/32", "189.6.208.52/32", "38.46.246.239/32", "201.42.149.170/32"] # IPs allowed to reach the Airbyte ALB UI
+vpn_available                   = true                                                                                                                                                           # Adds an Airbyte :8000 ingress from the VPN SG (VPN active in dev)
 
 # Lake Formation: lakeformation_admin_arns intentionally empty.
 # SSO reserved roles (/aws-reserved/sso.amazonaws.com/) are rejected by PutDataLakeSettings.
