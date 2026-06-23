@@ -11,11 +11,15 @@
 #      the monitoring stack's dbt_task_failure EventBridge rule catches it
 #      and sends an alert to SNS. No auto-retry is configured here (see below).
 #
-# Gating: all three resources below share the same count condition so they
-# are created and destroyed atomically. The schedule only exists when:
+# Gating:
 #   - var.create = true           (stack is enabled)
 #   - var.enable_dbt_task = true  (ECS task definition exists)
-#   - var.enable_dbt_schedule = true  (scheduling is explicitly turned on)
+#
+# Enabling/disabling:
+#   var.enable_dbt_schedule controls the schedule state (ENABLED / DISABLED).
+#   Setting it to false pauses the schedule without destroying it — the IAM
+#   role, policy, and schedule resource are always kept so Terraform does not
+#   delete and recreate them on every toggle.
 # ---------------------------------------------------------------------------
 
 # IAM role that EventBridge Scheduler assumes when it fires.
@@ -26,7 +30,7 @@
 #                  Without PassRole the RunTask call is rejected by IAM even
 #                  though the scheduler role holds ecs:RunTask.
 resource "aws_iam_role" "dbt_scheduler" {
-  count = var.create && var.enable_dbt_task && var.enable_dbt_schedule ? 1 : 0
+  count = var.create && var.enable_dbt_task ? 1 : 0
 
   name = "${local.name}-dbt-scheduler"
 
@@ -45,7 +49,7 @@ resource "aws_iam_role" "dbt_scheduler" {
 }
 
 data "aws_iam_policy_document" "dbt_scheduler" {
-  count = var.create && var.enable_dbt_task && var.enable_dbt_schedule ? 1 : 0
+  count = var.create && var.enable_dbt_task ? 1 : 0
 
   # Scoped to all revisions of the dbt-core task definition family.
   # We use a wildcard on the revision number because CI registers new revisions
@@ -97,7 +101,7 @@ data "aws_iam_policy_document" "dbt_scheduler" {
 }
 
 resource "aws_iam_role_policy" "dbt_scheduler" {
-  count = var.create && var.enable_dbt_task && var.enable_dbt_schedule ? 1 : 0
+  count = var.create && var.enable_dbt_task ? 1 : 0
 
   name   = "${local.name}-dbt-scheduler-inline"
   role   = aws_iam_role.dbt_scheduler[0].id
@@ -123,12 +127,19 @@ resource "aws_iam_role_policy" "dbt_scheduler" {
 # can compound the inconsistency. Operators should investigate, fix the root
 # cause, and trigger a manual run. The monitoring stack alerts on any non-zero
 # exit so failures are never silent.
+#
+# state: controlled by var.enable_dbt_schedule. DISABLED pauses the schedule
+# without destroying it — toggling the variable never causes a resource replacement.
 # ---------------------------------------------------------------------------
 resource "aws_scheduler_schedule" "dbt_pipeline" {
-  count = var.create && var.enable_dbt_task && var.enable_dbt_schedule ? 1 : 0
+  count = var.create && var.enable_dbt_task ? 1 : 0
 
   name       = "${local.name}-dbt-pipeline"
   group_name = "default"
+
+  # ENABLED fires on schedule; DISABLED pauses it without deleting the resource.
+  # Toggling var.enable_dbt_schedule in tfvars is the correct way to pause/resume.
+  state = var.enable_dbt_schedule ? "ENABLED" : "DISABLED"
 
   # Encrypt schedule metadata at rest using the transformations CMK (CKV_AWS_297).
   # The same key already encrypts dbt artifacts, the Secrets Manager secret, and
@@ -178,7 +189,7 @@ resource "aws_scheduler_schedule" "dbt_pipeline" {
         AwsvpcConfiguration = {
           Subnets        = data.aws_subnets.private[0].ids # private-app subnets from networking stack
           SecurityGroups = [aws_security_group.dbt_ecs[0].id]
-          AssignPublicIp = "DISABLED" # tasks run in private subnets, NAT handles egress / Public IP turnned off
+          AssignPublicIp = "DISABLED" # tasks run in private subnets, NAT handles egress
         }
       }
 
@@ -198,8 +209,17 @@ resource "aws_scheduler_schedule" "dbt_pipeline" {
     }), "\\u0026", "&")
 
     retry_policy {
-      maximum_retry_attempts       = 0    # no auto-retry — see note above
-      maximum_event_age_in_seconds = 3600 # drop the event if ECS is unavailable for >1h
+      # Retries only apply when the RunTask API call itself fails — e.g. ECS is
+      # temporarily unavailable, the capacity provider cannot launch the task, or
+      # AWS returns a transient error. If the task launches and the container exits
+      # non-zero (dbt model failure, OOM) the scheduler sees a successful invocation
+      # and does NOT retry — a DE must investigate those failures manually.
+      maximum_retry_attempts = 2
+
+      # Drop the event entirely after 2 hours. At 2 retries the window gives enough
+      # time for transient ECS issues to resolve without the pipeline bleeding into
+      # business hours. The 2 AM CST schedule means retries complete by ~04:00 CST.
+      maximum_event_age_in_seconds = 7200
     }
   }
 }

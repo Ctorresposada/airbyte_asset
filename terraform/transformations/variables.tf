@@ -135,7 +135,7 @@ variable "dbt_schedule_command" {
 }
 
 variable "enable_dbt_schedule" {
-  description = "Whether to provision the EventBridge Scheduler rule that triggers the dbt pipeline daily. Requires enable_dbt_task = true. Keep false until the container entrypoint has been validated with a manual run."
+  description = "Whether the EventBridge Scheduler rule is ENABLED or DISABLED. The schedule resource is always provisioned when enable_dbt_task = true — this variable only pauses or resumes it without destroying it. Safe to toggle without causing resource replacement."
   type        = bool
   default     = false
 }
