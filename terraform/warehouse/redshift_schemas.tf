@@ -55,7 +55,7 @@ resource "null_resource" "redshift_schemas" {
           --sql "$sql" \
           --query Id --output text)
         echo "  statement_id=$stmt_id"
-        for attempt in $(seq 40); do
+        for attempt in $(seq 200); do
           status=$(aws redshift-data describe-statement \
             --id "$stmt_id" \
             --region '${var.aws_region}' \
@@ -157,7 +157,7 @@ resource "null_resource" "redshift_dbt_service_user" {
           --sql "$sql" \
           --query Id --output text)
         echo "  statement_id=$stmt_id"
-        for attempt in $(seq 40); do
+        for attempt in $(seq 200); do
           status=$(aws redshift-data describe-statement \
             --id "$stmt_id" \
             --region '${var.aws_region}' \
@@ -185,7 +185,7 @@ resource "null_resource" "redshift_dbt_service_user" {
           --region '${var.aws_region}' \
           --sql "SELECT 1 FROM pg_user WHERE usename = '${var.dbt_redshift_user}'" \
           --query Id --output text)
-        for attempt in $(seq 40); do
+        for attempt in $(seq 200); do
           status=$(aws redshift-data describe-statement \
             --id "$stmt_id" \
             --region '${var.aws_region}' \
