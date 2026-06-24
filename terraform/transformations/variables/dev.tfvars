@@ -26,7 +26,7 @@ kms_key_users = [
 ]
 
 redshift_db     = "gold"        # Redshift database dbt connects to; must match warehouse stack's redshift_db_name, ex "gold"
-redshift_schema = "gold"        # dbt target schema within Redshift; dbt_service user has full CREATE/DROP rights on this schema, ex "gold"
+redshift_schema = "public"      # TEMP: using public schema until gold schema is created via warehouse stack in dev
 redshift_user   = "dbt_service" # Redshift IAM-brokered user dbt authenticates as; must match warehouse stack's dbt_redshift_user, ex "dbt_service"
 
 # SSM parameter created by Terraform and written by CI after every successful dbt Core ECR push.

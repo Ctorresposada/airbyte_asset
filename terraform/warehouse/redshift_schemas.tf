@@ -123,7 +123,7 @@ resource "null_resource" "redshift_dbt_service_user" {
     # Bump this value whenever you need to force the grants to re-run
     # (e.g. after the gold schema or dbt_service user is recreated).
     # Normal operations never require a re-run — grants persist in Redshift.
-    grants_revision = "3"
+    grants_revision = "4"
   }
 
   provisioner "local-exec" {
@@ -178,12 +178,13 @@ resource "null_resource" "redshift_dbt_service_user" {
       # pg_user existence check before issuing CREATE USER. run_sql only waits
       # for FINISHED; this helper additionally fetches the scalar result.
       user_exists() {
+        local check_user="$1"
         local stmt_id exists
         stmt_id=$(aws redshift-data execute-statement \
           --workgroup-name '${aws_redshiftserverless_workgroup.this[0].workgroup_name}' \
           --database '${var.redshift_db_name}' \
           --region '${var.aws_region}' \
-          --sql "SELECT 1 FROM pg_user WHERE usename = '${var.dbt_redshift_user}'" \
+          --sql "SELECT 1 FROM pg_user WHERE usename = '$check_user'" \
           --query Id --output text)
         for attempt in $(seq 200); do
           status=$(aws redshift-data describe-statement \
@@ -205,11 +206,19 @@ resource "null_resource" "redshift_dbt_service_user" {
       }
 
       echo "==> Ensuring dbt service user exists: ${var.dbt_redshift_user}"
-      if user_exists; then
+      if user_exists "${var.dbt_redshift_user}"; then
         echo "  user ${var.dbt_redshift_user} already exists, skipping CREATE USER"
       else
         echo "  creating user ${var.dbt_redshift_user} (PASSWORD DISABLE — IAM-only)"
         run_sql "CREATE USER ${var.dbt_redshift_user} PASSWORD DISABLE"
+      fi
+
+      echo "==> Ensuring IAM-derived user exists: IAMR:${var.dbt_task_role_name}"
+      if user_exists "IAMR:${var.dbt_task_role_name}"; then
+        echo "  IAM user already exists"
+      else
+        echo "  creating IAM user (PASSWORD DISABLE — vended via GetCredentials)"
+        run_sql "CREATE USER \"IAMR:${var.dbt_task_role_name}\" PASSWORD DISABLE"
       fi
 
       echo "==> Granting privileges to IAMR:${var.dbt_task_role_name}"
