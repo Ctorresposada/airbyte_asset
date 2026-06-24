@@ -118,6 +118,10 @@ resource "null_resource" "redshift_dbt_service_user" {
     database       = var.redshift_db_name
     aws_region     = var.aws_region
     dbt_user       = var.dbt_redshift_user
+    # Bump this value whenever you need to force the grants to re-run
+    # (e.g. after the gold schema or dbt_service user is recreated).
+    # Normal operations never require a re-run — grants persist in Redshift.
+    grants_revision = "2"
   }
 
   provisioner "local-exec" {
