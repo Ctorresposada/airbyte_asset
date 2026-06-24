@@ -15,12 +15,13 @@ resource "null_resource" "redshift_schemas" {
   count = var.create ? 1 : 0
 
   triggers = {
-    workgroup_name = aws_redshiftserverless_workgroup.this[0].workgroup_name
-    database       = var.redshift_db_name
-    glue_bronze_db = var.glue_bronze_db_name
-    glue_silver_db = var.glue_silver_db_name
-    iam_role_arn   = aws_iam_role.redshift_serverless[0].arn
-    aws_region     = var.aws_region
+    workgroup_name   = aws_redshiftserverless_workgroup.this[0].workgroup_name
+    database         = var.redshift_db_name
+    glue_bronze_db   = var.glue_bronze_db_name
+    glue_silver_db   = var.glue_silver_db_name
+    iam_role_arn     = aws_iam_role.redshift_serverless[0].arn
+    aws_region       = var.aws_region
+    schemas_revision = "2"
   }
 
   provisioner "local-exec" {
