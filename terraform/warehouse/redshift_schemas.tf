@@ -114,14 +114,15 @@ resource "null_resource" "redshift_dbt_service_user" {
   count = var.create ? 1 : 0
 
   triggers = {
-    workgroup_name = aws_redshiftserverless_workgroup.this[0].workgroup_name
-    database       = var.redshift_db_name
-    aws_region     = var.aws_region
-    dbt_user       = var.dbt_redshift_user
+    workgroup_name     = aws_redshiftserverless_workgroup.this[0].workgroup_name
+    database           = var.redshift_db_name
+    aws_region         = var.aws_region
+    dbt_user           = var.dbt_redshift_user
+    dbt_task_role_name = var.dbt_task_role_name
     # Bump this value whenever you need to force the grants to re-run
     # (e.g. after the gold schema or dbt_service user is recreated).
     # Normal operations never require a re-run — grants persist in Redshift.
-    grants_revision = "2"
+    grants_revision = "3"
   }
 
   provisioner "local-exec" {
@@ -210,19 +211,21 @@ resource "null_resource" "redshift_dbt_service_user" {
         run_sql "CREATE USER ${var.dbt_redshift_user} PASSWORD DISABLE"
       fi
 
-      echo "==> Granting privileges to ${var.dbt_redshift_user}"
-      # gold: dbt builds models here, so it needs schema usage, object creation,
-      # and full DML on existing objects.
-      run_sql "GRANT USAGE ON SCHEMA gold TO ${var.dbt_redshift_user}"
-      run_sql "GRANT CREATE ON SCHEMA gold TO ${var.dbt_redshift_user}"
-      run_sql "GRANT ALL ON ALL TABLES IN SCHEMA gold TO ${var.dbt_redshift_user}"
-      run_sql "ALTER DEFAULT PRIVILEGES IN SCHEMA gold GRANT ALL ON TABLES TO ${var.dbt_redshift_user}"
+      echo "==> Granting privileges to IAMR:${var.dbt_task_role_name}"
+      # Redshift Serverless GetCredentials maps the ECS task IAM role to a database
+      # user named IAMR:<role-name>. The dbt profile's user field is overwritten by
+      # the GetCredentials response, so grants must target this IAM-derived user.
+      # gold: dbt builds models here — needs schema usage, object creation, and full DML.
+      run_sql "GRANT USAGE ON SCHEMA gold TO \"IAMR:${var.dbt_task_role_name}\""
+      run_sql "GRANT CREATE ON SCHEMA gold TO \"IAMR:${var.dbt_task_role_name}\""
+      run_sql "GRANT ALL ON ALL TABLES IN SCHEMA gold TO \"IAMR:${var.dbt_task_role_name}\""
+      run_sql "ALTER DEFAULT PRIVILEGES IN SCHEMA gold GRANT ALL ON TABLES TO \"IAMR:${var.dbt_task_role_name}\""
 
       # bronze/silver: read-only Spectrum sources for dbt staging models.
-      run_sql "GRANT USAGE ON SCHEMA bronze TO ${var.dbt_redshift_user}"
-      run_sql "GRANT SELECT ON ALL TABLES IN SCHEMA bronze TO ${var.dbt_redshift_user}"
-      run_sql "GRANT USAGE ON SCHEMA silver TO ${var.dbt_redshift_user}"
-      run_sql "GRANT SELECT ON ALL TABLES IN SCHEMA silver TO ${var.dbt_redshift_user}"
+      run_sql "GRANT USAGE ON SCHEMA bronze TO \"IAMR:${var.dbt_task_role_name}\""
+      run_sql "GRANT SELECT ON ALL TABLES IN SCHEMA bronze TO \"IAMR:${var.dbt_task_role_name}\""
+      run_sql "GRANT USAGE ON SCHEMA silver TO \"IAMR:${var.dbt_task_role_name}\""
+      run_sql "GRANT SELECT ON ALL TABLES IN SCHEMA silver TO \"IAMR:${var.dbt_task_role_name}\""
 
       echo "dbt service user and grants applied successfully."
     EOT

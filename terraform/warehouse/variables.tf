@@ -53,6 +53,11 @@ variable "dbt_redshift_user" {
   default     = "dbt_service"
 }
 
+variable "dbt_task_role_name" {
+  description = "Name of the IAM role used by the dbt Core ECS task (e.g. 'region-20-dev-dbt-task'). Redshift Serverless GetCredentials maps this IAM role to a database user named IAMR:<role-name> on first connect. Schema grants must target this IAM-derived user — the dbt_redshift_user value in the profile is overwritten by the GetCredentials response."
+  type        = string
+}
+
 variable "redshift_base_capacity" {
   description = "Base RPU capacity for the workgroup. Minimum allowed by Redshift Serverless is 8."
   type        = number

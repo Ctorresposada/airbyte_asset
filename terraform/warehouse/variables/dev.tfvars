@@ -29,7 +29,8 @@ glue_bronze_db_name = "escr20_bronze_dev" # Glue bronze DB for the Spectrum exte
 glue_silver_db_name = "escr20_silver_dev" # Glue silver DB for the Spectrum external schema; must match ingestion
 
 # dbt Core service user (IAM-brokered, passwordless) created in redshift_schemas.tf
-dbt_redshift_user = "dbt_service" # Passwordless IAM-brokered Redshift user dbt connects as
+dbt_redshift_user  = "dbt_service"            # Passwordless IAM-brokered Redshift user (kept for reference; actual connecting user is IAMR:<dbt_task_role_name>)
+dbt_task_role_name = "region-20-dev-dbt-task" # ECS task IAM role; Redshift Serverless GetCredentials maps this to IAMR:region-20-dev-dbt-task
 
 vpn_enabled = true # Adds a Redshift :5439 ingress from the Client VPN SG (VPN active in dev)
 
