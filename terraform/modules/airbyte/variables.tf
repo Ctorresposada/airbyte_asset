@@ -1,17 +1,12 @@
-# Module: airbyte-compute
-# Input variable definitions for the Airbyte EC2 ASG compute module.
+# Module: airbyte
+# Input variable definitions for the self-hosted Airbyte deployment module.
 
 # ---------------------------------------------------------------------------
 # Required variables (no defaults)
 # ---------------------------------------------------------------------------
 
 variable "name" {
-  description = "Name prefix applied to every resource created by this module."
-  type        = string
-}
-
-variable "compute_name" {
-  description = "Name to be added to compute resources only."
+  description = "Name prefix applied to every resource created by this module (e.g. 'acme-airbyte-dev')."
   type        = string
 }
 
@@ -30,9 +25,20 @@ variable "ami_id" {
   type        = string
 }
 
-variable "kms_key_arn" {
-  description = "ARN of the KMS key used to encrypt EBS volumes, RDS storage, S3 objects, Secrets Manager secrets, and the CloudWatch log group."
+# ---------------------------------------------------------------------------
+# DNS & Certificate variables
+# ---------------------------------------------------------------------------
+
+variable "route53_zone_id" {
+  description = "Route53 hosted zone ID for creating the Airbyte DNS record and ACM certificate validation. Required when create_alb = true."
   type        = string
+  default     = ""
+}
+
+variable "domain_name" {
+  description = "Fully qualified domain name for the Airbyte console (e.g. 'airbyte.example.com'). Used for the Route53 A record and ACM certificate. Required when create_alb = true."
+  type        = string
+  default     = ""
 }
 
 # ---------------------------------------------------------------------------
@@ -40,13 +46,13 @@ variable "kms_key_arn" {
 # ---------------------------------------------------------------------------
 
 variable "create_alb" {
-  description = "Whether to create an internal Application Load Balancer for the Airbyte webapp. Set to false to run without an ALB (access via SSM port forwarding or a future VPN). Defaults to false."
+  description = "Whether to create an Application Load Balancer for the Airbyte webapp. When true, also creates an ACM certificate and Route53 record if domain_name and route53_zone_id are provided."
   type        = bool
-  default     = false
+  default     = true
 }
 
 variable "alb_subnet_ids" {
-  description = "List of subnet IDs for the Application Load Balancer. Use public subnets when alb_internal = false; private subnets otherwise. Required when create_alb = true; ignored otherwise."
+  description = "List of subnet IDs for the Application Load Balancer. Use public subnets when alb_internal = false; private subnets otherwise. Required when create_alb = true."
   type        = list(string)
   default     = []
 }
@@ -54,24 +60,19 @@ variable "alb_subnet_ids" {
 variable "alb_internal" {
   description = "Whether the Application Load Balancer is internal (true) or internet-facing (false). Set to false to expose Airbyte publicly via an internet-facing ALB."
   type        = bool
-  default     = true
+  default     = false
 }
 
 variable "alb_certificate_arn" {
-  description = "ACM certificate ARN for the ALB HTTPS listener. Required when create_alb = true."
+  description = "ACM certificate ARN for the ALB HTTPS listener. If empty and domain_name is set, the module creates and validates an ACM certificate automatically."
   type        = string
   default     = ""
-
-  validation {
-    condition     = !var.create_alb || (var.create_alb && var.alb_certificate_arn != "")
-    error_message = "alb_certificate_arn must be set when create_alb = true."
-  }
 }
 
 variable "allowed_cidr_blocks" {
-  description = "CIDR blocks permitted to reach the ALB on port 443 (and port 80 for HTTPS redirect). Typically the VPC CIDR or a bastion range. Required when create_alb = true; ignored otherwise."
+  description = "CIDR blocks permitted to reach the ALB on port 443 (and port 80 for HTTPS redirect). Defaults to 0.0.0.0/0 for internet-facing ALBs. Restrict for internal deployments."
   type        = list(string)
-  default     = []
+  default     = ["0.0.0.0/0"]
 }
 
 # ---------------------------------------------------------------------------
@@ -160,8 +161,8 @@ variable "tags" {
   default     = {}
 }
 
-variable "airbyte_url" {
-  description = "Public HTTPS URL at which Airbyte is reachable (e.g. https://airbyte-dev.esc20.net). Set as global.airbyteUrl in the Helm values so Keycloak can build correct redirect URIs."
-  type        = string
-  default     = ""
+variable "ebs_volume_size" {
+  description = "Size (in GB) of the root EBS volume for the Airbyte EC2 instance. 50 GB is the minimum; increase for high-volume syncs."
+  type        = number
+  default     = 50
 }

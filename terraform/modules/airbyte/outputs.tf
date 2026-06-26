@@ -1,6 +1,11 @@
-# Module: airbyte-compute
+# Module: airbyte
 # Outputs expose the identifiers consumers need to wire this module into
 # the broader stack (DNS records, monitoring, cross-stack references, etc.).
+
+output "airbyte_url" {
+  description = "HTTPS URL for the Airbyte web console. Null when domain_name is not set."
+  value       = local.airbyte_url != "" ? local.airbyte_url : null
+}
 
 output "alb_dns_name" {
   description = "ALB DNS name. Null when create_alb = false."
@@ -13,7 +18,7 @@ output "alb_zone_id" {
 }
 
 output "alb_sg_id" {
-  description = "ID of the security group attached to the internal ALB. Null when create_alb = false."
+  description = "ID of the security group attached to the ALB. Null when create_alb = false."
   value       = try(aws_security_group.alb[0].id, null)
 }
 
@@ -23,12 +28,12 @@ output "asg_name" {
 }
 
 output "instance_role_arn" {
-  description = "ARN of the IAM role attached to the Airbyte EC2 instance profile. Grant this role additional permissions at the stack level if needed."
+  description = "ARN of the IAM role attached to the Airbyte EC2 instance profile. Grant this role additional permissions if needed."
   value       = try(aws_iam_role.this[0].arn, null)
 }
 
 output "instance_role_name" {
-  description = "Name of the IAM role attached to the Airbyte EC2 instance profile. Use this to attach additional policies at the stack level."
+  description = "Name of the IAM role attached to the Airbyte EC2 instance profile. Use this to attach additional policies."
   value       = try(aws_iam_role.this[0].name, null)
 }
 
@@ -37,8 +42,18 @@ output "instance_sg_id" {
   value       = try(aws_security_group.instance[0].id, null)
 }
 
+output "kms_key_arn" {
+  description = "ARN of the KMS key used to encrypt all Airbyte resources."
+  value       = try(aws_kms_key.this[0].arn, null)
+}
+
+output "kms_key_id" {
+  description = "ID of the KMS key used to encrypt all Airbyte resources."
+  value       = try(aws_kms_key.this[0].key_id, null)
+}
+
 output "ssm_parameter_name" {
-  description = "Name of the SSM SecureString parameter that holds the rendered Airbyte Helm values YAML. The EC2 instance reads this at boot via user-data."
+  description = "Name of the SSM SecureString parameter that holds the rendered Airbyte Helm values YAML."
   value       = try(aws_ssm_parameter.airbyte_values[0].name, null)
 }
 
@@ -53,7 +68,7 @@ output "rds_endpoint" {
 }
 
 output "rds_secret_arn" {
-  description = "ARN of the Secrets Manager secret containing RDS credentials (username, password, host, port, dbname). Null when create = false."
+  description = "ARN of the Secrets Manager secret containing RDS credentials (username, password, host, port, dbname)."
   value       = try(aws_secretsmanager_secret.rds[0].arn, null)
 }
 
@@ -63,26 +78,31 @@ output "rds_sg_id" {
 }
 
 output "airbyte_admin_secret_arn" {
-  description = "ARN of the Secrets Manager secret containing the Airbyte web UI admin credentials (username, password). Populated at instance boot by user-data. Null when create = false."
+  description = "ARN of the Secrets Manager secret containing the Airbyte web UI admin credentials. Populated at instance boot by user-data."
   value       = try(aws_secretsmanager_secret.airbyte_admin[0].arn, null)
 }
 
 output "s3_bucket_name" {
-  description = "Name of the S3 bucket used by Airbyte for logs and artifacts. Null when create = false."
+  description = "Name of the S3 bucket used by Airbyte for logs and artifacts."
   value       = try(aws_s3_bucket.this[0].id, null)
 }
 
 output "s3_bucket_arn" {
-  description = "ARN of the S3 bucket used by Airbyte for logs and artifacts. Null when create = false."
+  description = "ARN of the S3 bucket used by Airbyte for logs and artifacts."
   value       = try(aws_s3_bucket.this[0].arn, null)
 }
 
 output "rds_instance_id" {
-  description = "RDS instance identifier for the Airbyte config database. Use for snapshot, restore, or parameter group operations."
+  description = "RDS instance identifier for the Airbyte config database."
   value       = try(aws_db_instance.this[0].identifier, null)
 }
 
+output "certificate_arn" {
+  description = "ARN of the ACM certificate used by the ALB. Null when create_alb = false or no certificate is configured."
+  value       = try(local.effective_certificate_arn, null)
+}
+
 output "user_data_script" {
-  description = "Rendered user-data bootstrap script as it will be passed to the EC2 instance. Use 'terraform output -raw user_data_script' to inspect it before applying."
+  description = "Rendered user-data bootstrap script. Use 'terraform output -raw user_data_script' to inspect before applying."
   value       = local.user_data_content
 }

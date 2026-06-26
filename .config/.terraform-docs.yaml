@@ -1,15 +1,10 @@
 ---
-# terraform-docs configuration
 formatter: markdown table
 
 version: ""
 
 header-from: main.tf
 footer-from: ""
-
-recursive:
-  enabled: true
-  path: examples
 
 sections:
   show:
@@ -19,21 +14,7 @@ sections:
     - modules
     - outputs
 
-# content: ""
 content: |-
-  # Examples
-  ```hcl
-  # main.tf
-  {{ include "examples/complete/main.tf" }}
-  ```
-  ```hcl
-  # terraform.tfvars
-  {{ include "examples/complete/terraform.tfvars" }}
-  ```
-    ```hcl
-  # variables.tf
-  {{ include "examples/complete/variables.tf" }}
-  ```
   {{ .Header }}
   {{ .Providers }}
   {{ .Inputs }}

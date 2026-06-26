@@ -6,73 +6,37 @@ skip-path:
   - .external_modules
   - .terraform
   - .terraform.lock.hcl
-  - .*.enc.*
-  - terraform/ingestion/lambda/python
 enable-secret-scan-all-files: true
 skip-check:
   - CKV_TF_1  # "Ensure Terraform module sources use a commit hash"
-  - CKV_TF_3  # "Ensure state files are locked" - Fails if backend config is passed in with the -backend-config flag.
-  - CKV_TF_355  # "Ensure no IAM policies documents allow "*" as a statement's resource for restrictable actions"
-  - CKV_AWS_18   # Access logging not required — audit trail handled via CloudTrail
-  - CKV2_AWS_62  # Event notifications not required — pipeline monitoring handled via Airbyte
-  - CKV_AWS_144  # Cross-region replication not required — no DR requirement per client data residency
-  - CKV_AWS_145  # KMS encryption not required — using SSE-S3 (AES256) per project security requirements for now (KMS can be added later)
-  - CKV_AWS_355  # Ensure no IAM policies documents allow "*" as a statement's resource for restrictable actions
-  - CKV_AWS_356  # Sibling of CKV_AWS_355 — same wildcard-resource pattern for restrictable actions
-  - CKV_AWS_338  # Log retention is environment-driven via var.redshift_log_retention_days — dev uses 30 days to control cost; prod sets >= 365
-  - CKV_AWS_99   # Glue security configuration S3 encryption uses SSE-S3 (consistent with CKV_AWS_145 — KMS not required for security requirements)
-  - CKV2_AWS_64  # KMS key policy not explicitly defined — used solely for Glue crawler CloudWatch log encryption; no cross-account access
-  - CKV_AWS_109  # Resource:* in KMS key policies refers to the key itself — AWS-recommended root-access pattern for key management
-  - CKV_AWS_111  # kms:* on Resource:* is standard for KMS key policies and does not grant unconstrained write access to other resources
-  - CKV_SECRET_4  # False positive — matched string is a doc comment in urllib3 source (lambda layer dependency), not a real credential
-  # False positive — OAuth token type URNs and constant names in google-auth source (lambda layer dependency)
-  - CKV_SECRET_6
-  # DataEngineer_Dev inline policy — broad permissions are intentional and dev-only; resource-level skip comments
-  # in security/main.tf document the full rationale. Plan-file scanning does not honour inline skip annotations.
-  - CKV_AWS_286  # Privilege escalation: iam:Put*/CreatePolicy*/UpdateAssumeRolePolicy required in dev account only
-  - CKV_AWS_287  # Credentials exposure: secretsmanager:Get*/kms:Decrypt required for pipeline development in dev
-  - CKV_AWS_288  # Data exfiltration: S3/Athena access is inherent to the data-engineering workflow in dev
-  - CKV_AWS_289  # Permissions management: iam:Attach*/Put* required to iterate on roles in dev; not granted in prod
-  - CKV_AWS_290  # Write access: ssm:*/athena:*/cloudshell:* wildcard writes scoped to dev inline policy only
-  # Transformations stack — inline skip annotations exist on these resources but plan-file scanning ignores them.
-  - CKV2_AWS_5   # SG is attached to the dbt Core ECS task NetworkConfiguration at runtime; static plan analysis cannot detect the attachment
-  - CKV2_AWS_34  # SSM parameter stores the ECR image URI (not a secret); SecureString would require KMS and break plain-CLI writes from CI
-  - CKV_AWS_382  # dbt tasks require unrestricted egress to reach S3, ECR, CloudWatch, and Redshift Serverless; ingress is fully closed
-  - CKV_AWS_336  # dbt writes compiled SQL, manifest, logs, and profile data to the container filesystem at runtime; read-only root crashes dbt
+  - CKV_TF_3  # "Ensure state files are locked" - Fails if backend config is passed in with the -backend-config flag
 
-  # Lambda functions (gdrive_sync, pdf_to_bronze, tea_bronze_router) — pre-existing design decisions.
-  - CKV_AWS_116  # DLQ not configured — internal ETL functions; failures are caught by CloudWatch alarms and SNS alerts in the monitoring stack
-  - CKV_AWS_173  # Lambda env var encryption — environment variables contain non-sensitive config only; secrets are stored in Secrets Manager
-  - CKV_AWS_272  # Code signing not configured — Lambda deployed via CI/CD; supply-chain integrity enforced at the repo level
-  - CKV_AWS_117  # Lambda not in VPC — functions hit public S3/API endpoints; VPC would require a NAT gateway with no security benefit
+  # KMS key policy — standard AWS root-access pattern for key management
+  - CKV_AWS_109  # Resource:* in KMS key policies refers to the key itself
+  - CKV_AWS_111  # kms:* on Resource:* is standard for KMS key policies
 
-  # CloudWatch Log Groups — consistent with CKV_AWS_145 (SSE-S3 acceptable; KMS CMK not required for internal logs).
-  - CKV_AWS_158  # CloudWatch log groups use AWS-managed encryption; CMK adds overhead without proportional benefit for internal logs
+  # Airbyte RDS (Postgres metadata database) — internal workload; HA/IAM-auth not justified
+  - CKV_AWS_157  # Multi-AZ configurable via var.rds_multi_az; default off for cost optimization
+  - CKV_AWS_293  # RDS deletion protection configurable via var.rds_deletion_protection
+  - CKV_AWS_161  # Airbyte does not support IAM authentication for its internal PostgreSQL config database
+  - CKV2_AWS_30  # Query logging on Airbyte internal config DB generates excessive volume with no security benefit
 
-  # Airbyte IAM user — Airbyte requires a long-lived service account; SSO federation is not supported by Airbyte's auth model.
-  - CKV_AWS_273  # Airbyte service account uses an IAM user; SSO/federation is incompatible with Airbyte's API-key authentication model
-  - CKV_AWS_40   # IAM policy is attached directly to the Airbyte IAM user; group-based access is not applicable for a single service account
+  # Airbyte ALB + networking
+  - CKV_AWS_150  # ALB deletion protection intentionally omitted for teardown flexibility
+  - CKV_AWS_91   # ALB access logging deferred; audit trail via CloudTrail
+  - CKV2_AWS_28  # WAF not required for internal data-engineering tooling
+  - CKV_AWS_341  # Launch template metadata hop limit > 1 required for Docker/kind containers
 
-  # Airbyte RDS (Postgres metadata database) — single-instance, internal workload; HA/IAM-auth overhead not justified.
-  - CKV_AWS_157  # Multi-AZ not enabled — Airbyte metadata DB is an internal workload; downtime is acceptable during maintenance windows
-  - CKV_AWS_293  # RDS deletion protection not enabled — dev/non-prod database; intentionally omitted to allow stack teardown
-  - CKV_AWS_161  # IAM authentication not enabled — Airbyte connects to Postgres with a password; IAM auth is not supported by the Airbyte connector
-  - CKV2_AWS_30  # Postgres query logging not enabled — Airbyte metadata DB; query-level logging not required for this internal workload
+  # S3 — Airbyte logs/artifacts bucket
+  - CKV_AWS_18   # Access logging not required; audit trail via CloudTrail
+  - CKV_AWS_144  # Cross-region replication not required for log/artifact storage
+  - CKV2_AWS_62  # S3 event notifications not required
 
-  # Airbyte ALB + networking — internal tooling; WAF, access logging, and strict cert policy not required at this stage.
-  - CKV_AWS_150  # ALB deletion protection not enabled — Airbyte is internal tooling; intentionally omitted to allow stack teardown
-  - CKV_AWS_91   # ALB access logging not enabled — consistent with CKV_AWS_18; audit trail handled via CloudTrail
-  - CKV2_AWS_28  # ALB not protected by WAF — Airbyte is an internal data-engineering tool; WAF cost not justified for this workload
-  - CKV2_AWS_71  # ACM wildcard certificate — Airbyte uses a wildcard cert by design to support dynamic connector hostnames
-  - CKV2_AWS_23  # Route53 A record attachment — record correctly aliases to the Airbyte ALB; static plan analysis cannot verify the alias target
-  - CKV_AWS_341  # Launch template metadata hop limit > 1 — required for EC2 instance profile to be reachable inside the Airbyte container
+  # Secrets Manager — manual rotation for Airbyte credentials
+  - CKV2_AWS_57  # Automatic rotation requires a Lambda rotator and coordinated Airbyte restart
 
-  # Secrets Manager — manual rotation for third-party service credentials (Airbyte, Google Drive SA, Oracle).
-  # Automatic rotation requires a Lambda rotator per secret; not implemented for external service credentials.
-  - CKV2_AWS_57  # Secrets Manager auto-rotation not enabled — rotated manually; Lambda rotators not implemented for external service credentials
+  # CloudWatch Log Groups
+  - CKV_AWS_158  # CloudWatch log groups use CMK encryption via the module's KMS key
 
-  # Secrets Manager KMS — gdrive SA secret uses AWS-managed key; consistent with CKV_AWS_145.
-  - CKV_AWS_149  # Secrets Manager secret uses AWS-managed KMS key; CMK not required per current security requirements (consistent with CKV_AWS_145)
-
-  # EventBridge Scheduler (gdrive_sync) — CMK skip consistent with transformations stack (CKV_AWS_297 above).
-  - CKV_AWS_297  # EventBridge Scheduler CMK — gdrive_sync and dbt schedulers use AWS-managed encryption; CMK not required per security requirements
+  # ACM certificate
+  - CKV2_AWS_71  # Wildcard certificates may be used depending on deployment requirements

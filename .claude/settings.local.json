@@ -1,12 +1,16 @@
 {
   "permissions": {
     "allow": [
-      "Bash(python3 -c \"import pypdf\")",
-      "Bash(python3:*)",
-      "Bash(pip3 install:*)",
-      "Bash(pre-commit run:*)",
-      "Bash(aws s3 ls:*)",
-      "Bash(aws s3 sync:*)"
+      "Bash(git pull:*)",
+      "Bash(git fetch:*)",
+      "Bash(git checkout:*)",
+      "Bash(terraform fmt:*)",
+      "Bash(terraform init:*)",
+      "Bash(terraform validate:*)",
+      "Bash(mise trust:*)",
+      "Bash(mise install:*)",
+      "Bash(mise exec:*)",
+      "Bash(git add:*)"
     ]
   }
 }

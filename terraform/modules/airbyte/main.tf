@@ -11,12 +11,21 @@ locals {
   name_prefix = var.name
 
   common_tags = merge(var.tags, {
-    Module = "airbyte-compute"
+    Module = "airbyte"
     Name   = var.name
   })
 
   # SSM parameter name for the rendered Helm values file.
   ssm_parameter_name = "/${var.name}/airbyte/values"
+
+  # Resolve the certificate ARN: use the provided one, or the one created by this module.
+  effective_certificate_arn = var.alb_certificate_arn != "" ? var.alb_certificate_arn : try(aws_acm_certificate.this[0].arn, "")
+
+  # Resolve the Airbyte URL from domain_name if provided.
+  airbyte_url = var.domain_name != "" ? "https://${var.domain_name}" : ""
+
+  # Whether to create DNS and certificate resources.
+  create_dns = var.create && var.create_alb && var.domain_name != "" && var.route53_zone_id != ""
 
   # Rendered Helm values YAML, interpolating all internal-dependency
   # coordinates. Every key path is verified against tmp.yaml (chart v2.1.0).
@@ -37,7 +46,7 @@ locals {
     s3_bucket_name = try(aws_s3_bucket.this[0].id, "")
     s3_region      = data.aws_region.current.region
     aws_region     = data.aws_region.current.region
-    airbyte_url    = var.airbyte_url
+    airbyte_url    = local.airbyte_url
   })
 
   # Rendered user-data bootstrap script.
@@ -65,6 +74,67 @@ locals {
 data "aws_region" "current" {}
 
 data "aws_caller_identity" "current" {}
+
+# ---------------------------------------------------------------------------
+# KMS -- Customer-managed key for all Airbyte resources
+# ---------------------------------------------------------------------------
+
+data "aws_iam_policy_document" "kms" {
+  count = var.create ? 1 : 0
+
+  # Allow the account root full key management.
+  statement {
+    sid    = "AllowRootAccount"
+    effect = "Allow"
+    principals {
+      type        = "AWS"
+      identifiers = ["arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"]
+    }
+    actions   = ["kms:*"]
+    resources = ["*"]
+  }
+
+  # Allow CloudWatch Logs to use the key for log group encryption.
+  statement {
+    sid    = "AllowCloudWatchLogs"
+    effect = "Allow"
+    principals {
+      type        = "Service"
+      identifiers = ["logs.${data.aws_region.current.region}.amazonaws.com"]
+    }
+    actions = [
+      "kms:Encrypt",
+      "kms:Decrypt",
+      "kms:ReEncrypt*",
+      "kms:GenerateDataKey*",
+      "kms:DescribeKey",
+    ]
+    resources = ["*"]
+    condition {
+      test     = "ArnLike"
+      variable = "kms:EncryptionContext:aws:logs:arn"
+      values   = ["arn:aws:logs:${data.aws_region.current.region}:${data.aws_caller_identity.current.account_id}:log-group:/airbyte/${var.name}"]
+    }
+  }
+}
+
+resource "aws_kms_key" "this" {
+  count = var.create ? 1 : 0
+
+  description             = "CMK for Airbyte resources (${var.name})"
+  deletion_window_in_days = 14
+  enable_key_rotation     = true
+  policy                  = data.aws_iam_policy_document.kms[0].json
+
+  tags = local.common_tags
+}
+
+resource "aws_kms_alias" "this" {
+  count = var.create ? 1 : 0
+
+  name          = "alias/${var.name}"
+  target_key_id = aws_kms_key.this[0].key_id
+}
 
 # ---------------------------------------------------------------------------
 # Random password for RDS
@@ -191,7 +261,7 @@ data "aws_iam_policy_document" "airbyte_inline" {
       "kms:GenerateDataKey",
       "kms:DescribeKey",
     ]
-    resources = [var.kms_key_arn]
+    resources = [try(aws_kms_key.this[0].arn, "arn:aws:kms:::key/placeholder")]
   }
 }
 
@@ -252,7 +322,7 @@ resource "aws_secretsmanager_secret" "rds" {
   #checkov:skip=CKV2_AWS_57: Automatic rotation requires a Lambda rotator and coordinated Airbyte restart; rotation is performed manually during maintenance windows
   name                    = "${var.name}/rds"
   description             = "RDS credentials for Airbyte PostgreSQL (${var.name})"
-  kms_key_id              = var.kms_key_arn
+  kms_key_id              = aws_kms_key.this[0].arn
   recovery_window_in_days = 7
 
   tags = local.common_tags
@@ -284,7 +354,7 @@ resource "aws_secretsmanager_secret" "airbyte_admin" {
   #checkov:skip=CKV2_AWS_57: Automatic rotation requires a Lambda rotator and coordinated Airbyte restart; rotation is performed manually during maintenance windows
   name                    = "${var.name}/airbyte-admin-creds"
   description             = "Airbyte web UI admin credentials (${var.name})"
-  kms_key_id              = var.kms_key_arn
+  kms_key_id              = aws_kms_key.this[0].arn
   recovery_window_in_days = 7
 
   tags = local.common_tags
@@ -301,9 +371,6 @@ resource "aws_security_group" "rds" {
   name        = "${local.name_prefix}-rds"
   description = "Allow PostgreSQL ingress from Airbyte EC2 instances only"
   vpc_id      = var.vpc_id
-  # No egress rules are attached. The AWS default allow-all egress rule applies,
-  # but RDS has no route to any destination outside the VPC by design.
-  # The subnet routing table and NACLs enforce the actual egress boundary.
 
   tags = local.common_tags
 }
@@ -327,7 +394,7 @@ resource "aws_security_group" "alb" {
   count = var.create ? (var.create_alb ? 1 : 0) : 0
 
   name        = "${local.name_prefix}-alb"
-  description = "Controls inbound HTTPS/HTTP to the Airbyte internal ALB from ${var.name} allowed CIDRs."
+  description = "Controls inbound HTTPS/HTTP to the Airbyte ALB from allowed CIDRs."
   vpc_id      = var.vpc_id
 
   tags = merge(local.common_tags, { Name = "${local.name_prefix}-alb" })
@@ -418,6 +485,19 @@ resource "aws_vpc_security_group_egress_rule" "instance_https_out" {
   tags = local.common_tags
 }
 
+resource "aws_vpc_security_group_egress_rule" "instance_http_out" {
+  count = var.create ? 1 : 0
+
+  security_group_id = aws_security_group.instance[0].id
+  description       = "HTTP egress for package downloads and Docker Hub pulls"
+  from_port         = 80
+  to_port           = 80
+  ip_protocol       = "tcp"
+  cidr_ipv4         = "0.0.0.0/0"
+
+  tags = local.common_tags
+}
+
 resource "aws_vpc_security_group_egress_rule" "instance_to_rds" {
   count = var.create ? 1 : 0
 
@@ -456,7 +536,7 @@ resource "aws_db_instance" "this" {
   max_allocated_storage = 100
   storage_type          = "gp3"
   storage_encrypted     = true
-  kms_key_id            = var.kms_key_arn
+  kms_key_id            = aws_kms_key.this[0].arn
 
   db_name  = var.rds_db_name
   username = var.rds_username
@@ -480,7 +560,7 @@ resource "aws_db_instance" "this" {
   monitoring_role_arn             = aws_iam_role.rds_enhanced_monitoring[0].arn
 
   performance_insights_enabled          = true
-  performance_insights_kms_key_id       = var.kms_key_arn
+  performance_insights_kms_key_id       = aws_kms_key.this[0].arn
   performance_insights_retention_period = 7
 
   auto_minor_version_upgrade = true
@@ -533,7 +613,7 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "this" {
   rule {
     apply_server_side_encryption_by_default {
       sse_algorithm     = "aws:kms"
-      kms_master_key_id = var.kms_key_arn
+      kms_master_key_id = aws_kms_key.this[0].arn
     }
     bucket_key_enabled = true
   }
@@ -580,17 +660,76 @@ resource "aws_s3_bucket_lifecycle_configuration" "this" {
 }
 
 # ---------------------------------------------------------------------------
+# ACM Certificate -- created when domain_name is provided
+# ---------------------------------------------------------------------------
+
+resource "aws_acm_certificate" "this" {
+  count = local.create_dns && var.alb_certificate_arn == "" ? 1 : 0
+
+  domain_name       = var.domain_name
+  validation_method = "DNS"
+
+  tags = local.common_tags
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+resource "aws_route53_record" "cert_validation" {
+  for_each = local.create_dns && var.alb_certificate_arn == "" ? {
+    for dvo in try(aws_acm_certificate.this[0].domain_validation_options, []) : dvo.domain_name => {
+      name   = dvo.resource_record_name
+      record = dvo.resource_record_value
+      type   = dvo.resource_record_type
+    }
+  } : {}
+
+  allow_overwrite = true
+  name            = each.value.name
+  records         = [each.value.record]
+  ttl             = 60
+  type            = each.value.type
+  zone_id         = var.route53_zone_id
+}
+
+resource "aws_acm_certificate_validation" "this" {
+  count = local.create_dns && var.alb_certificate_arn == "" ? 1 : 0
+
+  certificate_arn         = aws_acm_certificate.this[0].arn
+  validation_record_fqdns = [for record in aws_route53_record.cert_validation : record.fqdn]
+}
+
+# ---------------------------------------------------------------------------
+# Route53 -- A record pointing to the ALB
+# ---------------------------------------------------------------------------
+
+resource "aws_route53_record" "airbyte" {
+  count = local.create_dns ? 1 : 0
+
+  zone_id = var.route53_zone_id
+  name    = var.domain_name
+  type    = "A"
+
+  alias {
+    name                   = aws_lb.this[0].dns_name
+    zone_id                = aws_lb.this[0].zone_id
+    evaluate_target_health = true
+  }
+}
+
+# ---------------------------------------------------------------------------
 # SSM Parameter -- Helm values delivery
 # ---------------------------------------------------------------------------
 
 resource "aws_ssm_parameter" "airbyte_values" {
   count = var.create ? 1 : 0
 
-  #checkov:skip=CKV_AWS_337: SecureString is encrypted with var.kms_key_arn (CMK); checkov may flag if it cannot resolve the type attribute
+  #checkov:skip=CKV_AWS_337: SecureString is encrypted with CMK; checkov may flag if it cannot resolve the type attribute
   name        = local.ssm_parameter_name
   description = "Rendered Airbyte Helm values YAML for ${var.name}. Pulled by user-data at instance boot."
   type        = "SecureString"
-  key_id      = var.kms_key_arn
+  key_id      = aws_kms_key.this[0].arn
   value       = local.airbyte_values_content
   tier        = "Advanced" # values file exceeds 4 KB Standard tier limit
 
@@ -614,7 +753,7 @@ resource "aws_cloudwatch_log_group" "this" {
 
   name              = "/airbyte/${var.name}"
   retention_in_days = var.log_retention_days
-  kms_key_id        = var.kms_key_arn
+  kms_key_id        = aws_kms_key.this[0].arn
 
   tags = local.common_tags
 }
@@ -659,10 +798,10 @@ resource "aws_launch_template" "this" {
     device_name = "/dev/xvda"
 
     ebs {
-      volume_size           = 50
+      volume_size           = var.ebs_volume_size
       volume_type           = "gp3"
       encrypted             = true
-      kms_key_id            = var.kms_key_arn
+      kms_key_id            = aws_kms_key.this[0].arn
       delete_on_termination = true
     }
   }
@@ -691,7 +830,7 @@ resource "aws_launch_template" "this" {
 resource "aws_lb" "this" {
   count = var.create ? (var.create_alb ? 1 : 0) : 0
 
-  #checkov:skip=CKV_AWS_150: Deletion protection is intentionally omitted; module is used for dev/staging as well as prod. Enable at the stack level for prod if required.
+  #checkov:skip=CKV_AWS_150: Deletion protection is intentionally omitted; module is used for dev/staging as well as prod
   #checkov:skip=CKV2_AWS_28: WAF association is managed outside this module
   #checkov:skip=CKV_AWS_91: ALB access logging requires a dedicated S3 bucket; intentionally deferred to the calling stack
   name                       = local.name_prefix
@@ -737,12 +876,12 @@ resource "aws_lb_target_group" "this" {
 resource "aws_lb_listener" "https" {
   count = var.create ? (var.create_alb ? 1 : 0) : 0
 
-  #checkov:skip=CKV_AWS_2: HTTPS is configured via var.alb_certificate_arn; checkov may misread the forward action
+  #checkov:skip=CKV_AWS_2: HTTPS is configured via certificate_arn; checkov may misread the forward action
   load_balancer_arn = aws_lb.this[0].arn
   port              = 443
   protocol          = "HTTPS"
   ssl_policy        = "ELBSecurityPolicy-TLS13-1-2-2021-06"
-  certificate_arn   = var.alb_certificate_arn
+  certificate_arn   = local.effective_certificate_arn
 
   default_action {
     type             = "forward"
@@ -750,6 +889,8 @@ resource "aws_lb_listener" "https" {
   }
 
   tags = local.common_tags
+
+  depends_on = [aws_acm_certificate_validation.this]
 }
 
 resource "aws_lb_listener" "http" {
@@ -807,7 +948,7 @@ resource "aws_autoscaling_group" "this" {
 
   tag {
     key                 = "Name"
-    value               = var.compute_name
+    value               = var.name
     propagate_at_launch = true
   }
 
@@ -820,10 +961,7 @@ resource "aws_autoscaling_group" "this" {
     }
   }
 
-  # create_before_destroy omitted: meaningless for a singleton ASG; instance_refresh handles replacement.
   lifecycle {
-    # Prevent Terraform from resetting desired_capacity if it was manually
-    # adjusted during a blue/green upgrade window.
     ignore_changes = [desired_capacity]
   }
 

@@ -2,18 +2,11 @@
 trufflehog = "latest"
 terraform = "1.11.3"
 pre-commit = "latest"
-uv = "latest"
-#act = "latest"
 
 [tasks.setup]
-description = "Install dependencies and hooks"
-run = ["uv sync", "pre-commit install"]
-
-[tasks.lint]
-description = "Run linters. Initially only ruff, can be extended later."
-run = "uv tool run ruff check"
+description = "Install pre-commit hooks"
+run = "pre-commit install"
 
 [tasks.trufflehog-scan]
 run = "trufflehog git file://. --since-commit HEAD --no-verification --fail"
 description = "Scan for secrets"
-
