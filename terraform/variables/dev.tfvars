@@ -22,8 +22,8 @@ public_subnet_ids = [
 ]
 
 # DNS — auto-provisions ACM certificate + Route53 A record
-domain_name     = "airbyte-dev.caylentapp.com"
-route53_zone_id = "Z1RPTJPEOBDVT0"
+domain_name     = "airbyte-dev.caylent-airbyte-asset.click"
+route53_zone_id = "Z0782528L7NFOYHOSU0L"
 
 # EC2
 instance_type   = "m6g.xlarge"
