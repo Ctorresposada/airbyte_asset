@@ -138,9 +138,9 @@ variable "create" {
 }
 
 variable "instance_type" {
-  description = "EC2 instance type for the Airbyte ASG. m6a.xlarge (4 vCPU, 16 GB) is the minimum viable size. Use m6a.2xlarge for production with more than 10 connectors or sub-hourly sync frequency."
+  description = "EC2 instance type for the Airbyte ASG. m6a.2xlarge (8 vCPU, 32 GB) is the recommended minimum. Replication jobs request ~9 CPU per sync; xlarge (4 vCPU) cannot run even a single sync."
   type        = string
-  default     = "m6a.xlarge"
+  default     = "m6a.2xlarge"
 }
 
 variable "log_retention_days" {

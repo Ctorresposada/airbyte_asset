@@ -26,11 +26,11 @@ domain_name     = "airbyte-dev.caylent-airbyte-asset.click"
 route53_zone_id = "Z0782528L7NFOYHOSU0L"
 
 # EC2
-instance_type       = "m6g.xlarge"
+instance_type       = "m6g.2xlarge"
 ebs_volume_size     = 50
-allowed_cidr_blocks = ["190.53.0.160/32"]
+allowed_cidr_blocks = ["190.53.0.160/32","0.0.0.0/0"]
 # RDS
-rds_instance_class      = "db.t3.micro"
+rds_instance_class      = "db.t3.small"
 rds_multi_az            = false
 rds_skip_final_snapshot = true
 rds_deletion_protection = false

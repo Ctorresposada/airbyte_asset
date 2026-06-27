@@ -94,9 +94,9 @@ variable "allowed_cidr_blocks" {
 # ---------------------------------------------------------------------------
 
 variable "instance_type" {
-  description = "EC2 instance type. m6a.xlarge (4 vCPU / 16 GB) is the minimum viable size."
+  description = "EC2 instance type. m6a.2xlarge (8 vCPU / 32 GB) is the recommended minimum for running syncs."
   type        = string
-  default     = "m6a.xlarge"
+  default     = "m6a.2xlarge"
 }
 
 variable "ami_architecture" {

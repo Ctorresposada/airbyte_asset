@@ -62,7 +62,7 @@ terraform apply -var-file=variables/myenv.tfvars
 | `domain_name` | `string` | `""` | FQDN for Airbyte (e.g. `airbyte.example.com`) |
 | `route53_zone_id` | `string` | `""` | Route53 zone for DNS + cert validation |
 | `alb_certificate_arn` | `string` | `""` | Existing ACM cert ARN (skips auto-creation) |
-| `instance_type` | `string` | `m6a.xlarge` | EC2 instance type (min 4 vCPU / 16 GB) |
+| `instance_type` | `string` | `m6a.2xlarge` | EC2 instance type (min 8 vCPU / 32 GB — replication jobs need ~9 CPU per sync) |
 | `ami_architecture` | `string` | `arm64` | `arm64` for Graviton, `x86_64` for Intel/AMD |
 | `ebs_volume_size` | `number` | `50` | Root volume size in GB |
 | `rds_instance_class` | `string` | `db.t3.micro` | RDS instance class |
