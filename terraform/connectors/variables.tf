@@ -10,14 +10,14 @@ variable "airbyte_server_url" {
   type        = string
 }
 
-variable "airbyte_username" {
-  description = "Airbyte admin username for API authentication."
+variable "airbyte_client_id" {
+  description = "Airbyte API client ID. Found in K8s secret airbyte-auth-secrets (instance-admin-client-id)."
   type        = string
   sensitive   = true
 }
 
-variable "airbyte_password" {
-  description = "Airbyte admin password for API authentication."
+variable "airbyte_client_secret" {
+  description = "Airbyte API client secret. Found in K8s secret airbyte-auth-secrets (instance-admin-client-secret)."
   type        = string
   sensitive   = true
 }
