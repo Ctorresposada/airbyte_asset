@@ -107,6 +107,93 @@ The bucket is empty after initial deployment — objects appear once you create 
 
 3. **Attach connector permissions** to `instance_role_arn` for the data sources Airbyte needs to reach
 
+## Repository Structure
+
+```
+terraform/
+├── main.tf                              # Root module — deploys Airbyte infra (43 resources)
+├── variables.tf                         # All deployment inputs
+├── outputs.tf                           # Key outputs
+├── providers.tf                         # AWS provider
+├── terraform.tf                         # Version constraints
+├── variables/
+│   └── dev.tfvars                       # Example environment config
+├── modules/
+│   └── airbyte/                         # Core self-hosted Airbyte module
+│       ├── main.tf                      # KMS, IAM, SGs, RDS, S3, ALB, ASG, ACM, Route53
+│       ├── variables.tf / outputs.tf
+│       ├── versions.tf
+│       └── templates/
+│           ├── user-data.sh.tpl         # EC2 bootstrap (Docker, abctl, Airbyte)
+│           └── airbyte-values.yaml.tpl  # Helm values for Airbyte chart
+├── connectors/                          # Optional: generic connector definitions
+│   ├── sources.tf                       # Oracle + SQL Server sources
+│   ├── destinations.tf                  # S3 Data Lake destination
+│   ├── variables.tf / outputs.tf
+│   └── variables/dev.tfvars
+└── examples/
+    └── oracle-sqlserver-s3/             # Working example: end-to-end deployment
+        ├── main.tf                      # Sources, destination, connections
+        ├── variables.tf / outputs.tf
+        └── variables/dev.tfvars
+```
+
+Each directory is an **independent Terraform root module** with its own state. Running `terraform apply` in one does not affect the others.
+
+## Examples
+
+### Oracle + SQL Server → S3 Data Lake
+
+A complete working example at `terraform/examples/oracle-sqlserver-s3/` that creates:
+
+- **Oracle source** — community connector with service_name connection
+- **SQL Server source** — with Trust Server Certificate SSL
+- **S3 Data Lake destination** — Iceberg format with AWS Glue Catalog
+- **Two connections** — Oracle → S3 (prefix: `oracle_`) and SQL Server → S3 (prefix: `sqlserver_`), both Full Refresh Overwrite, manual schedule
+
+#### How it works
+
+- Source database **passwords are fetched from AWS Secrets Manager** at plan time via ARN — never hardcoded in tfvars
+- **Airbyte API authentication** uses a bearer token obtained from the self-hosted token endpoint (`/api/v1/applications/token`) with client credentials from the K8s secret `airbyte-auth-secrets`
+- The [Airbyte Terraform provider](https://registry.terraform.io/providers/airbytehq/airbyte/latest) (v1.x) uses generic `airbyte_source` / `airbyte_destination` resources with inline JSON configuration
+
+#### Usage
+
+```bash
+cd terraform/examples/oracle-sqlserver-s3
+
+# 1. Copy and edit the tfvars
+cp variables/dev.tfvars variables/myenv.tfvars
+# Fill in: Airbyte URL, client credentials, workspace ID,
+#          source DB endpoints, Secrets Manager ARNs,
+#          S3 bucket details, Glue catalog config
+
+# 2. Init and apply
+terraform init
+terraform apply -var-file=variables/myenv.tfvars
+```
+
+#### Required inputs
+
+| Variable | Description |
+|---|---|
+| `airbyte_server_url` | Airbyte API URL (e.g. `https://airbyte.example.com/api/public/v1/`) |
+| `airbyte_token_url` | Token endpoint (e.g. `https://airbyte.example.com/api/v1/applications/token`) |
+| `airbyte_client_id` | From K8s secret `airbyte-auth-secrets` → `instance-admin-client-id` |
+| `airbyte_client_secret` | From K8s secret `airbyte-auth-secrets` → `instance-admin-client-secret` |
+| `workspace_id` | From the Airbyte UI URL (Settings > General) |
+| `oracle_host`, `oracle_service_name` | Oracle RDS endpoint and service name |
+| `oracle_password_secret_arn` | Secrets Manager ARN for Oracle password |
+| `mssql_host`, `mssql_database` | SQL Server RDS endpoint and database |
+| `mssql_password_secret_arn` | Secrets Manager ARN for SQL Server password |
+| `s3_bucket_name`, `s3_bucket_region` | Target S3 bucket for the data lake |
+| `s3_access_key_id`, `s3_secret_access_key` | AWS credentials for S3 writes |
+| `glue_database`, `glue_account_id` | Glue Catalog database and account |
+
+#### Networking note
+
+The Airbyte EC2 security group only allows HTTPS/HTTP egress by default. To reach external databases, you must add **egress rules** for the required ports (e.g. 1521 for Oracle, 1433 for SQL Server). The target database security groups must also allow **inbound** from the Airbyte NAT gateway's public IP.
+
 ## Security Scanning (Checkov)
 
 This project uses [Checkov](https://www.checkov.io/) to scan Terraform for security misconfigurations. The configuration at `.config/.checkov.yaml` includes **18 intentional exceptions**, grouped by risk level:
