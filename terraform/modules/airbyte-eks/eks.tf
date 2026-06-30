@@ -51,6 +51,18 @@ resource "aws_eks_cluster" "this" {
 }
 
 # ---------------------------------------------------------------------------
+# KMS propagation wait
+# AWS KMS keys can take a few seconds to become fully usable after creation.
+# Without this wait, EC2 may attempt to use the key for EBS encryption before
+# it has propagated, causing an InvalidKMSKey.InvalidState error in the node group.
+# ---------------------------------------------------------------------------
+
+resource "time_sleep" "kms_propagation" {
+  depends_on      = [aws_kms_key.this, aws_kms_alias.this]
+  create_duration = "15s"
+}
+
+# ---------------------------------------------------------------------------
 # Node group launch template
 # Encrypted EBS, IMDSv2, detailed monitoring, and dual security groups
 # (cluster-managed SG + our application SG).
@@ -105,6 +117,8 @@ resource "aws_launch_template" "node" {
   lifecycle {
     create_before_destroy = true
   }
+
+  depends_on = [time_sleep.kms_propagation]
 
   #checkov:skip=CKV_AWS_88: Nodes are in private subnets; no public IP association needed
   #checkov:skip=CKV_AWS_341: hop_limit=2 required for IRSA token exchange from pods

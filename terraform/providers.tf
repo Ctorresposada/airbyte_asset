@@ -12,23 +12,29 @@ provider "aws" {
 }
 
 # ---------------------------------------------------------------------------
-# EKS providers — only active when deployment_type = "eks".
-# When deployment_type = "ec2", the data sources have count = 0 and
-# try() returns "" so the providers initialize harmlessly with no resources.
+# EKS providers — only active when deployment_type = "eks" AND the cluster
+# already exists (eks_cluster_ready = true).
 #
 # NOTE: EKS deployments require two terraform apply passes:
-#   1. terraform apply  — creates the EKS cluster (AWS resources)
-#   2. terraform apply  — creates Helm releases and Kubernetes resources
-# This is a known Terraform limitation when providers depend on resource outputs.
+#   Pass 1 (eks_cluster_ready = false, the default):
+#     terraform apply -var-file=variables/dev-eks.tfvars
+#     Creates all AWS resources (EKS cluster, RDS, S3, IAM, etc.)
+#     The data sources have count = 0 so the Helm/kubernetes providers
+#     initialize harmlessly with empty strings and no Helm releases are created.
+#
+#   Pass 2 (eks_cluster_ready = true):
+#     terraform apply -var-file=variables/dev-eks.tfvars -var eks_cluster_ready=true
+#     The data sources read the now-existing cluster endpoint and the
+#     Helm provider installs Airbyte, ALB controller, and ExternalDNS.
 # ---------------------------------------------------------------------------
 
 data "aws_eks_cluster" "this" {
-  count = var.deployment_type == "eks" ? 1 : 0
+  count = var.deployment_type == "eks" && var.eks_cluster_ready ? 1 : 0
   name  = module.airbyte_eks[0].cluster_name
 }
 
 data "aws_eks_cluster_auth" "this" {
-  count = var.deployment_type == "eks" ? 1 : 0
+  count = var.deployment_type == "eks" && var.eks_cluster_ready ? 1 : 0
   name  = module.airbyte_eks[0].cluster_name
 }
 

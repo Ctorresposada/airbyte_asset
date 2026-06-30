@@ -186,6 +186,12 @@ variable "tags" {
 # EKS (only used when deployment_type = "eks")
 # ---------------------------------------------------------------------------
 
+variable "eks_cluster_ready" {
+  description = "Set to true on Pass 2 of an EKS deployment, after the cluster has been created. Controls whether the Helm/kubernetes providers attempt to connect to the cluster."
+  type        = bool
+  default     = false
+}
+
 variable "eks_kubernetes_version" {
   description = "Kubernetes version for the EKS cluster."
   type        = string

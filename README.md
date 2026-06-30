@@ -52,8 +52,56 @@ Both variants share the same inputs and outputs. Switch between them by changing
 ## Prerequisites
 
 - An AWS account with an existing **VPC** containing public and private subnets
-- (Optional) A **Route53 hosted zone** for custom domain + automatic certificate provisioning
 - Terraform >= 1.11.0
+- (Optional) A Route53 hosted zone — required for custom domain + automatic certificate provisioning (see [DNS Setup](#dns-setup) below)
+
+## DNS Setup
+
+This section only applies if you want a custom domain (e.g. `airbyte.example.com`) with HTTPS. If you skip `domain_name` and `route53_zone_id`, the module creates an HTTP-only ALB and you access Airbyte via the raw ALB DNS name.
+
+### What you must create manually
+
+| Resource | How | Notes |
+|---|---|---|
+| **Domain name** | Register via Route53 or any registrar | e.g. `example.com` |
+| **Route53 hosted zone** | AWS Console → Route53 → Create hosted zone | One zone per domain; copy the zone ID |
+| **NS delegation** (if using an external registrar) | Add the Route53 nameservers to your registrar's DNS settings | Skip if domain is registered in Route53 |
+
+Once you have the hosted zone, pass these two variables:
+
+```hcl
+domain_name     = "airbyte.example.com"   # FQDN for the Airbyte console
+route53_zone_id = "Z0123456789ABCDEFGHIJ"  # From the Route53 hosted zone
+```
+
+### What Terraform manages automatically
+
+**Both variants (EC2 and EKS):**
+
+| Resource | Description |
+|---|---|
+| ACM certificate | Created and DNS-validated automatically |
+| Route53 CNAME (cert validation) | `_abc123.airbyte.example.com` — Terraform creates and destroys this |
+
+**EC2 variant only:**
+
+| Resource | Description |
+|---|---|
+| Route53 A record | `airbyte.example.com → ALB DNS name` — fully Terraform-managed; destroyed on `terraform destroy` |
+
+**EKS variant only:**
+
+| Resource | Description |
+|---|---|
+| Route53 A record | Created by **ExternalDNS** (runs in the cluster) after the ALB comes up — **not** Terraform-managed |
+
+> **EKS teardown note:** Because ExternalDNS creates the A record out-of-band, `terraform destroy` does not delete it. After destroying an EKS deployment, manually delete the A record from Route53 before re-deploying to avoid stale DNS.
+
+### What Terraform never touches
+
+- The hosted zone itself
+- The root domain NS/SOA records
+- Any other records in the zone
 
 ## Quick Start
 
@@ -64,15 +112,27 @@ cd airbyte_asset/terraform
 
 # 2. Copy and edit the example tfvars
 cp variables/dev.tfvars variables/myenv.tfvars
-# Edit myenv.tfvars with your VPC, subnet IDs, and domain
+# Edit myenv.tfvars: set vpc_id, subnet IDs, domain_name, route53_zone_id
+# Set deployment_type = "ec2" or "eks"
 
-# 3. Initialize and plan
+# 3. Initialize
 terraform init
-terraform workspace new myenv
-terraform plan -var-file=variables/myenv.tfvars
+```
 
-# 4. Apply
+### EC2 deployment (one apply)
+
+```bash
 terraform apply -var-file=variables/myenv.tfvars
+```
+
+### EKS deployment (two applies)
+
+```bash
+# Pass 1 — creates all AWS infrastructure (EKS cluster, RDS, S3, IAM, etc.)
+terraform apply -var-file=variables/myenv.tfvars
+
+# Pass 2 — installs Helm charts once the cluster is up
+terraform apply -var-file=variables/myenv.tfvars -var eks_cluster_ready=true
 ```
 
 ## Required Inputs
@@ -205,14 +265,17 @@ Each directory is an **independent Terraform root module** with its own state. R
 
 ### Two-pass apply
 
-The kubernetes/helm providers are configured from the EKS cluster endpoint output. Due to a Terraform provider initialization constraint, EKS deployments require two `terraform apply` passes:
+The Helm/kubernetes providers are configured from the EKS cluster endpoint. Because the cluster doesn't exist on the first apply, Terraform can't initialize those providers yet. The `eks_cluster_ready` variable gates this:
 
 ```bash
-# Pass 1: Creates the EKS cluster, IAM, RDS, S3, node group
+# Pass 1 — eks_cluster_ready defaults to false; Helm provider skips initialization.
+# Creates: EKS cluster, node group, RDS, S3, KMS, IAM/IRSA roles, ACM cert, security groups.
 terraform apply -var-file=variables/myenv.tfvars
 
-# Pass 2: Installs EKS add-ons and Helm charts (Airbyte, ALB controller, ExternalDNS)
-terraform apply -var-file=variables/myenv.tfvars
+# Pass 2 — eks_cluster_ready=true tells the providers to connect to the now-existing cluster.
+# Creates: EKS add-ons (vpc-cni, coredns, kube-proxy, ebs-csi), Airbyte Helm release,
+#          AWS Load Balancer Controller, ExternalDNS.
+terraform apply -var-file=variables/myenv.tfvars -var eks_cluster_ready=true
 ```
 
 ### Admin credentials (EKS)
