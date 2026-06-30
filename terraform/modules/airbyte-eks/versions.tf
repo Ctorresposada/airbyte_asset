@@ -1,4 +1,4 @@
-# Module: airbyte-compute
+# Module: airbyte-eks
 # Provider constraints aligned with the repo toolchain.
 
 terraform {
@@ -12,6 +12,14 @@ terraform {
     random = {
       source  = "hashicorp/random"
       version = "~> 3.0"
+    }
+    helm = {
+      source  = "hashicorp/helm"
+      version = "~> 2.17"
+    }
+    tls = {
+      source  = "hashicorp/tls"
+      version = "~> 4.0"
     }
   }
 }

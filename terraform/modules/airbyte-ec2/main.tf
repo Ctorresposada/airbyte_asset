@@ -1,3 +1,4 @@
+# Module: airbyte-ec2
 # Self-hosted Airbyte on EC2 Auto Scaling Group using abctl (kind-in-Docker).
 # All durable state is externalized: RDS PostgreSQL (config + Temporal), S3
 # (logs/artifacts), and Secrets Manager (connector credentials). The kind

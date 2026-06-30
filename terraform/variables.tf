@@ -2,6 +2,21 @@
 # These are the inputs required to deploy Airbyte into any AWS account.
 
 # ---------------------------------------------------------------------------
+# Deployment variant
+# ---------------------------------------------------------------------------
+
+variable "deployment_type" {
+  description = "Deployment variant. 'ec2' runs Airbyte on an EC2 ASG with abctl (~$150/mo). 'eks' runs Airbyte on EKS via Helm (~$300-500/mo). Valid values: ec2, eks."
+  type        = string
+  default     = "ec2"
+
+  validation {
+    condition     = contains(["ec2", "eks"], var.deployment_type)
+    error_message = "deployment_type must be 'ec2' or 'eks'."
+  }
+}
+
+# ---------------------------------------------------------------------------
 # AWS
 # ---------------------------------------------------------------------------
 
@@ -165,4 +180,44 @@ variable "tags" {
   description = "Map of tags to apply to all resources."
   type        = map(string)
   default     = {}
+}
+
+# ---------------------------------------------------------------------------
+# EKS (only used when deployment_type = "eks")
+# ---------------------------------------------------------------------------
+
+variable "eks_kubernetes_version" {
+  description = "Kubernetes version for the EKS cluster."
+  type        = string
+  default     = "1.32"
+}
+
+variable "eks_node_instance_type" {
+  description = "EC2 instance type for EKS managed node group."
+  type        = string
+  default     = "m6a.xlarge"
+}
+
+variable "eks_node_desired_size" {
+  description = "Desired number of nodes in the EKS managed node group."
+  type        = number
+  default     = 2
+}
+
+variable "eks_node_min_size" {
+  description = "Minimum number of nodes in the EKS managed node group."
+  type        = number
+  default     = 2
+}
+
+variable "eks_node_max_size" {
+  description = "Maximum number of nodes in the EKS managed node group."
+  type        = number
+  default     = 4
+}
+
+variable "eks_airbyte_chart_version" {
+  description = "Airbyte Helm chart version to deploy on EKS."
+  type        = string
+  default     = "2.1.0"
 }

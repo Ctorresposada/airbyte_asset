@@ -1,4 +1,6 @@
 # Dev environment — Caylent Sandbox (931366402038)
+# deployment_type selects the active module: "ec2" (default) or "eks"
+deployment_type = "ec2"
 
 aws_region   = "us-east-1"
 project_name = "airbyte-asset"
@@ -28,7 +30,7 @@ route53_zone_id = "Z0782528L7NFOYHOSU0L"
 # EC2
 instance_type       = "m6g.2xlarge"
 ebs_volume_size     = 50
-allowed_cidr_blocks = ["190.53.0.160/32","0.0.0.0/0"]
+allowed_cidr_blocks = ["190.53.0.160/32", "0.0.0.0/0"]
 # RDS
 rds_instance_class      = "db.t3.small"
 rds_multi_az            = false

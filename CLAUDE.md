@@ -41,25 +41,46 @@ Commits **must** be Conventional Commits — `conventional-pre-commit` runs as a
 
 ```
 terraform/
-├── main.tf              # Root module — instantiates the airbyte module
-├── variables.tf         # All deployment inputs (VPC, subnets, domain, sizing)
-├── outputs.tf           # Key outputs (URL, secrets, endpoints)
-├── providers.tf         # AWS provider with default tags
+├── main.tf              # Root module — deployment_type toggle, two conditional module blocks
+├── variables.tf         # All deployment inputs (shared + EC2-only + EKS-only sections)
+├── outputs.tf           # Key outputs using try() across both variants
+├── providers.tf         # AWS provider + kubernetes/helm providers (EKS path)
 ├── terraform.tf         # Required versions + backend config
 ├── variables/           # Per-environment tfvars files
-│   └── dev.tfvars       # Example dev configuration
+│   └── dev.tfvars       # Example dev configuration (deployment_type = "ec2")
 └── modules/
-    └── airbyte/         # The core self-hosted Airbyte module
-        ├── main.tf      # KMS, IAM, SGs, RDS, S3, SSM, ALB, ASG, ACM, Route53
-        ├── variables.tf # Module inputs
-        ├── outputs.tf   # Module outputs
-        ├── versions.tf  # Provider constraints
+    ├── airbyte-ec2/     # EC2 variant: abctl/kind-in-Docker (~$150/mo)
+    │   ├── main.tf      # KMS, IAM, SGs, RDS, S3, SSM, ALB, ASG, ACM, Route53
+    │   ├── variables.tf
+    │   ├── outputs.tf
+    │   ├── versions.tf
+    │   └── templates/
+    │       ├── user-data.sh.tpl         # EC2 bootstrap (Docker, abctl, Airbyte install)
+    │       └── airbyte-values.yaml.tpl  # Helm values for Airbyte chart
+    └── airbyte-eks/     # EKS variant: Helm on managed Kubernetes (~$300-500/mo)
+        ├── main.tf      # KMS, SGs, RDS, S3, Secrets Manager, CloudWatch
+        ├── iam.tf       # IRSA roles (Airbyte, EBS CSI, ALB controller, ExternalDNS)
+        ├── eks.tf       # EKS cluster, node group, add-ons, Helm releases
+        ├── dns.tf       # ACM cert + Route53 validation record only
+        ├── variables.tf
+        ├── outputs.tf
+        ├── versions.tf
         └── templates/
-            ├── user-data.sh.tpl         # EC2 bootstrap (Docker, abctl, Airbyte install)
-            └── airbyte-values.yaml.tpl  # Helm values for Airbyte chart
+            └── airbyte-values.yaml.tpl  # Helm values (IRSA auth, ALB Ingress)
 ```
 
-### What the module deploys
+### Deployment variants
+
+Select via `deployment_type` in your tfvars:
+
+| Value | Module | Cost | Mechanism |
+|---|---|---|---|
+| `"ec2"` (default) | `airbyte-ec2` | ~$150/mo | abctl + kind-in-Docker on a single EC2 ASG instance |
+| `"eks"` | `airbyte-eks` | ~$300-500/mo | Official Airbyte Helm chart on EKS managed node group |
+
+Both modules share the same required inputs (VPC, subnets, domain) and expose the same key outputs (URL, secrets, role ARN). EC2-specific outputs (`asg_name`, `alb_dns_name`) return null on EKS and vice versa.
+
+### What the EC2 module deploys
 
 - **EC2 ASG** (singleton) with abctl (kind-in-Docker) running Airbyte
 - **RDS PostgreSQL 16** for Airbyte config DB + Temporal workflow engine
@@ -74,6 +95,18 @@ terraform/
 - **IAM** instance profile with scoped permissions (S3, SSM, Secrets Manager, KMS)
 - **SSM Parameter** for Helm values delivery to EC2 at boot
 
+### What the EKS module deploys
+
+- **EKS cluster** with secrets encryption, all control plane logs, public endpoint
+- **Managed node group** (ON_DEMAND, m6a.xlarge × 2, encrypted EBS, IMDSv2)
+- **EKS add-ons**: vpc-cni, coredns, kube-proxy, ebs-csi (dynamic version resolution)
+- **AWS Load Balancer Controller** (Helm) — provisions ALB from Ingress annotations
+- **ExternalDNS** (Helm) — manages Route53 A record from Ingress
+- **Airbyte** (Helm) — official chart, IRSA auth, external RDS + S3
+- **ACM Certificate** with DNS validation
+- **RDS PostgreSQL 16**, **S3 bucket**, **KMS CMK**, **Secrets Manager**, **CloudWatch** (same as EC2)
+- **IRSA roles** for Airbyte pods, EBS CSI, ALB controller, ExternalDNS
+
 ### Key inputs (root module)
 
 | Variable | Required | Description |
@@ -81,10 +114,15 @@ terraform/
 | `project_name` | Yes | Prefix for all resources |
 | `environment` | Yes | e.g. `dev`, `prod` |
 | `vpc_id` | Yes | Existing VPC |
-| `private_subnet_ids` | Yes | For EC2 + RDS (min 2 AZs) |
+| `private_subnet_ids` | Yes | For EC2/nodes + RDS (min 2 AZs) |
 | `public_subnet_ids` | Yes (if ALB) | For the ALB |
+| `deployment_type` | No | `"ec2"` (default) or `"eks"` |
 | `domain_name` | No | FQDN for Airbyte (auto-provisions cert) |
 | `route53_zone_id` | No | For DNS record + cert validation |
+
+### EKS two-pass apply
+
+The kubernetes/helm providers are configured from the EKS cluster endpoint. Due to a Terraform provider initialization constraint, EKS deployments require two `terraform apply` runs — the first creates the cluster; the second installs the Helm charts.
 
 ## Conventions
 

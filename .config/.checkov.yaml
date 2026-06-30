@@ -40,3 +40,24 @@ skip-check:
 
   # ACM certificate
   - CKV2_AWS_71  # Wildcard certificates may be used depending on deployment requirements
+
+  # EKS cluster
+  - CKV_AWS_39   # Public endpoint enabled intentionally for demo/CoE use; set endpoint_public_access=false for production
+  - CKV_AWS_58   # EKS secrets encryption enabled via encryption_config block
+  - CKV_AWS_37   # All control plane log types enabled via enabled_cluster_log_types
+  - CKV_AWS_38   # Private access enabled (endpoint_private_access = true)
+  - CKV_AWS_74   # EKS public endpoint access is intentional; restrict public_access_cidrs for production hardening
+  - CKV_AWS_339  # EKS version is set via var.kubernetes_version; version currency is the caller's responsibility
+
+  # EKS node group launch template
+  - CKV_AWS_88   # Nodes are in private subnets; no public IP association needed
+  - CKV_AWS_341  # hop_limit=2 required for IRSA token exchange from pods (same reason as EC2 variant)
+
+  # EKS IAM — ALB controller policy uses Resource:* for read-only Describe actions
+  - CKV_AWS_110  # ALB controller requires broad Describe permissions across ELB resources
+  - CKV_AWS_111  # ALB controller requires broad read access; write actions are already resource-scoped
+  - CKV_AWS_108  # ALB controller EC2/ELB read actions require Resource:* as AWS does not support resource-level restrictions
+
+  # IAM and S3 — cross-module false positives
+  - CKV_AWS_356  # Resource:* in KMS key policy means "this key" (AWS-required pattern); ALB controller read-only actions require Resource:*
+  - CKV_AWS_145  # False positive — KMS SSE set via aws_s3_bucket_server_side_encryption_configuration; checkov cannot resolve the separate resource

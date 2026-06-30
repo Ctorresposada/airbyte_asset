@@ -2,7 +2,20 @@
 
 A reusable Terraform module that deploys a fully functional **self-hosted Airbyte** console into any AWS account. Built by the **Caylent Center of Excellence for Data Modernization**.
 
+## Deployment Variants
+
+Two variants are available, selected by `deployment_type` in your tfvars:
+
+| Variant | `deployment_type` | Approx. cost | Best for |
+|---|---|---|---|
+| **EC2** (default) | `"ec2"` | ~$150/mo | Simple, low-overhead deployments |
+| **EKS** | `"eks"` | ~$300–500/mo | HA, Kubernetes-native environments |
+
+Both variants share the same inputs and outputs. Switch between them by changing a single variable — no module restructuring required.
+
 ## What It Deploys
+
+### EC2 variant (default)
 
 | Component | Description |
 |---|---|
@@ -17,6 +30,24 @@ A reusable Terraform module that deploys a fully functional **self-hosted Airbyt
 | **CloudWatch Logs** | Airbyte system and pod logs |
 | **Security Groups** | Least-privilege rules for ALB, EC2, and RDS |
 | **IAM Instance Profile** | Scoped permissions for S3, SSM, Secrets Manager, KMS |
+
+### EKS variant
+
+| Component | Description |
+|---|---|
+| **EKS Cluster** | Managed Kubernetes with public API endpoint (restrict with `public_access_cidrs` for prod) |
+| **Managed Node Group** | ON_DEMAND m6a.xlarge × 2 (configurable), encrypted EBS, IMDSv2 |
+| **EKS Add-ons** | vpc-cni, coredns, kube-proxy, ebs-csi (versions resolved dynamically) |
+| **AWS Load Balancer Controller** | Provisions the ALB from the Airbyte Ingress annotation |
+| **ExternalDNS** | Automatically manages the Route53 A record from the Ingress |
+| **Airbyte Helm release** | Official chart, IRSA auth, external RDS + S3 backend |
+| **ACM Certificate** | Auto-provisioned and DNS-validated (when domain is provided) |
+| **RDS PostgreSQL 16** | Airbyte config DB + Temporal workflow engine |
+| **S3 Bucket** | Airbyte logs, state payloads, and workload output |
+| **KMS CMK** | Encrypts EBS, RDS, S3, Secrets Manager, CloudWatch |
+| **Secrets Manager** | RDS credentials + Airbyte admin credentials placeholder |
+| **CloudWatch Logs** | Airbyte system logs |
+| **IRSA Roles** | Scoped roles for Airbyte pods, EBS CSI, ALB controller, ExternalDNS |
 
 ## Prerequisites
 
@@ -51,36 +82,57 @@ terraform apply -var-file=variables/myenv.tfvars
 | `project_name` | `string` | Name prefix for all resources (e.g. `acme-airbyte`) |
 | `environment` | `string` | Deployment environment (`dev`, `staging`, `prod`) |
 | `vpc_id` | `string` | ID of the existing VPC |
-| `private_subnet_ids` | `list(string)` | Private subnets for EC2 + RDS (min 2 AZs) |
+| `private_subnet_ids` | `list(string)` | Private subnets for EC2/nodes + RDS (min 2 AZs) |
 | `public_subnet_ids` | `list(string)` | Public subnets for the ALB |
 
 ## Optional Inputs
 
+### Shared (both variants)
+
 | Variable | Type | Default | Description |
 |---|---|---|---|
+| `deployment_type` | `string` | `"ec2"` | `"ec2"` or `"eks"` |
 | `aws_region` | `string` | `us-east-1` | AWS region |
 | `domain_name` | `string` | `""` | FQDN for Airbyte (e.g. `airbyte.example.com`) |
 | `route53_zone_id` | `string` | `""` | Route53 zone for DNS + cert validation |
 | `alb_certificate_arn` | `string` | `""` | Existing ACM cert ARN (skips auto-creation) |
-| `instance_type` | `string` | `m6a.2xlarge` | EC2 instance type (min 8 vCPU / 32 GB — replication jobs need ~9 CPU per sync) |
-| `ami_architecture` | `string` | `arm64` | `arm64` for Graviton, `x86_64` for Intel/AMD |
-| `ebs_volume_size` | `number` | `50` | Root volume size in GB |
 | `rds_instance_class` | `string` | `db.t3.micro` | RDS instance class |
 | `rds_multi_az` | `bool` | `false` | Enable Multi-AZ (recommended for prod) |
 | `rds_deletion_protection` | `bool` | `false` | Enable deletion protection (recommended for prod) |
 | `log_retention_days` | `number` | `90` | CloudWatch log retention |
 | `tags` | `map(string)` | `{}` | Additional tags for all resources |
 
+### EC2-only
+
+| Variable | Type | Default | Description |
+|---|---|---|---|
+| `instance_type` | `string` | `m6a.2xlarge` | EC2 instance type (min 8 vCPU / 32 GB) |
+| `ami_architecture` | `string` | `arm64` | `arm64` for Graviton, `x86_64` for Intel/AMD |
+| `ebs_volume_size` | `number` | `50` | Root volume size in GB |
+
+### EKS-only
+
+| Variable | Type | Default | Description |
+|---|---|---|---|
+| `eks_kubernetes_version` | `string` | `1.32` | Kubernetes version |
+| `eks_node_instance_type` | `string` | `m6a.xlarge` | Node group instance type |
+| `eks_node_desired_size` | `number` | `2` | Node group desired count |
+| `eks_node_min_size` | `number` | `2` | Node group minimum count |
+| `eks_node_max_size` | `number` | `4` | Node group maximum count |
+| `eks_airbyte_chart_version` | `string` | `2.1.0` | Airbyte Helm chart version |
+
 ## Outputs
 
-| Output | Description |
-|---|---|
-| `airbyte_url` | HTTPS URL for the Airbyte console |
-| `alb_dns_name` | ALB DNS name (use if no custom domain) |
-| `airbyte_admin_secret_arn` | Secrets Manager ARN with admin credentials |
-| `rds_endpoint` | RDS PostgreSQL endpoint |
-| `instance_role_arn` | IAM role to attach additional connector policies |
-| `kms_key_arn` | KMS key encrypting all resources |
+| Output | EC2 | EKS | Description |
+|---|---|---|---|
+| `airbyte_url` | ✓ | ✓ | HTTPS URL for the Airbyte console |
+| `airbyte_admin_secret_arn` | ✓ | ✓ | Secrets Manager ARN with admin credentials |
+| `rds_endpoint` | ✓ | ✓ | RDS PostgreSQL endpoint |
+| `instance_role_arn` | EC2 instance role | EKS IRSA role | IAM role to attach additional connector policies |
+| `kms_key_arn` | ✓ | ✓ | KMS key encrypting all resources |
+| `alb_dns_name` | ✓ | null | ALB DNS name (EC2 only; EKS ALB is controller-managed) |
+| `asg_name` | ✓ | null | Auto Scaling Group name (EC2 only) |
+| `eks_cluster_name` | null | ✓ | EKS cluster name |
 
 ## S3 Bucket
 
@@ -111,21 +163,30 @@ The bucket is empty after initial deployment — objects appear once you create 
 
 ```
 terraform/
-├── main.tf                              # Root module — deploys Airbyte infra (43 resources)
-├── variables.tf                         # All deployment inputs
-├── outputs.tf                           # Key outputs
-├── providers.tf                         # AWS provider
+├── main.tf                              # Root module — deployment_type toggle, both module blocks
+├── variables.tf                         # All deployment inputs (shared + EC2-only + EKS-only)
+├── outputs.tf                           # Key outputs (try() across both variants)
+├── providers.tf                         # AWS + kubernetes + helm providers
 ├── terraform.tf                         # Version constraints
 ├── variables/
-│   └── dev.tfvars                       # Example environment config
+│   └── dev.tfvars                       # Example environment config (deployment_type = "ec2")
 ├── modules/
-│   └── airbyte/                         # Core self-hosted Airbyte module
-│       ├── main.tf                      # KMS, IAM, SGs, RDS, S3, ALB, ASG, ACM, Route53
+│   ├── airbyte-ec2/                     # EC2 variant: abctl/kind-in-Docker (~$150/mo)
+│   │   ├── main.tf                      # KMS, IAM, SGs, RDS, S3, ALB, ASG, ACM, Route53
+│   │   ├── variables.tf / outputs.tf
+│   │   ├── versions.tf
+│   │   └── templates/
+│   │       ├── user-data.sh.tpl         # EC2 bootstrap (Docker, abctl, Airbyte)
+│   │       └── airbyte-values.yaml.tpl  # Helm values delivered via SSM
+│   └── airbyte-eks/                     # EKS variant: Helm on managed Kubernetes (~$300-500/mo)
+│       ├── main.tf                      # KMS, SGs, RDS, S3, Secrets Manager, CloudWatch
+│       ├── iam.tf                       # IRSA roles (Airbyte, EBS CSI, ALB controller, ExternalDNS)
+│       ├── eks.tf                       # EKS cluster, node group, add-ons, Helm releases
+│       ├── dns.tf                       # ACM cert + Route53 validation record
 │       ├── variables.tf / outputs.tf
 │       ├── versions.tf
 │       └── templates/
-│           ├── user-data.sh.tpl         # EC2 bootstrap (Docker, abctl, Airbyte)
-│           └── airbyte-values.yaml.tpl  # Helm values for Airbyte chart
+│           └── airbyte-values.yaml.tpl  # Helm values (IRSA auth, ALB Ingress, no ARM64 pins)
 ├── connectors/                          # Optional: generic connector definitions
 │   ├── sources.tf                       # Oracle + SQL Server sources
 │   ├── destinations.tf                  # S3 Data Lake destination
@@ -139,6 +200,40 @@ terraform/
 ```
 
 Each directory is an **independent Terraform root module** with its own state. Running `terraform apply` in one does not affect the others.
+
+## EKS Deployment Notes
+
+### Two-pass apply
+
+The kubernetes/helm providers are configured from the EKS cluster endpoint output. Due to a Terraform provider initialization constraint, EKS deployments require two `terraform apply` passes:
+
+```bash
+# Pass 1: Creates the EKS cluster, IAM, RDS, S3, node group
+terraform apply -var-file=variables/myenv.tfvars
+
+# Pass 2: Installs EKS add-ons and Helm charts (Airbyte, ALB controller, ExternalDNS)
+terraform apply -var-file=variables/myenv.tfvars
+```
+
+### Admin credentials (EKS)
+
+Unlike the EC2 variant, the EKS deployment does not auto-populate the admin credentials secret. After the first Helm deploy, copy the credentials from the Kubernetes secret:
+
+```bash
+kubectl get secret airbyte-auth-secrets -n airbyte -o jsonpath='{.data}' | base64 -d
+```
+
+Then push to Secrets Manager manually or via a post-deploy script.
+
+## Migrating from the previous module path
+
+If you deployed before the EC2/EKS split, your Terraform state has resources under `module.airbyte.*`. After upgrading, run these state moves before applying:
+
+```bash
+terraform state mv 'module.airbyte' 'module.airbyte_ec2[0]'
+```
+
+Or for a complete migration, run `terraform state mv` for each resource — see `terraform state list` output for the full set.
 
 ## Examples
 
