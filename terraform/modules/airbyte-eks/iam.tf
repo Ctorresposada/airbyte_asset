@@ -132,6 +132,16 @@ resource "aws_iam_role_policy" "node_airbyte_s3" {
         Action   = ["s3:ListBucket", "s3:GetBucketLocation"]
         Resource = aws_s3_bucket.this.arn
       },
+      {
+        Sid    = "AirbyteKms"
+        Effect = "Allow"
+        Action = [
+          "kms:GenerateDataKey",
+          "kms:Decrypt",
+          "kms:DescribeKey",
+        ]
+        Resource = aws_kms_key.this.arn
+      },
     ]
   })
 }
