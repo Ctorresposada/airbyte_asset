@@ -15,9 +15,9 @@
 #   https://<your-domain>/workspaces/<workspace_id>/...
 airbyte_server_url    = "https://airbyte-eks-dev.caylent-airbyte-asset.click/api/public/v1/"
 airbyte_token_url     = "https://airbyte-eks-dev.caylent-airbyte-asset.click/api/v1/applications/token"
-airbyte_client_id     = "7e2d0ce0-8693-4f93-a48a-780cf7d8c78f"
-airbyte_client_secret = "8apkSVTB8tAbttZSmk6n5TxrU6zSv4dt"
-workspace_id          = "29b25f5e-ed4d-46f0-9d10-71b5b60f9931"
+airbyte_client_id     = "cad98e91-c1a0-4eee-9200-aa2a095532b3"
+airbyte_client_secret = "rFXb1aTIQhPySonUWjDTZWaG8GcSTVrq"
+workspace_id          = "82fee0b6-7c10-4939-a01f-f0927e9da40f"
 
 # AWS (source DBs and Secrets Manager are in eu-west-1)
 aws_region  = "eu-west-1"
