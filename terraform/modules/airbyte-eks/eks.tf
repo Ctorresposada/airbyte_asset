@@ -322,6 +322,33 @@ resource "helm_release" "external_dns" {
 # Helm: Airbyte
 # ---------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------------
+# Pre-destroy: remove the Airbyte Ingress before Helm uninstall
+# The ALB controller creates the ALB outside Terraform state. Deleting the
+# Ingress first lets the controller clean up the ALB and its ENIs before
+# the node security group is destroyed, preventing a DependencyViolation.
+# ---------------------------------------------------------------------------
+
+resource "null_resource" "delete_ingress_before_destroy" {
+  count = var.helm_enabled ? 1 : 0
+
+  triggers = {
+    cluster_name = aws_eks_cluster.this.name
+    region       = data.aws_region.current.region
+  }
+
+  provisioner "local-exec" {
+    when    = destroy
+    command = <<-EOT
+      aws eks update-kubeconfig --region ${self.triggers.region} --name ${self.triggers.cluster_name} 2>/dev/null || true
+      kubectl delete ingress -n airbyte --all --ignore-not-found=true 2>/dev/null || true
+      sleep 30
+    EOT
+  }
+
+  depends_on = [helm_release.airbyte]
+}
+
 resource "helm_release" "airbyte" {
   count            = var.helm_enabled ? 1 : 0
   name             = "airbyte"
