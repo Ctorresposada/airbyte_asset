@@ -332,7 +332,55 @@ A complete working example at `terraform/examples/oracle-sqlserver-s3/` that cre
 - **Airbyte API authentication** uses a bearer token obtained from the self-hosted token endpoint (`/api/v1/applications/token`) with client credentials from the K8s secret `airbyte-auth-secrets`
 - The [Airbyte Terraform provider](https://registry.terraform.io/providers/airbytehq/airbyte/latest) (v1.x) uses generic `airbyte_source` / `airbyte_destination` resources with inline JSON configuration
 
-#### Usage
+#### Step 1 — Retrieve Airbyte API credentials
+
+The connectors example authenticates to Airbyte using a client ID and secret (OAuth2 machine-to-machine). Retrieve them based on your deployment variant:
+
+**EKS variant** — secrets live in the Kubernetes cluster:
+
+```bash
+# Point kubectl at the EKS cluster (run once)
+aws eks update-kubeconfig --region <aws_region> --name <eks_cluster_name>
+
+# Client ID
+kubectl get secret airbyte-auth-secrets -n airbyte \
+  -o jsonpath='{.data.instance-admin-client-id}' | base64 --decode && echo
+
+# Client secret
+kubectl get secret airbyte-auth-secrets -n airbyte \
+  -o jsonpath='{.data.instance-admin-client-secret}' | base64 --decode && echo
+```
+
+**EC2 variant** — Airbyte runs inside a kind cluster on the EC2 instance. SSH in first:
+
+```bash
+# SSH into the EC2 instance (replace <instance-id> with the ASG instance)
+aws ssm start-session --target <instance-id>
+
+# Then inside the instance:
+kubectl get secret airbyte-auth-secrets -n airbyte \
+  -o jsonpath='{.data.instance-admin-client-id}' | base64 --decode && echo
+
+kubectl get secret airbyte-auth-secrets -n airbyte \
+  -o jsonpath='{.data.instance-admin-client-secret}' | base64 --decode && echo
+```
+
+> The EC2 instance ID can be found in the AWS Console → EC2 → Instances, or via:
+> `aws ec2 describe-instances --filters "Name=tag:aws:autoscaling:groupName,Values=<asg_name>" --query 'Reservations[].Instances[].InstanceId' --output text`
+
+#### Step 2 — Get the workspace ID
+
+Open the Airbyte UI, navigate to any workspace, and copy the ID from the URL:
+
+```
+https://airbyte.example.com/workspaces/15f8dc70-6c05-40aa-bbbd-23025f882cb0/...
+                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                                        This is your workspace_id
+```
+
+Alternatively: **Settings → General** in the Airbyte UI shows the workspace ID.
+
+#### Step 3 — Create your tfvars and apply
 
 ```bash
 cd terraform/examples/oracle-sqlserver-s3
@@ -354,9 +402,9 @@ terraform apply -var-file=variables/myenv.tfvars
 |---|---|
 | `airbyte_server_url` | Airbyte API URL (e.g. `https://airbyte.example.com/api/public/v1/`) |
 | `airbyte_token_url` | Token endpoint (e.g. `https://airbyte.example.com/api/v1/applications/token`) |
-| `airbyte_client_id` | From K8s secret `airbyte-auth-secrets` → `instance-admin-client-id` |
-| `airbyte_client_secret` | From K8s secret `airbyte-auth-secrets` → `instance-admin-client-secret` |
-| `workspace_id` | From the Airbyte UI URL (Settings > General) |
+| `airbyte_client_id` | From K8s secret `airbyte-auth-secrets` → `instance-admin-client-id` (see Step 1) |
+| `airbyte_client_secret` | From K8s secret `airbyte-auth-secrets` → `instance-admin-client-secret` (see Step 1) |
+| `workspace_id` | From the Airbyte UI URL (see Step 2) |
 | `oracle_host`, `oracle_service_name` | Oracle RDS endpoint and service name |
 | `oracle_password_secret_arn` | Secrets Manager ARN for Oracle password |
 | `mssql_host`, `mssql_database` | SQL Server RDS endpoint and database |
