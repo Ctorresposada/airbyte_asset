@@ -17,13 +17,13 @@ provider "aws" {
 #
 # NOTE: EKS deployments require two terraform apply passes:
 #   Pass 1 (eks_cluster_ready = false, the default):
-#     terraform apply -var-file=variables/dev-eks.tfvars
+#     terraform apply -var-file=variables/eks-dev.tfvars
 #     Creates all AWS resources (EKS cluster, RDS, S3, IAM, etc.)
 #     The data sources have count = 0 so the Helm/kubernetes providers
 #     initialize harmlessly with empty strings and no Helm releases are created.
 #
 #   Pass 2 (eks_cluster_ready = true):
-#     terraform apply -var-file=variables/dev-eks.tfvars -var eks_cluster_ready=true
+#     terraform apply -var-file=variables/eks-dev.tfvars -var eks_cluster_ready=true
 #     The data sources read the now-existing cluster endpoint and the
 #     Helm provider installs Airbyte, ALB controller, and ExternalDNS.
 # ---------------------------------------------------------------------------

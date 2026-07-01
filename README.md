@@ -129,10 +129,10 @@ terraform apply -var-file=variables/ec2-dev.tfvars
 
 ```bash
 # Pass 1 — creates all AWS infrastructure (EKS cluster, RDS, S3, IAM, etc.)
-terraform apply -var-file=variables/dev-eks.tfvars
+terraform apply -var-file=variables/eks-dev.tfvars
 
 # Pass 2 — installs Helm charts once the cluster is up
-terraform apply -var-file=variables/dev-eks.tfvars -var eks_cluster_ready=true
+terraform apply -var-file=variables/eks-dev.tfvars -var eks_cluster_ready=true
 ```
 
 ## Required Inputs
@@ -300,12 +300,12 @@ The Helm/kubernetes providers are configured from the EKS cluster endpoint. Beca
 ```bash
 # Pass 1 — eks_cluster_ready defaults to false; Helm provider skips initialization.
 # Creates: EKS cluster, node group, RDS, S3, KMS, IAM/IRSA roles, ACM cert, security groups.
-terraform apply -var-file=variables/dev-eks.tfvars
+terraform apply -var-file=variables/eks-dev.tfvars
 
 # Pass 2 — eks_cluster_ready=true tells the providers to connect to the now-existing cluster.
 # Creates: EKS add-ons (vpc-cni, coredns, kube-proxy, ebs-csi), Airbyte Helm release,
 #          AWS Load Balancer Controller, ExternalDNS.
-terraform apply -var-file=variables/dev-eks.tfvars -var eks_cluster_ready=true
+terraform apply -var-file=variables/eks-dev.tfvars -var eks_cluster_ready=true
 ```
 
 ### Destroying an EKS deployment
@@ -319,7 +319,7 @@ The AWS Load Balancer Controller creates the ALB **outside of Terraform state** 
 kubectl delete ingress -n airbyte --all
 
 # Step 2 — wait ~30s for the ALB and its ENIs to be fully removed, then destroy
-terraform destroy -var-file=variables/dev-eks.tfvars -var eks_cluster_ready=true
+terraform destroy -var-file=variables/eks-dev.tfvars -var eks_cluster_ready=true
 ```
 
 > If you forget Step 1 and the destroy gets stuck on the security group, find and delete the orphaned ENI manually:
@@ -329,7 +329,7 @@ terraform destroy -var-file=variables/dev-eks.tfvars -var eks_cluster_ready=true
 >   --query "NetworkInterfaces[].[NetworkInterfaceId,Description]" --output table
 > aws ec2 delete-network-interface --region <region> --network-interface-id <eni-id>
 > ```
-> Then re-run `terraform destroy -var-file=variables/dev-eks.tfvars` (without `eks_cluster_ready=true` if the cluster is already gone).
+> Then re-run `terraform destroy -var-file=variables/eks-dev.tfvars` (without `eks_cluster_ready=true` if the cluster is already gone).
 
 ### Admin credentials (EKS)
 
@@ -415,9 +415,9 @@ Alternatively: **Settings → General** in the Airbyte UI shows the workspace ID
 ```bash
 cd terraform/examples/oracle-sqlserver-s3
 
-# 1. Copy and edit the tfvars
-cp variables/dev.tfvars variables/dev.tfvars           # EC2 deployment
-cp variables/dev-eks.tfvars variables/dev-eks.tfvars   # EKS deployment
+# 1. Edit the tfvars for your deployment
+# variables/ec2-dev.tfvars  — EC2 deployment
+# variables/eks-dev.tfvars  — EKS deployment
 # Fill in: Airbyte URL, client credentials, workspace ID,
 #          source DB endpoints, Secrets Manager ARNs,
 #          S3 bucket details, Glue catalog config
@@ -425,7 +425,7 @@ cp variables/dev-eks.tfvars variables/dev-eks.tfvars   # EKS deployment
 # 2. Init and apply
 terraform init
 terraform apply -var-file=variables/ec2-dev.tfvars        # EC2
-terraform apply -var-file=variables/dev-eks.tfvars    # EKS
+terraform apply -var-file=variables/eks-dev.tfvars    # EKS
 ```
 
 #### Required inputs
