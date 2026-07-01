@@ -110,10 +110,10 @@ route53_zone_id = "Z0123456789ABCDEFGHIJ"  # From the Route53 hosted zone
 git clone https://github.com/Ctorresposada/airbyte_asset.git
 cd airbyte_asset/terraform
 
-# 2. Copy and edit the example tfvars
-cp variables/dev.tfvars variables/dev.tfvars        # EC2
-cp variables/dev-eks.tfvars variables/dev-eks.tfvars # EKS
-# Edit: set vpc_id, subnet IDs, domain_name, route53_zone_id
+# 2. Edit the example tfvars with your own values
+# EC2: terraform/variables/ec2-dev.tfvars
+# EKS: terraform/variables/eks-dev.tfvars
+# Set vpc_id, subnet IDs, domain_name, route53_zone_id
 
 # 3. Initialize
 terraform init
@@ -122,7 +122,7 @@ terraform init
 ### EC2 deployment (one apply)
 
 ```bash
-terraform apply -var-file=variables/dev.tfvars
+terraform apply -var-file=variables/ec2-dev.tfvars
 ```
 
 ### EKS deployment (two applies)
@@ -160,6 +160,8 @@ terraform apply -var-file=variables/dev-eks.tfvars -var eks_cluster_ready=true
 | `rds_multi_az` | `bool` | `false` | Enable Multi-AZ (recommended for prod) |
 | `rds_deletion_protection` | `bool` | `false` | Enable deletion protection (recommended for prod) |
 | `log_retention_days` | `number` | `90` | CloudWatch log retention |
+
+> **Secrets Manager recovery window:** Both modules set `recovery_window_in_days = 0` (immediate deletion) so that re-deploying after a destroy works without hitting the "secret scheduled for deletion" error. For production deployments, change this to `7` (or up to `30`) in `modules/airbyte-ec2/main.tf` and `modules/airbyte-eks/main.tf` to retain a recovery window for accidental deletions.
 | `tags` | `map(string)` | `{}` | Additional tags for all resources |
 
 ### EC2-only
@@ -213,9 +215,11 @@ The bucket is empty after initial deployment — objects appear once you create 
 **EC2 variant** — credentials are written to Secrets Manager at first boot:
 ```bash
 aws secretsmanager get-secret-value \
-  --secret-id "<project>-<env>/airbyte-admin-creds" \
+  --secret-id "<project_name>-<environment>/airbyte-admin-creds" \
+  --region <aws_region> \
   --query SecretString --output text
 ```
+> Example: `--secret-id "airbyte-asset-dev/airbyte-admin-creds"`
 
 **EKS variant** — credentials live in a Kubernetes secret created by the Helm chart:
 ```bash
@@ -252,7 +256,8 @@ terraform/
 ├── providers.tf                         # AWS + kubernetes + helm providers
 ├── terraform.tf                         # Version constraints
 ├── variables/
-│   └── dev.tfvars                       # Example environment config (deployment_type = "ec2")
+│   ├── ec2-dev.tfvars                   # Example EC2 config (deployment_type = "ec2")
+│   └── eks-dev.tfvars                   # Example EKS config (deployment_type = "eks")
 ├── modules/
 │   ├── airbyte-ec2/                     # EC2 variant: abctl/kind-in-Docker (~$150/mo)
 │   │   ├── main.tf                      # KMS, IAM, SGs, RDS, S3, ALB, ASG, ACM, Route53
@@ -279,7 +284,9 @@ terraform/
     └── oracle-sqlserver-s3/             # Working example: end-to-end deployment
         ├── main.tf                      # Sources, destination, connections
         ├── variables.tf / outputs.tf
-        └── variables/dev.tfvars
+        └── variables/
+                ├── ec2-dev.tfvars       # Placeholder template for EC2 deployments
+                └── eks-dev.tfvars       # Placeholder template for EKS deployments
 ```
 
 Each directory is an **independent Terraform root module** with its own state. Running `terraform apply` in one does not affect the others.
@@ -417,7 +424,7 @@ cp variables/dev-eks.tfvars variables/dev-eks.tfvars   # EKS deployment
 
 # 2. Init and apply
 terraform init
-terraform apply -var-file=variables/dev.tfvars        # EC2
+terraform apply -var-file=variables/ec2-dev.tfvars        # EC2
 terraform apply -var-file=variables/dev-eks.tfvars    # EKS
 ```
 

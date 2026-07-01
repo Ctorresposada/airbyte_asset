@@ -53,8 +53,11 @@ data "aws_iam_policy_document" "kms" {
 
   # Allow the Auto Scaling service-linked role to use this key for encrypted
   # EBS volumes. EKS managed node groups use the same ASG SLR under the hood.
+  # Split into two statements per AWS docs: crypto operations have no condition (the
+  # kms:GrantIsForAWSResource context key is only present during CreateGrant calls, so
+  # combining them in one statement silently denies Encrypt/Decrypt/GenerateDataKey*).
   statement {
-    sid    = "AllowAutoScalingServiceRole"
+    sid    = "AllowAutoScalingServiceRoleKMS"
     effect = "Allow"
     principals {
       type        = "AWS"
@@ -66,8 +69,18 @@ data "aws_iam_policy_document" "kms" {
       "kms:ReEncrypt*",
       "kms:GenerateDataKey*",
       "kms:DescribeKey",
-      "kms:CreateGrant",
     ]
+    resources = ["*"]
+  }
+
+  statement {
+    sid    = "AllowAutoScalingServiceRoleGrant"
+    effect = "Allow"
+    principals {
+      type        = "AWS"
+      identifiers = ["arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/aws-service-role/autoscaling.amazonaws.com/AWSServiceRoleForAutoScaling"]
+    }
+    actions   = ["kms:CreateGrant"]
     resources = ["*"]
     condition {
       test     = "Bool"
@@ -133,7 +146,7 @@ resource "aws_secretsmanager_secret" "rds" {
   name                    = "${var.name}/rds"
   description             = "RDS credentials for Airbyte PostgreSQL (${var.name})"
   kms_key_id              = aws_kms_key.this.arn
-  recovery_window_in_days = 7
+  recovery_window_in_days = 0
 
   tags = local.common_tags
 }
@@ -161,7 +174,7 @@ resource "aws_secretsmanager_secret" "airbyte_admin" {
   name                    = "${var.name}/airbyte-admin-creds"
   description             = "Airbyte web UI admin credentials (${var.name}). Populated after first Helm deploy."
   kms_key_id              = aws_kms_key.this.arn
-  recovery_window_in_days = 7
+  recovery_window_in_days = 0
 
   tags = local.common_tags
 }
@@ -229,35 +242,11 @@ resource "aws_vpc_security_group_ingress_rule" "nodes_from_alb" {
   tags = local.common_tags
 }
 
-resource "aws_vpc_security_group_egress_rule" "nodes_https_out" {
+resource "aws_vpc_security_group_egress_rule" "nodes_all_out" {
   security_group_id = aws_security_group.node_group.id
-  description       = "HTTPS egress for ECR pulls, S3, and AWS API calls"
-  from_port         = 443
-  to_port           = 443
-  ip_protocol       = "tcp"
+  description       = "Allow all outbound traffic - Airbyte connectors reach arbitrary external sources and destinations"
+  ip_protocol       = "-1"
   cidr_ipv4         = "0.0.0.0/0"
-
-  tags = local.common_tags
-}
-
-resource "aws_vpc_security_group_egress_rule" "nodes_http_out" {
-  security_group_id = aws_security_group.node_group.id
-  description       = "HTTP egress for package downloads"
-  from_port         = 80
-  to_port           = 80
-  ip_protocol       = "tcp"
-  cidr_ipv4         = "0.0.0.0/0"
-
-  tags = local.common_tags
-}
-
-resource "aws_vpc_security_group_egress_rule" "nodes_to_rds" {
-  security_group_id            = aws_security_group.node_group.id
-  description                  = "PostgreSQL egress to RDS security group"
-  from_port                    = 5432
-  to_port                      = 5432
-  ip_protocol                  = "tcp"
-  referenced_security_group_id = aws_security_group.rds.id
 
   tags = local.common_tags
 }

@@ -96,8 +96,11 @@ data "aws_iam_policy_document" "kms" {
   }
 
   # Allow the Auto Scaling service-linked role to use this key for encrypted EBS volumes.
+  # Split into two statements per AWS docs: crypto operations have no condition (the
+  # kms:GrantIsForAWSResource context key is only present during CreateGrant calls, so
+  # combining them in one statement silently denies Encrypt/Decrypt/GenerateDataKey*).
   statement {
-    sid    = "AllowAutoScalingServiceRole"
+    sid    = "AllowAutoScalingServiceRoleKMS"
     effect = "Allow"
     principals {
       type        = "AWS"
@@ -109,8 +112,18 @@ data "aws_iam_policy_document" "kms" {
       "kms:ReEncrypt*",
       "kms:GenerateDataKey*",
       "kms:DescribeKey",
-      "kms:CreateGrant",
     ]
+    resources = ["*"]
+  }
+
+  statement {
+    sid    = "AllowAutoScalingServiceRoleGrant"
+    effect = "Allow"
+    principals {
+      type        = "AWS"
+      identifiers = ["arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/aws-service-role/autoscaling.amazonaws.com/AWSServiceRoleForAutoScaling"]
+    }
+    actions   = ["kms:CreateGrant"]
     resources = ["*"]
     condition {
       test     = "Bool"
@@ -159,6 +172,16 @@ resource "aws_kms_alias" "this" {
 
   name          = "alias/${var.name}"
   target_key_id = aws_kms_key.this[0].key_id
+}
+
+# KMS grants take a few seconds to propagate before EC2 can use the key for
+# EBS encryption. Without this delay the ASG launch fails with
+# InvalidKMSKey.InvalidState on first deploy.
+resource "time_sleep" "kms_propagation" {
+  count = var.create ? 1 : 0
+
+  create_duration = "15s"
+  depends_on      = [aws_kms_key.this, aws_kms_alias.this]
 }
 
 # ---------------------------------------------------------------------------
@@ -348,7 +371,7 @@ resource "aws_secretsmanager_secret" "rds" {
   name                    = "${var.name}/rds"
   description             = "RDS credentials for Airbyte PostgreSQL (${var.name})"
   kms_key_id              = aws_kms_key.this[0].arn
-  recovery_window_in_days = 7
+  recovery_window_in_days = 0
 
   tags = local.common_tags
 }
@@ -380,7 +403,7 @@ resource "aws_secretsmanager_secret" "airbyte_admin" {
   name                    = "${var.name}/airbyte-admin-creds"
   description             = "Airbyte web UI admin credentials (${var.name})"
   kms_key_id              = aws_kms_key.this[0].arn
-  recovery_window_in_days = 7
+  recovery_window_in_days = 0
 
   tags = local.common_tags
 }
@@ -497,41 +520,13 @@ resource "aws_vpc_security_group_ingress_rule" "instance_from_alb" {
   tags = local.common_tags
 }
 
-resource "aws_vpc_security_group_egress_rule" "instance_https_out" {
+resource "aws_vpc_security_group_egress_rule" "instance_all_out" {
   count = var.create ? 1 : 0
 
   security_group_id = aws_security_group.instance[0].id
-  description       = "HTTPS egress for Docker Hub pulls, GitHub releases, AWS API calls not covered by VPC endpoints"
-  from_port         = 443
-  to_port           = 443
-  ip_protocol       = "tcp"
+  description       = "Allow all outbound traffic - Airbyte connectors reach arbitrary external sources and destinations"
+  ip_protocol       = "-1"
   cidr_ipv4         = "0.0.0.0/0"
-
-  tags = local.common_tags
-}
-
-resource "aws_vpc_security_group_egress_rule" "instance_http_out" {
-  count = var.create ? 1 : 0
-
-  security_group_id = aws_security_group.instance[0].id
-  description       = "HTTP egress for package downloads and Docker Hub pulls"
-  from_port         = 80
-  to_port           = 80
-  ip_protocol       = "tcp"
-  cidr_ipv4         = "0.0.0.0/0"
-
-  tags = local.common_tags
-}
-
-resource "aws_vpc_security_group_egress_rule" "instance_to_rds" {
-  count = var.create ? 1 : 0
-
-  security_group_id            = aws_security_group.instance[0].id
-  description                  = "PostgreSQL egress to RDS security group"
-  from_port                    = 5432
-  to_port                      = 5432
-  ip_protocol                  = "tcp"
-  referenced_security_group_id = aws_security_group.rds[0].id
 
   tags = local.common_tags
 }
@@ -788,6 +783,8 @@ resource "aws_launch_template" "this" {
   #checkov:skip=CKV_AWS_341: hop_limit > 1 required for Docker/kind containers running inside the instance to reach IMDS
   name_prefix = "${local.name_prefix}-"
   description = "Launch template for self-hosted Airbyte running abctl on ${var.name}"
+
+  depends_on = [time_sleep.kms_propagation]
 
   image_id      = var.ami_id
   instance_type = var.instance_type

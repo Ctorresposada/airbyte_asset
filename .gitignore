@@ -13,6 +13,7 @@ override.tf.json
 terraform.rc
 *.tfvars
 !terraform/variables/*.tfvars
+!terraform/examples/**/variables/*.tfvars
 
 # Editor
 *.swp
