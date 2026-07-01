@@ -500,6 +500,29 @@ data "aws_iam_policy_document" "irsa_alb_controller_policy" {
     }
   }
 
+  # Allow AddTags on new resources at creation time (newly created target groups
+  # and load balancers don't have the cluster tag yet, so ELBTagWrite above won't match).
+  statement {
+    sid     = "ELBTagWriteOnCreate"
+    effect  = "Allow"
+    actions = ["elasticloadbalancing:AddTags"]
+    resources = [
+      "arn:aws:elasticloadbalancing:*:*:targetgroup/*/*",
+      "arn:aws:elasticloadbalancing:*:*:loadbalancer/net/*/*",
+      "arn:aws:elasticloadbalancing:*:*:loadbalancer/app/*/*",
+    ]
+    condition {
+      test     = "StringEquals"
+      variable = "elasticloadbalancing:CreateAction"
+      values   = ["CreateTargetGroup", "CreateLoadBalancer"]
+    }
+    condition {
+      test     = "Null"
+      variable = "aws:RequestTag/elbv2.k8s.aws/cluster"
+      values   = ["false"]
+    }
+  }
+
   statement {
     sid    = "ELBListenerTagWrite"
     effect = "Allow"

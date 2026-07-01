@@ -301,8 +301,8 @@ resource "helm_release" "external_dns" {
   }
 
   set {
-    name  = "domainFilters[0]"
-    value = var.domain_name
+    name  = "zoneIdFilters[0]"
+    value = var.route53_zone_id
   }
 
   set {
@@ -331,7 +331,7 @@ resource "helm_release" "airbyte" {
   namespace        = "airbyte"
   create_namespace = true
   wait             = true
-  timeout          = 900 # Airbyte takes 7-15 minutes to fully initialize
+  timeout          = 1200 # Airbyte takes 7-15 minutes to fully initialize
 
   values = [templatefile("${path.module}/templates/airbyte-values.yaml.tpl", {
     db_host     = aws_db_instance.this.address
@@ -354,6 +354,7 @@ resource "helm_release" "airbyte" {
     certificate_arn     = local.effective_certificate_arn
     name                = var.name
     allowed_cidr_blocks = join(",", var.allowed_cidr_blocks)
+    public_subnet_ids   = join(",", var.public_subnet_ids)
   })]
 
   depends_on = [

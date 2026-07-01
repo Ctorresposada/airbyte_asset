@@ -59,6 +59,7 @@ ingress:
     alb.ingress.kubernetes.io/ssl-policy: ELBSecurityPolicy-TLS13-1-2-2021-06
     alb.ingress.kubernetes.io/group.name: "${name}"
     alb.ingress.kubernetes.io/inbound-cidrs: "${allowed_cidr_blocks}"
+    alb.ingress.kubernetes.io/subnets: "${public_subnet_ids}"
     # ExternalDNS reads this annotation to create the Route53 A record.
     external-dns.alpha.kubernetes.io/hostname: "${domain_name}"
   rules:
@@ -67,8 +68,8 @@ ingress:
         - path: /
           pathType: Prefix
           service:
-            name: "airbyte-airbyte-webapp-svc"
-            port: 80
+            name: "airbyte-airbyte-server-svc"
+            port: 8001
 
 temporal:
   database:

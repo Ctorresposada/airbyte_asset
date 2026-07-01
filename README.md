@@ -208,16 +208,39 @@ The bucket is empty after initial deployment — objects appear once you create 
 
 ## Post-Deployment
 
-1. **Get admin credentials:**
-   ```bash
-   aws secretsmanager get-secret-value \
-     --secret-id "<project>-<env>/airbyte-admin-creds" \
-     --query SecretString --output text
-   ```
+### 1. Get admin credentials
 
-2. **Access the console** at the `airbyte_url` output or `alb_dns_name`
+**EC2 variant** — credentials are written to Secrets Manager at first boot:
+```bash
+aws secretsmanager get-secret-value \
+  --secret-id "<project>-<env>/airbyte-admin-creds" \
+  --query SecretString --output text
+```
 
-3. **Attach connector permissions** to `instance_role_arn` for the data sources Airbyte needs to reach
+**EKS variant** — credentials live in a Kubernetes secret created by the Helm chart:
+```bash
+# Email (username)
+kubectl get secret airbyte-auth-secrets -n airbyte \
+  -o jsonpath='{.data.instance-admin-email}' | base64 --decode
+
+# Password
+kubectl get secret airbyte-auth-secrets -n airbyte \
+  -o jsonpath='{.data.instance-admin-password}' | base64 --decode
+```
+
+> To run kubectl commands you need kubeconfig access to the cluster:
+> ```bash
+> aws eks update-kubeconfig --region <aws_region> --name <eks_cluster_name>
+> ```
+> The `eks_cluster_name` output from `terraform output` gives you the cluster name.
+
+### 2. Access the console
+
+Open the `airbyte_url` output in your browser. For EC2, `alb_dns_name` works too if no custom domain was configured.
+
+### 3. Attach connector permissions
+
+Add policies to `instance_role_arn` for any AWS services Airbyte connectors need to reach (e.g. S3, Redshift, Glue).
 
 ## Repository Structure
 
@@ -280,13 +303,7 @@ terraform apply -var-file=variables/myenv.tfvars -var eks_cluster_ready=true
 
 ### Admin credentials (EKS)
 
-Unlike the EC2 variant, the EKS deployment does not auto-populate the admin credentials secret. After the first Helm deploy, copy the credentials from the Kubernetes secret:
-
-```bash
-kubectl get secret airbyte-auth-secrets -n airbyte -o jsonpath='{.data}' | base64 -d
-```
-
-Then push to Secrets Manager manually or via a post-deploy script.
+Credentials are stored in a Kubernetes secret created by the Helm chart — see [Post-Deployment](#post-deployment) for the exact commands.
 
 ## Migrating from the previous module path
 
