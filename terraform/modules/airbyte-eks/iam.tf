@@ -103,6 +103,39 @@ resource "aws_iam_role_policy_attachment" "node_ssm" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
 }
 
+# Airbyte connector pods run as ephemeral Kubernetes Jobs with the airbyte-admin
+# service account, which is not annotated for IRSA. Those pods fall back to the
+# node instance profile. Grant the node role S3 access to the Airbyte internal
+# bucket so connector pods can read/write logs, state, and workload outputs.
+resource "aws_iam_role_policy" "node_airbyte_s3" {
+  name = "${local.name_prefix}-node-airbyte-s3"
+  role = aws_iam_role.node_group.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "AirbyteS3Objects"
+        Effect = "Allow"
+        Action = [
+          "s3:PutObject",
+          "s3:GetObject",
+          "s3:DeleteObject",
+          "s3:AbortMultipartUpload",
+          "s3:ListBucketMultipartUploads",
+        ]
+        Resource = "${aws_s3_bucket.this.arn}/*"
+      },
+      {
+        Sid      = "AirbyteS3Bucket"
+        Effect   = "Allow"
+        Action   = ["s3:ListBucket", "s3:GetBucketLocation"]
+        Resource = aws_s3_bucket.this.arn
+      },
+    ]
+  })
+}
+
 # ---------------------------------------------------------------------------
 # OIDC provider -- required for all IRSA roles
 # ---------------------------------------------------------------------------
