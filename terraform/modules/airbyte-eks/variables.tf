@@ -79,9 +79,9 @@ variable "kubernetes_version" {
 }
 
 variable "node_instance_type" {
-  description = "EC2 instance type for the EKS managed node group."
+  description = "EC2 instance type for the EKS managed node group. m6a.2xlarge (8 vCPU / 32 GB) is the recommended minimum — Airbyte replication pods request 4 vCPU each and the platform consumes ~4-5 vCPU, leaving xlarge nodes unable to schedule syncs."
   type        = string
-  default     = "m6a.xlarge"
+  default     = "m6a.2xlarge"
 }
 
 variable "node_desired_size" {
