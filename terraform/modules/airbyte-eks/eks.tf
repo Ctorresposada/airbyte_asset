@@ -97,8 +97,11 @@ resource "aws_launch_template" "node" {
       volume_size           = 50
       volume_type           = "gp3"
       encrypted             = true
-      kms_key_id            = aws_kms_key.this.arn
       delete_on_termination = true
+      # Node EBS uses the AWS-managed aws/ebs key. Using the CMK here requires the
+      # node IAM role in the key policy, which creates a circular dependency at
+      # key creation time. All other resources (RDS, S3, Secrets Manager, EKS secrets,
+      # CloudWatch) continue to use the CMK.
     }
   }
 
@@ -235,6 +238,7 @@ resource "aws_eks_addon" "ebs_csi" {
 # ---------------------------------------------------------------------------
 
 resource "helm_release" "alb_controller" {
+  count      = var.helm_enabled ? 1 : 0
   name       = "aws-load-balancer-controller"
   repository = "https://aws.github.io/eks-charts"
   chart      = "aws-load-balancer-controller"
@@ -271,7 +275,7 @@ resource "helm_release" "alb_controller" {
 # ---------------------------------------------------------------------------
 
 resource "helm_release" "external_dns" {
-  count = local.create_dns ? 1 : 0
+  count = var.helm_enabled && local.create_dns ? 1 : 0
 
   name       = "external-dns"
   repository = "https://kubernetes-sigs.github.io/external-dns/"
@@ -311,7 +315,7 @@ resource "helm_release" "external_dns" {
     value = "sync"
   }
 
-  depends_on = [helm_release.alb_controller]
+  depends_on = [helm_release.alb_controller[0]]
 }
 
 # ---------------------------------------------------------------------------
@@ -319,6 +323,7 @@ resource "helm_release" "external_dns" {
 # ---------------------------------------------------------------------------
 
 resource "helm_release" "airbyte" {
+  count            = var.helm_enabled ? 1 : 0
   name             = "airbyte"
   repository       = "https://airbytehq.github.io/helm-charts"
   chart            = "airbyte"
@@ -352,7 +357,7 @@ resource "helm_release" "airbyte" {
   })]
 
   depends_on = [
-    helm_release.alb_controller,
+    helm_release.alb_controller[0],
     aws_eks_addon.coredns,
     aws_eks_addon.ebs_csi,
     aws_db_instance.this,

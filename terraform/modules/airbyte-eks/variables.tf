@@ -2,6 +2,16 @@
 # Self-hosted Airbyte on EKS via Helm.
 
 # ---------------------------------------------------------------------------
+# Deployment phase
+# ---------------------------------------------------------------------------
+
+variable "helm_enabled" {
+  description = "Set to true on Pass 2 (after the EKS cluster exists) to install Helm releases. False on Pass 1 so Helm releases are skipped entirely and the provider does not attempt to connect."
+  type        = bool
+  default     = false
+}
+
+# ---------------------------------------------------------------------------
 # Identity
 # ---------------------------------------------------------------------------
 

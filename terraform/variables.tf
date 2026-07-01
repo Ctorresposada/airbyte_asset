@@ -225,5 +225,5 @@ variable "eks_node_max_size" {
 variable "eks_airbyte_chart_version" {
   description = "Airbyte Helm chart version to deploy on EKS."
   type        = string
-  default     = "2.1.0"
+  default     = "1.9.2"
 }

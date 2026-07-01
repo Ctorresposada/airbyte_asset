@@ -61,11 +61,14 @@ ingress:
     alb.ingress.kubernetes.io/inbound-cidrs: "${allowed_cidr_blocks}"
     # ExternalDNS reads this annotation to create the Route53 A record.
     external-dns.alpha.kubernetes.io/hostname: "${domain_name}"
-  hosts:
+  rules:
     - host: "${domain_name}"
       paths:
         - path: /
           pathType: Prefix
+          service:
+            name: "airbyte-airbyte-webapp-svc"
+            port: 80
 
 temporal:
   database:

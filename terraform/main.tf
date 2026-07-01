@@ -71,6 +71,7 @@ module "airbyte_eks" {
   route53_zone_id     = var.route53_zone_id
 
   # EKS
+  helm_enabled          = var.eks_cluster_ready
   kubernetes_version    = var.eks_kubernetes_version
   node_instance_type    = var.eks_node_instance_type
   node_desired_size     = var.eks_node_desired_size
