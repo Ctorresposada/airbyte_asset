@@ -301,6 +301,29 @@ terraform apply -var-file=variables/dev-eks.tfvars
 terraform apply -var-file=variables/dev-eks.tfvars -var eks_cluster_ready=true
 ```
 
+### Destroying an EKS deployment
+
+The AWS Load Balancer Controller creates the ALB **outside of Terraform state** via Kubernetes Ingress annotations. If you run `terraform destroy` while the ALB controller is still running, the ALB's ENIs remain attached to the node security group and block its deletion.
+
+**Always destroy in this order:**
+
+```bash
+# Step 1 — delete the Ingress first so the ALB controller removes the ALB cleanly
+kubectl delete ingress -n airbyte --all
+
+# Step 2 — wait ~30s for the ALB and its ENIs to be fully removed, then destroy
+terraform destroy -var-file=variables/dev-eks.tfvars -var eks_cluster_ready=true
+```
+
+> If you forget Step 1 and the destroy gets stuck on the security group, find and delete the orphaned ENI manually:
+> ```bash
+> aws ec2 describe-network-interfaces --region <region> \
+>   --filters "Name=group-id,Values=<sg-id>" \
+>   --query "NetworkInterfaces[].[NetworkInterfaceId,Description]" --output table
+> aws ec2 delete-network-interface --region <region> --network-interface-id <eni-id>
+> ```
+> Then re-run `terraform destroy -var-file=variables/dev-eks.tfvars` (without `eks_cluster_ready=true` if the cluster is already gone).
+
 ### Admin credentials (EKS)
 
 Credentials are stored in a Kubernetes secret created by the Helm chart — see [Post-Deployment](#post-deployment) for the exact commands.
