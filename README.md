@@ -36,7 +36,7 @@ Both variants share the same inputs and outputs. Switch between them by changing
 | Component | Description |
 |---|---|
 | **EKS Cluster** | Managed Kubernetes with public API endpoint (restrict with `public_access_cidrs` for prod) |
-| **Managed Node Group** | ON_DEMAND m6a.xlarge × 2 (configurable), encrypted EBS, IMDSv2 |
+| **Managed Node Group** | ON_DEMAND m6a.2xlarge × 2 (configurable), encrypted EBS, IMDSv2 |
 | **EKS Add-ons** | vpc-cni, coredns, kube-proxy, ebs-csi (versions resolved dynamically) |
 | **AWS Load Balancer Controller** | Provisions the ALB from the Airbyte Ingress annotation |
 | **ExternalDNS** | Automatically manages the Route53 A record from the Ingress |
@@ -111,9 +111,9 @@ git clone https://github.com/Ctorresposada/airbyte_asset.git
 cd airbyte_asset/terraform
 
 # 2. Copy and edit the example tfvars
-cp variables/dev.tfvars variables/myenv.tfvars
-# Edit myenv.tfvars: set vpc_id, subnet IDs, domain_name, route53_zone_id
-# Set deployment_type = "ec2" or "eks"
+cp variables/dev.tfvars variables/dev.tfvars        # EC2
+cp variables/dev-eks.tfvars variables/dev-eks.tfvars # EKS
+# Edit: set vpc_id, subnet IDs, domain_name, route53_zone_id
 
 # 3. Initialize
 terraform init
@@ -122,17 +122,17 @@ terraform init
 ### EC2 deployment (one apply)
 
 ```bash
-terraform apply -var-file=variables/myenv.tfvars
+terraform apply -var-file=variables/dev.tfvars
 ```
 
 ### EKS deployment (two applies)
 
 ```bash
 # Pass 1 — creates all AWS infrastructure (EKS cluster, RDS, S3, IAM, etc.)
-terraform apply -var-file=variables/myenv.tfvars
+terraform apply -var-file=variables/dev-eks.tfvars
 
 # Pass 2 — installs Helm charts once the cluster is up
-terraform apply -var-file=variables/myenv.tfvars -var eks_cluster_ready=true
+terraform apply -var-file=variables/dev-eks.tfvars -var eks_cluster_ready=true
 ```
 
 ## Required Inputs
@@ -175,11 +175,11 @@ terraform apply -var-file=variables/myenv.tfvars -var eks_cluster_ready=true
 | Variable | Type | Default | Description |
 |---|---|---|---|
 | `eks_kubernetes_version` | `string` | `1.32` | Kubernetes version |
-| `eks_node_instance_type` | `string` | `m6a.xlarge` | Node group instance type |
+| `eks_node_instance_type` | `string` | `m6a.2xlarge` | Node group instance type |
 | `eks_node_desired_size` | `number` | `2` | Node group desired count |
 | `eks_node_min_size` | `number` | `2` | Node group minimum count |
 | `eks_node_max_size` | `number` | `4` | Node group maximum count |
-| `eks_airbyte_chart_version` | `string` | `2.1.0` | Airbyte Helm chart version |
+| `eks_airbyte_chart_version` | `string` | `1.9.2` | Airbyte Helm chart version |
 
 ## Outputs
 
@@ -293,12 +293,12 @@ The Helm/kubernetes providers are configured from the EKS cluster endpoint. Beca
 ```bash
 # Pass 1 — eks_cluster_ready defaults to false; Helm provider skips initialization.
 # Creates: EKS cluster, node group, RDS, S3, KMS, IAM/IRSA roles, ACM cert, security groups.
-terraform apply -var-file=variables/myenv.tfvars
+terraform apply -var-file=variables/dev-eks.tfvars
 
 # Pass 2 — eks_cluster_ready=true tells the providers to connect to the now-existing cluster.
 # Creates: EKS add-ons (vpc-cni, coredns, kube-proxy, ebs-csi), Airbyte Helm release,
 #          AWS Load Balancer Controller, ExternalDNS.
-terraform apply -var-file=variables/myenv.tfvars -var eks_cluster_ready=true
+terraform apply -var-file=variables/dev-eks.tfvars -var eks_cluster_ready=true
 ```
 
 ### Admin credentials (EKS)
@@ -386,14 +386,16 @@ Alternatively: **Settings → General** in the Airbyte UI shows the workspace ID
 cd terraform/examples/oracle-sqlserver-s3
 
 # 1. Copy and edit the tfvars
-cp variables/dev.tfvars variables/myenv.tfvars
+cp variables/dev.tfvars variables/dev.tfvars           # EC2 deployment
+cp variables/dev-eks.tfvars variables/dev-eks.tfvars   # EKS deployment
 # Fill in: Airbyte URL, client credentials, workspace ID,
 #          source DB endpoints, Secrets Manager ARNs,
 #          S3 bucket details, Glue catalog config
 
 # 2. Init and apply
 terraform init
-terraform apply -var-file=variables/myenv.tfvars
+terraform apply -var-file=variables/dev.tfvars        # EC2
+terraform apply -var-file=variables/dev-eks.tfvars    # EKS
 ```
 
 #### Required inputs
