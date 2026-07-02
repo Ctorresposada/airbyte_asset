@@ -229,6 +229,8 @@ data "aws_iam_policy_document" "irsa_airbyte_policy" {
   }
 
   # Secrets Manager: allow Airbyte to manage connector credentials under airbyte/ prefix.
+  # ListSecrets requires resource "*" per the IAM API — it cannot be scoped
+  # to specific ARNs. Airbyte uses it to discover connector secrets at startup.
   statement {
     sid    = "AirbyteSecretsManager"
     effect = "Allow"

@@ -13,6 +13,11 @@ variable "name" {
 variable "vpc_id" {
   description = "ID of the VPC into which Airbyte resources are deployed."
   type        = string
+
+  validation {
+    condition     = can(regex("^vpc-", var.vpc_id))
+    error_message = "vpc_id must start with 'vpc-'."
+  }
 }
 
 variable "private_subnet_ids" {
@@ -65,6 +70,24 @@ variable "alb_internal" {
 
 variable "alb_certificate_arn" {
   description = "ACM certificate ARN for the ALB HTTPS listener. If empty and domain_name is set, the module creates and validates an ACM certificate automatically."
+  type        = string
+  default     = ""
+}
+
+variable "alb_deletion_protection" {
+  description = "Enable deletion protection on the ALB. Recommended for production. Must be disabled before the ALB can be destroyed."
+  type        = bool
+  default     = false
+}
+
+variable "alb_access_logs_bucket" {
+  description = "S3 bucket name for ALB access logs. When non-empty, ALB access logging is enabled. The bucket must already exist with the correct ELB service principal policy."
+  type        = string
+  default     = ""
+}
+
+variable "alb_access_logs_prefix" {
+  description = "S3 key prefix for ALB access logs. Only used when alb_access_logs_bucket is set."
   type        = string
   default     = ""
 }
@@ -125,6 +148,11 @@ variable "rds_backup_retention_days" {
   description = "Number of days to retain automated RDS backups. Set to 0 to disable backups (not recommended)."
   type        = number
   default     = 7
+
+  validation {
+    condition     = var.rds_backup_retention_days >= 0 && var.rds_backup_retention_days <= 35
+    error_message = "rds_backup_retention_days must be between 0 and 35."
+  }
 }
 
 # ---------------------------------------------------------------------------
@@ -147,6 +175,11 @@ variable "log_retention_days" {
   description = "Number of days to retain CloudWatch log events for the Airbyte log group. Defaults to 365 to satisfy CKV_AWS_338; override to a shorter period for dev/staging."
   type        = number
   default     = 365
+
+  validation {
+    condition     = contains([0, 1, 3, 5, 7, 14, 30, 60, 90, 120, 150, 180, 365, 400, 545, 731, 1096, 1827, 2192, 2557, 2922, 3288, 3653], var.log_retention_days)
+    error_message = "log_retention_days must be a value accepted by CloudWatch (0, 1, 3, 5, 7, 14, 30, 60, 90, 120, 150, 180, 365, 400, 545, 731, 1096, 1827, 2192, 2557, 2922, 3288, or 3653)."
+  }
 }
 
 variable "s3_force_destroy" {
@@ -165,4 +198,9 @@ variable "ebs_volume_size" {
   description = "Size (in GB) of the root EBS volume for the Airbyte EC2 instance. 50 GB is the minimum; increase for high-volume syncs."
   type        = number
   default     = 50
+
+  validation {
+    condition     = var.ebs_volume_size >= 20
+    error_message = "ebs_volume_size must be at least 20 GB."
+  }
 }

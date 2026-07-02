@@ -26,8 +26,9 @@ resource "aws_eks_cluster" "this" {
   vpc_config {
     subnet_ids              = concat(var.private_subnet_ids, var.public_subnet_ids)
     endpoint_private_access = true
-    endpoint_public_access  = true # Set to false and add public_access_cidrs for production
-    security_group_ids      = []   # EKS manages its own cluster security group
+    endpoint_public_access  = true
+    public_access_cidrs     = var.eks_public_access_cidrs
+    security_group_ids      = [] # EKS manages its own cluster security group
   }
 
   # Encrypt Kubernetes secrets at rest with the CMK.
@@ -97,11 +98,8 @@ resource "aws_launch_template" "node" {
       volume_size           = 50
       volume_type           = "gp3"
       encrypted             = true
+      kms_key_id            = aws_kms_key.this.arn
       delete_on_termination = true
-      # Node EBS uses the AWS-managed aws/ebs key. Using the CMK here requires the
-      # node IAM role in the key policy, which creates a circular dependency at
-      # key creation time. All other resources (RDS, S3, Secrets Manager, EKS secrets,
-      # CloudWatch) continue to use the CMK.
     }
   }
 
@@ -361,17 +359,15 @@ resource "helm_release" "airbyte" {
   timeout          = 1200 # Airbyte takes 7-15 minutes to fully initialize
 
   values = [templatefile("${path.module}/templates/airbyte-values.yaml.tpl", {
-    db_host     = aws_db_instance.this.address
-    db_port     = aws_db_instance.this.port
-    db_name     = var.rds_db_name
-    db_user     = var.rds_username
-    db_password = random_password.rds.result
+    db_host = aws_db_instance.this.address
+    db_port = aws_db_instance.this.port
+    db_name = var.rds_db_name
+    db_user = var.rds_username
 
-    temporal_db_host     = aws_db_instance.this.address
-    temporal_db_port     = aws_db_instance.this.port
-    temporal_db_name     = var.rds_temporal_db_name
-    temporal_db_user     = var.rds_username
-    temporal_db_password = random_password.rds.result
+    temporal_db_host = aws_db_instance.this.address
+    temporal_db_port = aws_db_instance.this.port
+    temporal_db_name = var.rds_temporal_db_name
+    temporal_db_user = var.rds_username
 
     s3_bucket_name      = aws_s3_bucket.this.id
     s3_region           = data.aws_region.current.region
@@ -383,6 +379,18 @@ resource "helm_release" "airbyte" {
     allowed_cidr_blocks = join(",", var.allowed_cidr_blocks)
     public_subnet_ids   = join(",", var.public_subnet_ids)
   })]
+
+  # Inject database passwords via set_sensitive so they never appear in plan
+  # output or unencrypted state values.
+  set_sensitive {
+    name  = "global.database.password"
+    value = random_password.rds.result
+  }
+
+  set_sensitive {
+    name  = "temporal.database.password"
+    value = random_password.rds.result
+  }
 
   depends_on = [
     helm_release.alb_controller[0],

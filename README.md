@@ -161,7 +161,6 @@ terraform apply -var-file=variables/eks-dev.tfvars -var eks_cluster_ready=true
 | `rds_deletion_protection` | `bool` | `false` | Enable deletion protection (recommended for prod) |
 | `log_retention_days` | `number` | `90` | CloudWatch log retention |
 
-> **Secrets Manager recovery window:** Both modules set `recovery_window_in_days = 0` (immediate deletion) so that re-deploying after a destroy works without hitting the "secret scheduled for deletion" error. For production deployments, change this to `7` (or up to `30`) in `modules/airbyte-ec2/main.tf` and `modules/airbyte-eks/main.tf` to retain a recovery window for accidental deletions.
 | `tags` | `map(string)` | `{}` | Additional tags for all resources |
 
 ### EC2-only
@@ -477,8 +476,8 @@ This project uses [Checkov](https://www.checkov.io/) to scan Terraform for secur
 |---|---|---|
 | `CKV_AWS_157` | Multi-AZ RDS | Configurable via `rds_multi_az` variable — off by default for cost |
 | `CKV_AWS_293` | RDS deletion protection | Configurable via `rds_deletion_protection` variable — off for dev |
-| `CKV_AWS_150` | ALB deletion protection | Intentionally off for teardown flexibility |
-| `CKV_AWS_91` | ALB access logging | Would need a dedicated S3 bucket — deferred; CloudTrail covers audit |
+| `CKV_AWS_150` | ALB deletion protection | Configurable via `alb_deletion_protection` variable — off by default |
+| `CKV_AWS_91` | ALB access logging | Configurable via `alb_access_logs_bucket` variable — off by default; CloudTrail covers audit |
 | `CKV_AWS_18` | S3 access logging | Same — CloudTrail covers the audit trail |
 | `CKV_AWS_144` | S3 cross-region replication | Not needed for Airbyte logs/artifacts |
 | `CKV2_AWS_57` | Secrets Manager auto-rotation | Would require a Lambda rotator + coordinated Airbyte restart |
@@ -502,6 +501,35 @@ brew tap minamijoyo/tfupdate && brew install tfupdate
 
 # Run all checks
 pre-commit run --all-files
+```
+
+## Known Issues
+
+### EKS destroy: Ingress finalizer can hang `terraform destroy`
+
+During `terraform destroy` the module runs `kubectl delete ingress -n airbyte --all` via a destroy-time provisioner to clean up the ALB before removing the security groups. If the ALB controller Helm release is destroyed in parallel (or the auth token expires during a long destroy), the `kubectl delete` command can hang indefinitely waiting for the Ingress finalizer to be processed.
+
+**Workaround:** If the destroy stalls on `null_resource.delete_ingress_before_destroy` for more than 5 minutes, open a separate terminal and remove the finalizer manually:
+
+```bash
+aws eks update-kubeconfig --region <region> --name <cluster_name>
+kubectl patch ingress airbyte-ingress -n airbyte -p '{"metadata":{"finalizers":null}}' --type=merge
+kubectl delete ingress -n airbyte --all --force --grace-period=0
+```
+
+The destroy will then proceed. If the Helm provider also gets an auth error after the hang, re-run `terraform destroy` to get a fresh token.
+
+### Airbyte Helm chart version vs app version
+
+The `eks_airbyte_chart_version` variable refers to the **Helm chart version** (e.g. `1.9.2`), not the Airbyte platform/app version (e.g. `2.1.0`). These are separate version schemes. Check the available chart versions at the [Airbyte Helm repository](https://airbytehq.github.io/helm-charts) before changing this value. Using a non-existent chart version will fail during `terraform apply` with `chart "airbyte" version "X.Y.Z" not found`.
+
+### Secrets Manager re-deploy after destroy
+
+Both modules set `recovery_window_in_days = 7` on Secrets Manager secrets. If you destroy and re-deploy with the same `project_name` + `environment` within 7 days, the secret names will collide with the ones scheduled for deletion. Either wait 7 days, use a different name, or force-delete the pending secrets:
+
+```bash
+aws secretsmanager delete-secret --secret-id "<name>/rds" --force-delete-without-recovery
+aws secretsmanager delete-secret --secret-id "<name>/airbyte-admin-creds" --force-delete-without-recovery
 ```
 
 ## License

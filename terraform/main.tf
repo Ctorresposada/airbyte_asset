@@ -71,13 +71,14 @@ module "airbyte_eks" {
   route53_zone_id     = var.route53_zone_id
 
   # EKS
-  helm_enabled          = var.eks_cluster_ready
-  kubernetes_version    = var.eks_kubernetes_version
-  node_instance_type    = var.eks_node_instance_type
-  node_desired_size     = var.eks_node_desired_size
-  node_min_size         = var.eks_node_min_size
-  node_max_size         = var.eks_node_max_size
-  airbyte_chart_version = var.eks_airbyte_chart_version
+  helm_enabled            = var.eks_cluster_ready
+  kubernetes_version      = var.eks_kubernetes_version
+  eks_public_access_cidrs = var.eks_public_access_cidrs
+  node_instance_type      = var.eks_node_instance_type
+  node_desired_size       = var.eks_node_desired_size
+  node_min_size           = var.eks_node_min_size
+  node_max_size           = var.eks_node_max_size
+  airbyte_chart_version   = var.eks_airbyte_chart_version
 
   # RDS
   rds_instance_class        = var.rds_instance_class

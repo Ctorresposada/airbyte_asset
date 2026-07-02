@@ -27,6 +27,11 @@ variable "name" {
 variable "vpc_id" {
   description = "ID of the existing VPC."
   type        = string
+
+  validation {
+    condition     = can(regex("^vpc-", var.vpc_id))
+    error_message = "vpc_id must start with 'vpc-'."
+  }
 }
 
 variable "private_subnet_ids" {
@@ -72,6 +77,12 @@ variable "allowed_cidr_blocks" {
 # EKS
 # ---------------------------------------------------------------------------
 
+variable "eks_public_access_cidrs" {
+  description = "CIDR blocks that can reach the EKS Kubernetes API server public endpoint. Restrict to your IP or CI/CD runner CIDRs in production. Does not affect the Airbyte web console (ALB)."
+  type        = list(string)
+  default     = ["0.0.0.0/0"]
+}
+
 variable "kubernetes_version" {
   description = "Kubernetes version for the EKS cluster."
   type        = string
@@ -100,12 +111,17 @@ variable "node_max_size" {
   description = "Maximum number of nodes in the EKS managed node group."
   type        = number
   default     = 4
+
+  validation {
+    condition     = var.node_max_size >= 1
+    error_message = "node_max_size must be at least 1."
+  }
 }
 
 variable "airbyte_chart_version" {
   description = "Airbyte Helm chart version to deploy."
   type        = string
-  default     = "2.1.0"
+  default     = "1.9.2"
 }
 
 # ---------------------------------------------------------------------------
@@ -146,6 +162,11 @@ variable "rds_backup_retention_days" {
   description = "Number of days to retain automated RDS backups."
   type        = number
   default     = 7
+
+  validation {
+    condition     = var.rds_backup_retention_days >= 0 && var.rds_backup_retention_days <= 35
+    error_message = "rds_backup_retention_days must be between 0 and 35."
+  }
 }
 
 variable "rds_deletion_protection" {
@@ -168,6 +189,11 @@ variable "log_retention_days" {
   description = "Number of days to retain CloudWatch log events. Defaults to 365 to satisfy CKV_AWS_338; override to a shorter period for dev/staging."
   type        = number
   default     = 365
+
+  validation {
+    condition     = contains([0, 1, 3, 5, 7, 14, 30, 60, 90, 120, 150, 180, 365, 400, 545, 731, 1096, 1827, 2192, 2557, 2922, 3288, 3653], var.log_retention_days)
+    error_message = "log_retention_days must be a value accepted by CloudWatch (0, 1, 3, 5, 7, 14, 30, 60, 90, 120, 150, 180, 365, 400, 545, 731, 1096, 1827, 2192, 2557, 2922, 3288, or 3653)."
+  }
 }
 
 variable "s3_force_destroy" {

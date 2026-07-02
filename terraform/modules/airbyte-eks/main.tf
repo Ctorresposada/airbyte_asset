@@ -123,7 +123,7 @@ resource "aws_kms_key" "this" {
 }
 
 resource "aws_kms_alias" "this" {
-  name          = "alias/${var.name}"
+  name          = "alias/${replace(var.name, ".", "-")}"
   target_key_id = aws_kms_key.this.key_id
 }
 
@@ -146,7 +146,7 @@ resource "aws_secretsmanager_secret" "rds" {
   name                    = "${var.name}/rds"
   description             = "RDS credentials for Airbyte PostgreSQL (${var.name})"
   kms_key_id              = aws_kms_key.this.arn
-  recovery_window_in_days = 0
+  recovery_window_in_days = 7
 
   tags = local.common_tags
 }
@@ -174,7 +174,7 @@ resource "aws_secretsmanager_secret" "airbyte_admin" {
   name                    = "${var.name}/airbyte-admin-creds"
   description             = "Airbyte web UI admin credentials (${var.name}). Populated after first Helm deploy."
   kms_key_id              = aws_kms_key.this.arn
-  recovery_window_in_days = 0
+  recovery_window_in_days = 7
 
   tags = local.common_tags
 }
@@ -357,6 +357,42 @@ resource "aws_s3_bucket_public_access_block" "this" {
   restrict_public_buckets = true
 }
 
+resource "aws_s3_bucket_ownership_controls" "this" {
+  bucket = aws_s3_bucket.this.id
+
+  rule {
+    object_ownership = "BucketOwnerEnforced"
+  }
+}
+
+data "aws_iam_policy_document" "s3_ssl_only" {
+  statement {
+    sid     = "DenyInsecureTransport"
+    effect  = "Deny"
+    actions = ["s3:*"]
+    resources = [
+      aws_s3_bucket.this.arn,
+      "${aws_s3_bucket.this.arn}/*",
+    ]
+    principals {
+      type        = "*"
+      identifiers = ["*"]
+    }
+    condition {
+      test     = "Bool"
+      variable = "aws:SecureTransport"
+      values   = ["false"]
+    }
+  }
+}
+
+resource "aws_s3_bucket_policy" "this" {
+  bucket = aws_s3_bucket.this.id
+  policy = data.aws_iam_policy_document.s3_ssl_only.json
+
+  depends_on = [aws_s3_bucket_public_access_block.this]
+}
+
 resource "aws_s3_bucket_lifecycle_configuration" "this" {
   bucket = aws_s3_bucket.this.id
 
@@ -370,6 +406,17 @@ resource "aws_s3_bucket_lifecycle_configuration" "this" {
 
     expiration {
       days = 90
+    }
+  }
+
+  rule {
+    id     = "expire-noncurrent-versions"
+    status = "Enabled"
+
+    filter {}
+
+    noncurrent_version_expiration {
+      noncurrent_days = 30
     }
   }
 

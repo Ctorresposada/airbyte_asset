@@ -170,7 +170,7 @@ resource "aws_kms_key" "this" {
 resource "aws_kms_alias" "this" {
   count = var.create ? 1 : 0
 
-  name          = "alias/${var.name}"
+  name          = "alias/${replace(var.name, ".", "-")}"
   target_key_id = aws_kms_key.this[0].key_id
 }
 
@@ -265,8 +265,10 @@ data "aws_iam_policy_document" "airbyte_inline" {
     resources = [try(aws_s3_bucket.this[0].arn, "arn:aws:s3:::placeholder-never-used")]
   }
 
-  # Secrets Manager: allow Airbyte to read connector credentials it stores
-  # under the airbyte/ prefix.
+  # Secrets Manager: allow Airbyte to manage connector credentials it stores
+  # under the airbyte/ prefix. ListSecrets requires resource "*" per the IAM
+  # API — it cannot be scoped to specific ARNs. Airbyte uses it to discover
+  # and enumerate connector secrets at startup.
   statement {
     sid    = "AirbyteSecretsManager"
     effect = "Allow"
@@ -371,7 +373,7 @@ resource "aws_secretsmanager_secret" "rds" {
   name                    = "${var.name}/rds"
   description             = "RDS credentials for Airbyte PostgreSQL (${var.name})"
   kms_key_id              = aws_kms_key.this[0].arn
-  recovery_window_in_days = 0
+  recovery_window_in_days = 7
 
   tags = local.common_tags
 }
@@ -403,7 +405,7 @@ resource "aws_secretsmanager_secret" "airbyte_admin" {
   name                    = "${var.name}/airbyte-admin-creds"
   description             = "Airbyte web UI admin credentials (${var.name})"
   kms_key_id              = aws_kms_key.this[0].arn
-  recovery_window_in_days = 0
+  recovery_window_in_days = 7
 
   tags = local.common_tags
 }
@@ -649,6 +651,48 @@ resource "aws_s3_bucket_public_access_block" "this" {
   restrict_public_buckets = true
 }
 
+resource "aws_s3_bucket_ownership_controls" "this" {
+  count = var.create ? 1 : 0
+
+  bucket = aws_s3_bucket.this[0].id
+
+  rule {
+    object_ownership = "BucketOwnerEnforced"
+  }
+}
+
+data "aws_iam_policy_document" "s3_ssl_only" {
+  count = var.create ? 1 : 0
+
+  statement {
+    sid     = "DenyInsecureTransport"
+    effect  = "Deny"
+    actions = ["s3:*"]
+    resources = [
+      aws_s3_bucket.this[0].arn,
+      "${aws_s3_bucket.this[0].arn}/*",
+    ]
+    principals {
+      type        = "*"
+      identifiers = ["*"]
+    }
+    condition {
+      test     = "Bool"
+      variable = "aws:SecureTransport"
+      values   = ["false"]
+    }
+  }
+}
+
+resource "aws_s3_bucket_policy" "this" {
+  count = var.create ? 1 : 0
+
+  bucket = aws_s3_bucket.this[0].id
+  policy = data.aws_iam_policy_document.s3_ssl_only[0].json
+
+  depends_on = [aws_s3_bucket_public_access_block.this]
+}
+
 resource "aws_s3_bucket_lifecycle_configuration" "this" {
   count = var.create ? 1 : 0
 
@@ -664,6 +708,17 @@ resource "aws_s3_bucket_lifecycle_configuration" "this" {
 
     expiration {
       days = 90
+    }
+  }
+
+  rule {
+    id     = "expire-noncurrent-versions"
+    status = "Enabled"
+
+    filter {}
+
+    noncurrent_version_expiration {
+      noncurrent_days = 30
     }
   }
 
@@ -846,9 +901,7 @@ resource "aws_launch_template" "this" {
 resource "aws_lb" "this" {
   count = var.create ? (var.create_alb ? 1 : 0) : 0
 
-  #checkov:skip=CKV_AWS_150: Deletion protection is intentionally omitted; module is used for dev/staging as well as prod
   #checkov:skip=CKV2_AWS_28: WAF association is managed outside this module
-  #checkov:skip=CKV_AWS_91: ALB access logging requires a dedicated S3 bucket; intentionally deferred to the calling stack
   name                       = local.name_prefix
   internal                   = var.alb_internal
   load_balancer_type         = "application"
@@ -856,7 +909,16 @@ resource "aws_lb" "this" {
   subnets                    = var.alb_subnet_ids
   drop_invalid_header_fields = true
 
-  enable_deletion_protection = false
+  enable_deletion_protection = var.alb_deletion_protection
+
+  dynamic "access_logs" {
+    for_each = var.alb_access_logs_bucket != "" ? [1] : []
+    content {
+      bucket  = var.alb_access_logs_bucket
+      prefix  = var.alb_access_logs_prefix
+      enabled = true
+    }
+  }
 
   tags = local.common_tags
 }

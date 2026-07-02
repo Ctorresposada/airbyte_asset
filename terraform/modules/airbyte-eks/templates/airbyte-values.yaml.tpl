@@ -17,12 +17,14 @@ global:
 
   database:
     # External RDS PostgreSQL for Airbyte configuration storage.
+    # Password is injected via set_sensitive in helm_release to keep it out of
+    # plan output and state values.
     type: "external"
     host: "${db_host}"
     port: ${db_port}
     database: "${db_name}"
     user: "${db_user}"
-    password: "${db_password}"
+    password: ""
 
   storage:
     type: S3
@@ -73,11 +75,12 @@ ingress:
 
 temporal:
   database:
+    # Password is injected via set_sensitive in helm_release.
     host: "${temporal_db_host}"
     port: ${temporal_db_port}
     database: "${temporal_db_name}"
     user: "${temporal_db_user}"
-    password: "${temporal_db_password}"
+    password: ""
 
 # Disable internal MinIO; all blob storage goes through S3.
 minio:
