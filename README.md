@@ -219,7 +219,7 @@ aws secretsmanager get-secret-value \
   --region <aws_region> \
   --query SecretString --output text
 ```
-> Example: `--secret-id "airbyte-asset-dev/airbyte-admin-creds"`
+> Example: `--secret-id "airbyte-asset-dev/airbyte-admin-creds"` . Note:  when logging to the URL, cancel the first pop up box, then enter your email, that will be your username, and get the password from this secret
 
 **EKS variant** — credentials live in a Kubernetes secret created by the Helm chart:
 ```bash
@@ -227,7 +227,7 @@ aws secretsmanager get-secret-value \
 kubectl get secret airbyte-auth-secrets -n airbyte \
   -o jsonpath='{.data.instance-admin-email}' | base64 --decode
 
-# Password
+# Password 
 kubectl get secret airbyte-auth-secrets -n airbyte \
   -o jsonpath='{.data.instance-admin-password}' | base64 --decode
 ```
@@ -240,7 +240,7 @@ kubectl get secret airbyte-auth-secrets -n airbyte \
 
 ### 2. Access the console
 
-Open the `airbyte_url` output in your browser. For EC2, `alb_dns_name` works too if no custom domain was configured.
+Open the `airbyte_url` output in your browser. For EC2, `alb_dns_name` works too if no custom domain was configured.  when logging to the URL, cancel the first pop up box, then enter your email and get the password fin the precious steps.
 
 ### 3. Attach connector permissions
 
