@@ -1,6 +1,7 @@
 # Airbyte Asset
 
 A reusable Terraform module that deploys a fully functional **self-hosted Airbyte** console into any AWS account. Built by the **Caylent Center of Excellence for Data Modernization**.
+Authored by: Cristopher Torres and Werner Kahnlein
 
 ## Deployment Variants
 
