@@ -345,7 +345,7 @@ terraform state mv 'module.airbyte' 'module.airbyte_ec2[0]'
 
 Or for a complete migration, run `terraform state mv` for each resource — see `terraform state list` output for the full set.
 
-## Examples
+## Examples (note: Oracle RDS and SQL Server RDS are created in Caylent testing account, and are stopped. This module DOES NOT CREATE THEM, because it's out of scope. The purpose of the examples is to show how sources, destinations and connections can be handled using Terraform. This are just 2 of the hundreds of connectors that are supported by Airbyte, like Snowflake, PostgreSQL, and so on and so forth)
 
 ### Oracle + SQL Server → S3 Data Lake
 
