@@ -400,15 +400,14 @@ alb_internal = true
 
 **2. Place the ALB in private subnets**
 
-The `alb_subnet_ids` variable controls which subnets the ALB's ENIs are placed in. For an internal ALB, pass your private subnets (the same ones used by the EC2 instance):
+The root module hardcodes `alb_subnet_ids = var.public_subnet_ids` when calling the EC2 module (`terraform/main.tf`). There is no separate root-level `alb_subnet_ids` variable. To place the ALB in private subnets, pass your private subnet IDs as `public_subnet_ids`:
 
 ```hcl
-# Before (internet-facing — public subnets)
-# alb_subnet_ids = ["subnet-pub-1a", "subnet-pub-1b"]
-
-# After (internal — private subnets)
-alb_subnet_ids = ["subnet-priv-1a", "subnet-priv-1b"]
+# Pass private subnets here — the root module forwards this to alb_subnet_ids on the EC2 module
+public_subnet_ids = ["subnet-priv-1a", "subnet-priv-1b"]
 ```
+
+> Note: this is a known naming quirk. A future improvement would be adding a dedicated `alb_subnet_ids` variable to the root module so the intent is explicit.
 
 **3. Restrict the CIDR whitelist**
 
@@ -426,6 +425,8 @@ If you want the domain to resolve only inside the VPC, associate a **private hos
 ### EKS variant
 
 The EKS module requires one template edit in addition to tfvars changes, because the ALB scheme is set via a hardcoded Ingress annotation rather than a variable.
+
+> ⚠️ **Partially tested (2026-07-05):** The ALB controller correctly provisioned an `internal` ALB from the annotation, and the internal DNS name was confirmed unreachable from outside the VPC. However, the full Airbyte boot path (console accessible from inside the VPC) was not validated due to an unrelated bug — see [Known Issues](#known-issues). Treat the EKS private deployment as directionally correct but not fully end-to-end verified.
 
 **1. Change the ALB scheme in the Ingress template**
 
@@ -479,7 +480,7 @@ Same consideration as the EC2 variant — use a private hosted zone if you want 
 | What to change | EC2 | EKS |
 |---|---|---|
 | ALB scheme | `alb_internal = true` (variable) | Edit `airbyte-values.yaml.tpl` line (`internet-facing` → `internal`) |
-| ALB subnet placement | `alb_subnet_ids` = private subnets | `public_subnet_ids` = private subnets |
+| ALB subnet placement | `public_subnet_ids` = private subnets (root module forwards to `alb_subnet_ids`) | `public_subnet_ids` = private subnets |
 | CIDR whitelist | `allowed_cidr_blocks` = VPN/VPC range | `allowed_cidr_blocks` = VPN/VPC range |
 | kubectl access (EKS only) | N/A | `eks_public_access_cidrs` = admin IPs |
 | DNS | Use private Route53 zone (optional) | Use private Route53 zone (optional) |

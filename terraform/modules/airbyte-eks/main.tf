@@ -132,9 +132,11 @@ resource "aws_kms_alias" "this" {
 # ---------------------------------------------------------------------------
 
 resource "random_password" "rds" {
-  length           = 32
-  special          = true
-  override_special = "!#$%&*()-_=+[]{}<>:?"
+  length  = 32
+  special = true
+  # Restricted to characters safe in YAML (avoids anchor &, alias *, tag !, flow {}/[]),
+  # Helm strvals (avoids , separator), and shell (avoids glob *, redirection <>, subshell ()).
+  override_special = "#$%-_=+@"
 }
 
 # ---------------------------------------------------------------------------

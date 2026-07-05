@@ -191,9 +191,11 @@ resource "time_sleep" "kms_propagation" {
 resource "random_password" "rds" {
   count = var.create ? 1 : 0
 
-  length           = 32
-  special          = true
-  override_special = "!#$%&*()-_=+[]{}<>:?"
+  length  = 32
+  special = true
+  # Restricted to characters safe in YAML (avoids anchor &, alias *, tag !, flow {}/[]),
+  # Helm strvals (avoids , separator), and shell (avoids glob *, redirection <>, subshell ()).
+  override_special = "#$%-_=+@"
 }
 
 # ---------------------------------------------------------------------------
