@@ -343,7 +343,14 @@ resource "null_resource" "delete_ingress_before_destroy" {
     when    = destroy
     command = <<-EOT
       aws eks update-kubeconfig --region ${self.triggers.region} --name ${self.triggers.cluster_name} 2>/dev/null || true
-      kubectl delete ingress -n airbyte --all --ignore-not-found=true 2>/dev/null || true
+      # Send delete without blocking -- ALB controller removes the finalizer asynchronously.
+      kubectl delete ingress -n airbyte --all --ignore-not-found=true --wait=false 2>/dev/null || true
+      # Wait up to 120 s for the ALB controller to deregister targets and drop the finalizer.
+      # If it times out (e.g. controller is already gone), force-strip the finalizer so the
+      # object can be GC'd and the destroy does not hang indefinitely.
+      kubectl wait --for=delete ingress/airbyte-ingress -n airbyte --timeout=120s 2>/dev/null || \
+        kubectl patch ingress airbyte-ingress -n airbyte \
+          -p '{"metadata":{"finalizers":[]}}' --type=merge 2>/dev/null || true
       sleep 30
     EOT
   }

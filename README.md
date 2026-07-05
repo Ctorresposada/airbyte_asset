@@ -426,7 +426,7 @@ If you want the domain to resolve only inside the VPC, associate a **private hos
 
 The EKS module requires one template edit in addition to tfvars changes, because the ALB scheme is set via a hardcoded Ingress annotation rather than a variable.
 
-> ⚠️ **Partially tested (2026-07-05):** The ALB controller correctly provisioned an `internal` ALB from the annotation, and the internal DNS name was confirmed unreachable from outside the VPC. However, the full Airbyte boot path (console accessible from inside the VPC) was not validated due to an unrelated bug — see [Known Issues](#known-issues). Treat the EKS private deployment as directionally correct but not fully end-to-end verified.
+> ✅ **Fully tested (2026-07-05):** ALB controller provisioned an `internal` ALB, internal DNS was confirmed unreachable from outside the VPC, Airbyte booted successfully, and an internal health check returned HTTP 200.
 
 **1. Change the ALB scheme in the Ingress template**
 
