@@ -104,6 +104,30 @@ route53_zone_id = "Z0123456789ABCDEFGHIJ"  # From the Route53 hosted zone
 - The root domain NS/SOA records
 - Any other records in the zone
 
+## Backend and Authentication
+
+### Terraform state
+
+By default the module uses **local state** (no remote backend configured). For team or production use, configure an S3 backend in `terraform/terraform.tf`:
+
+```hcl
+backend "s3" {
+  bucket = "your-terraform-state-bucket"
+  key    = "airbyte-asset/terraform.tfstate"
+  region = "us-east-1"
+}
+```
+
+### AWS authentication
+
+Terraform needs AWS credentials with sufficient permissions to create the resources listed in [What It Deploys](#what-it-deploys). Any standard AWS authentication method works:
+
+- `aws sso login --profile <profile>` (recommended)
+- Environment variables (`AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY`)
+- IAM instance profile (CI/CD runners)
+
+The deploying identity needs at minimum: EC2, EKS, RDS, S3, KMS, IAM, Secrets Manager, Route53, ACM, CloudWatch, ELB, and SSM permissions.
+
 ## Quick Start
 
 ```bash
@@ -119,6 +143,23 @@ cd airbyte_asset/terraform
 # 3. Initialize
 terraform init
 ```
+
+### Filling out tfvars
+
+Copy one of the example files in `terraform/variables/` and replace the placeholder values:
+
+| Variable | Where to get it | Notes |
+|---|---|---|
+| `project_name` | Choose a name | Becomes the prefix for all AWS resources; must be globally unique for S3 |
+| `environment` | Choose (`dev`, `staging`, `prod`) | Appended to project_name; use a unique value per deployment to avoid name collisions |
+| `vpc_id` | AWS Console → VPC → Your VPCs | Must be an existing VPC with NAT gateway(s) for private subnets |
+| `private_subnet_ids` | AWS Console → VPC → Subnets | Private subnets routed through NAT; minimum 2 AZs (required by RDS) |
+| `public_subnet_ids` | AWS Console → VPC → Subnets | Internet-facing subnets for the ALB |
+| `domain_name` | Your domain registrar | FQDN like `airbyte.example.com`; optional but recommended |
+| `route53_zone_id` | AWS Console → Route53 → Hosted zones | Must match the parent domain of `domain_name` |
+| `allowed_cidr_blocks` | Your IP / VPN CIDR | **Security-sensitive**: restrict to your network; `0.0.0.0/0` exposes the console to the internet |
+
+> **Do not commit real AWS resource IDs** to a shared repository. The files in `terraform/variables/` are tracked as examples only; for customer deployments, use a gitignored copy or pass values via `-var` flags.
 
 ### EC2 deployment (one apply)
 
@@ -331,6 +372,10 @@ terraform destroy -var-file=variables/eks-dev.tfvars -var eks_cluster_ready=true
 > ```
 > Then re-run `terraform destroy -var-file=variables/eks-dev.tfvars` (without `eks_cluster_ready=true` if the cluster is already gone).
 
+### EC2 vs EKS ALB differences
+
+In the EC2 variant, the ALB is Terraform-managed and supports `alb_deletion_protection`, `alb_access_logs_bucket`, and `alb_internal` variables. In the EKS variant, the ALB is created by the AWS Load Balancer Controller from Kubernetes Ingress annotations and is **not** Terraform-managed. To enable deletion protection or access logging on the EKS ALB, configure them via Ingress annotations in the Helm values template (`modules/airbyte-eks/templates/airbyte-values.yaml.tpl`).
+
 ### Admin credentials (EKS)
 
 Credentials are stored in a Kubernetes secret created by the Helm chart — see [Post-Deployment](#post-deployment) for the exact commands.
@@ -455,7 +500,7 @@ The Airbyte EC2 security group only allows HTTPS/HTTP egress by default. To reac
 
 ## Security Scanning (Checkov)
 
-This project uses [Checkov](https://www.checkov.io/) to scan Terraform for security misconfigurations. The configuration at `.config/.checkov.yaml` includes **18 intentional exceptions**, grouped by risk level:
+This project uses [Checkov](https://www.checkov.io/) to scan Terraform for security misconfigurations. The configuration at `.config/.checkov.yaml` includes **26 intentional exceptions**, grouped by risk level:
 
 ### Low risk — Terraform framework quirks
 
@@ -495,6 +540,21 @@ This project uses [Checkov](https://www.checkov.io/) to scan Terraform for secur
 | `CKV2_AWS_30` | RDS query logging | Internal metadata DB — excessive noise with no security value |
 | `CKV2_AWS_28` | WAF on ALB | Cost not justified for an internal data-engineering tool |
 
+### EKS-specific exceptions
+
+| Check | What it wants | Why we skip |
+|---|---|---|
+| `CKV_AWS_39` | Disable EKS public endpoint | Enabled for demo/CoE use; restrict with `eks_public_access_cidrs` for production |
+| `CKV_AWS_74` | Restrict EKS public endpoint CIDRs | Configurable via `eks_public_access_cidrs`; defaults to `0.0.0.0/0` for flexibility |
+| `CKV_AWS_58` | EKS secrets encryption | Already enabled via `encryption_config` block |
+| `CKV_AWS_37` | EKS control plane logging | All five log types enabled via `enabled_cluster_log_types` |
+| `CKV_AWS_38` | EKS private endpoint | Private access is enabled (`endpoint_private_access = true`) |
+| `CKV_AWS_339` | EKS version currency | Version set via `kubernetes_version` variable; version currency is caller's responsibility |
+| `CKV_AWS_88` | No public IP on nodes | Nodes are in private subnets |
+| `CKV_AWS_110`, `CKV_AWS_108` | Restrict ALB controller IAM | ALB controller requires broad EC2/ELB Describe permissions; write actions are resource-scoped |
+| `CKV_AWS_356` | Restrict IAM `Resource: *` | KMS key policy `*` means "this key" (AWS pattern); ALB controller read actions require `*` |
+| `CKV_AWS_145` | S3 KMS encryption | False positive — KMS SSE configured via separate `aws_s3_bucket_server_side_encryption_configuration` resource |
+
 ## Development
 
 ```bash
@@ -527,6 +587,10 @@ The destroy will then proceed. If the Helm provider also gets an auth error afte
 ### Airbyte Helm chart version vs app version
 
 The `eks_airbyte_chart_version` variable refers to the **Helm chart version** (e.g. `1.9.2`), not the Airbyte platform/app version (e.g. `2.1.0`). These are separate version schemes. Check the available chart versions at the [Airbyte Helm repository](https://airbytehq.github.io/helm-charts) before changing this value. Using a non-existent chart version will fail during `terraform apply` with `chart "airbyte" version "X.Y.Z" not found`.
+
+### EC2: `db-airbyte` database created at boot
+
+Airbyte's bootloader expects a PostgreSQL database named `db-airbyte`. The AWS RDS API does not allow hyphens in the initial `db_name` parameter, so the module creates the RDS instance with `db_name = "airbyte"` and the EC2 user-data script creates `db-airbyte` via `psql` at first boot. If you use an externally managed RDS instance, you must create this database manually before Airbyte will start.
 
 ### Secrets Manager re-deploy after destroy
 

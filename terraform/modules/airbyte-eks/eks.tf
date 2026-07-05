@@ -81,6 +81,8 @@ resource "aws_launch_template" "node" {
   ]
 
   # IMDSv2 required. hop_limit=2 allows pods to reach IMDS for IRSA token exchange.
+  # The EC2 module uses hop_limit=3 because kind-in-Docker adds two network hops;
+  # EKS pods are only one hop from the node, so 2 is sufficient.
   metadata_options {
     http_endpoint               = "enabled"
     http_tokens                 = "required"
@@ -159,6 +161,8 @@ resource "aws_eks_node_group" "this" {
   ]
 
   lifecycle {
+    # Ignore desired_size so Terraform does not reset node count after
+    # cluster autoscaler or manual scaling adjustments between applies.
     ignore_changes = [scaling_config[0].desired_size]
   }
 }

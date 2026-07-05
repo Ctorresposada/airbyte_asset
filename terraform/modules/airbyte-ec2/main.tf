@@ -853,7 +853,9 @@ resource "aws_launch_template" "this" {
   user_data = base64encode(local.user_data_content)
 
   # IMDSv2 required -- prevents SSRF-based metadata access.
-  # hop_limit is required for Docker/kind containers to reach IMDS (each container adds one hop).
+  # hop_limit=3 is required for kind-in-Docker: traffic traverses two extra network
+  # hops (Docker bridge + kind container network) before reaching IMDS. The EKS
+  # module uses hop_limit=2 because pods are only one hop from the node.
   metadata_options {
     http_endpoint               = "enabled"
     http_tokens                 = "required"
@@ -1040,6 +1042,8 @@ resource "aws_autoscaling_group" "this" {
   }
 
   lifecycle {
+    # Ignore desired_capacity so Terraform does not reset the ASG size after
+    # manual scaling or auto-scaling events between applies.
     ignore_changes = [desired_capacity]
   }
 
