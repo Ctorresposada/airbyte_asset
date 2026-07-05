@@ -380,6 +380,110 @@ In the EC2 variant, the ALB is Terraform-managed and supports `alb_deletion_prot
 
 Credentials are stored in a Kubernetes secret created by the Helm chart — see [Post-Deployment](#post-deployment) for the exact commands.
 
+## Making the Console Private
+
+By default both variants deploy an **internet-facing ALB** with `allowed_cidr_blocks = ["0.0.0.0/0"]`, meaning the Airbyte console is reachable from any IP. This section documents the changes needed to lock it down to an internal network (VPN, Direct Connect, or private VPC traffic only).
+
+> **Prerequisite:** Users must reach the VPC via VPN, AWS Direct Connect, or be on an EC2 instance within the same VPC. Without this, an internal ALB is unreachable.
+
+---
+
+### EC2 variant
+
+Three tfvars changes are required — no template edits needed.
+
+**1. Make the ALB internal**
+
+```hcl
+alb_internal = true
+```
+
+**2. Place the ALB in private subnets**
+
+The `alb_subnet_ids` variable controls which subnets the ALB's ENIs are placed in. For an internal ALB, pass your private subnets (the same ones used by the EC2 instance):
+
+```hcl
+# Before (internet-facing — public subnets)
+# alb_subnet_ids = ["subnet-pub-1a", "subnet-pub-1b"]
+
+# After (internal — private subnets)
+alb_subnet_ids = ["subnet-priv-1a", "subnet-priv-1b"]
+```
+
+**3. Restrict the CIDR whitelist**
+
+```hcl
+# Replace 0.0.0.0/0 with your VPN/office/VPC CIDRs
+allowed_cidr_blocks = ["10.0.0.0/8"]   # example: RFC-1918 VPC range
+```
+
+**4. (Optional) Use a private Route53 hosted zone**
+
+If you want the domain to resolve only inside the VPC, associate a **private hosted zone** with your VPC in Route53 and pass its zone ID as `route53_zone_id`. With a public zone, the DNS record will still resolve from the internet (pointing to a private IP), which is usually acceptable but worth noting.
+
+---
+
+### EKS variant
+
+The EKS module requires one template edit in addition to tfvars changes, because the ALB scheme is set via a hardcoded Ingress annotation rather than a variable.
+
+**1. Change the ALB scheme in the Ingress template**
+
+Edit `terraform/modules/airbyte-eks/templates/airbyte-values.yaml.tpl`, find the line:
+
+```yaml
+alb.ingress.kubernetes.io/scheme: internet-facing
+```
+
+Change it to:
+
+```yaml
+alb.ingress.kubernetes.io/scheme: internal
+```
+
+**2. Place the ALB in private subnets**
+
+The `public_subnet_ids` variable is passed to the `alb.ingress.kubernetes.io/subnets` Ingress annotation. Despite the variable name, for an internal ALB you should pass **private** subnet IDs here:
+
+```hcl
+# Pass private subnets so the ALB controller places ENIs in the correct subnets
+public_subnet_ids = ["subnet-priv-1a", "subnet-priv-1b"]
+```
+
+> Note: the variable name `public_subnet_ids` is misleading in this context — it exists because the field is typically used for public subnets in an internet-facing deployment. A future improvement would be renaming it to `alb_subnet_ids` (as the EC2 module already does).
+
+**3. Restrict the CIDR whitelist**
+
+```hcl
+allowed_cidr_blocks = ["10.0.0.0/8"]
+```
+
+This sets the `alb.ingress.kubernetes.io/inbound-cidrs` Ingress annotation, which the ALB controller uses to configure the ALB security group.
+
+**4. (Optional) Restrict the EKS public API endpoint**
+
+This controls `kubectl` access (not the Airbyte console), but is worth locking down alongside a private console deployment:
+
+```hcl
+eks_public_access_cidrs = ["203.0.113.10/32"]  # CI/CD runner or admin IP
+```
+
+**5. (Optional) Use a private Route53 hosted zone**
+
+Same consideration as the EC2 variant — use a private hosted zone if you want the domain to be non-resolvable from the internet.
+
+---
+
+### Summary of changes by variant
+
+| What to change | EC2 | EKS |
+|---|---|---|
+| ALB scheme | `alb_internal = true` (variable) | Edit `airbyte-values.yaml.tpl` line (`internet-facing` → `internal`) |
+| ALB subnet placement | `alb_subnet_ids` = private subnets | `public_subnet_ids` = private subnets |
+| CIDR whitelist | `allowed_cidr_blocks` = VPN/VPC range | `allowed_cidr_blocks` = VPN/VPC range |
+| kubectl access (EKS only) | N/A | `eks_public_access_cidrs` = admin IPs |
+| DNS | Use private Route53 zone (optional) | Use private Route53 zone (optional) |
+
 ## Migrating from the previous module path
 
 If you deployed before the EC2/EKS split, your Terraform state has resources under `module.airbyte.*`. After upgrading, run these state moves before applying:
