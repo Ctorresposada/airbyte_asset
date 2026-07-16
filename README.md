@@ -497,7 +497,16 @@ Or for a complete migration, run `terraform state mv` for each resource — see 
 
 ## Examples: Sources, Destinations and Connections. 
 
-Note: Oracle RDS and SQL Server RDS are created in the Caylent testing account and are currently stopped. This module does not create them because they are outside the scope of this project.
+Note: Oracle RDS and SQL Server RDS are created in the Caylent testing account. This module does not create them because they are outside the scope of this project.
+
+> **Source databases deleted — restore from snapshot before deploying this example.** To save cost, the Oracle and SQL Server source RDS instances have been deleted. Before applying `terraform/examples/oracle-sqlserver-s3/`, restore both from their final snapshots in the `eu-west-1` (Ireland) region:
+>
+> | Instance | Snapshot |
+> |---|---|
+> | `oracle-source-db` | `oracle-source-db-snapshot` |
+> | `sqlserver-source-db` | `sqlserver-source-db-snapshot` |
+>
+> Restore each via the RDS console (**Snapshots → select snapshot → Restore snapshot**) or `aws rds restore-db-instance-from-db-snapshot`, then update `oracle_host`/`mssql_host` in your tfvars if the restored instance gets a new endpoint.
 
 The purpose of these examples is to demonstrate how sources, destinations, and connections can be managed using Terraform. Oracle RDS and SQL Server RDS are just two of the hundreds of connectors supported by Airbyte, alongside connectors such as Snowflake, PostgreSQL, and many others.
 
