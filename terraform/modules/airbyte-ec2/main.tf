@@ -194,8 +194,9 @@ resource "random_password" "rds" {
   length  = 32
   special = true
   # Restricted to characters safe in YAML (avoids anchor &, alias *, tag !, flow {}/[]),
-  # Helm strvals (avoids , separator), and shell (avoids glob *, redirection <>, subshell ()).
-  override_special = "#$%-_=+@"
+  # Helm strvals (avoids , separator), shell (avoids glob *, redirection <>, subshell ()),
+  # and RDS master passwords (avoids / @ " and space).
+  override_special = "#$%-_=+"
 }
 
 # ---------------------------------------------------------------------------
